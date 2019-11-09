@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="plugin.audio.amazonmedia" name="Amazon Media" version="0.0.35" provider-name="spacy">
+    <requires>
+        <!-- <import addon="script.module.pycryptodome" version="3.4.1"/> -->
+        <import addon="script.module.mechanize" version="0.2.6"/> <!-- 0.4.3 for kodi 19 -->
+        <import addon="script.module.beautifulsoup4" version="4.6.2"/> <!-- 4.6.3 for kodi 19 -->
+        <import addon="script.module.requests" version="2.22.0"/> <!-- 2.9.1 -->
+        <!--<import addon="script.module.inputstreamhelper" version="0.4.3"/>-->
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="amazonmedia.py">
+        <provides>audio</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <platform>all</platform>
+        <summary lang="en">Amazon Add-on</summary>
+        <language></language>
+        <description lang="en">Kodi Amazon Music Add-on - Kodi extention to browse and play Amazon Music songs. An Amazon account is necessary.</description>
+        <disclaimer lang="en">Some parts of this addon may not be legal in your country of residence - please check with your local laws before installing. All used images are from Amazon.</disclaimer>
+        <license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
+        <source>https://github.com/spacys/</source>
+        <forum>https://www.kodinerds.net/index.php/Thread/65849-Amazon-Mediathek/?postID=524424</forum>
+        <website>https://www.amazon.de</website>
+    </extension>
+</addon>
