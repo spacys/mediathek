@@ -1,3 +1,6 @@
+0.0.36
+- new feature: live soccer reimplemented
+- code adjustment: playback now via VideoPlayer
 0.0.35
 - some code adjustments for Python 3 / Kodi 19
 0.0.34
