@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.audio.amazonmedia" name="Amazon Media" version="0.0.39" provider-name="spacy">
+<addon id="plugin.audio.amazonmedia" name="Amazon Media" version="0.0.40" provider-name="spacy">
     <requires>
         <import addon="script.module.mechanize" version="0.2.6"/> <!-- 0.4.3 for kodi 19 -->
         <import addon="script.module.beautifulsoup4" version="4.6.2"/> <!-- 4.6.3 for kodi 19 -->
