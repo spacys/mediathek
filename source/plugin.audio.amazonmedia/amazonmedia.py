@@ -114,6 +114,10 @@ class AmazonMedia():
         if os.path.exists(os.path.join(self.addonUDatFo, "cookies")):
             os.rename(os.path.join(self.addonUDatFo, "cookies"), self.cookieFile)
     def reqDispatch(self):
+        # reset addon
+        if self.addonMode is not None and self.addonMode[0] == 'resetAddon':
+            self.resetAddon()
+            return
         # logon
         if self.access == 'false':
             if not self.amazonLogon():
@@ -132,11 +136,6 @@ class AmazonMedia():
             self.menuStations()
         elif self.addonMode[0] == 'menuArtists':
             self.menuArtists()
-        # reset addon
-        elif self.addonMode[0] == 'resetAddon':
-            self.resetAddon()
-        elif self.addonMode[0] == 'donothing':
-            return
         # search - 'resultSpecs' needs a combination of label : type
         # playlists : catalog_playlist
         # albums : catalog_album
@@ -1275,6 +1274,7 @@ class AmazonMedia():
             data = json.dumps(data)
         elif mode == 'getLicenseForPlaybackV2':
             mID = self.getMaestroID()
+            # 'b{SSM}' for linux
             data = {
                 'DrmType':'WIDEVINE',
                 'licenseChallenge':'b{SSM}',
@@ -1287,7 +1287,7 @@ class AmazonMedia():
                     'musicAgent':mID
                 }
             }
-            #data = json.dumps(data)
+            data = json.dumps(data)
         elif mode == 'getSoccerMain':
             data = { # TODO
                 'competitionId':    mediatype,
@@ -2308,32 +2308,25 @@ class AmazonMedia():
         li.setMimeType('application/dash+xml')
         li.setContentLookup(False)
         xbmcplugin.setResolvedUrl(self.addonHandle, True, listitem=li)
-
     def getLicenseKey(self):
         amzUrl = self.API_LicenseForPlaybackV2
         url = '{}/{}/api/{}'.format(self.url, self.region, amzUrl['path'])
         head = self.prepReqHeader(amzUrl['target'])
+
         cookiedict = {}
         for cookie in self.cj:
-          cookiedict[cookie.name] = cookie.value
+            cookiedict[cookie.name] = cookie.value
         cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookiedict.items()])
-
-        licHeaders = 'User-Agent={}&Content-Encoding=amz-1.0&Content-Type=application%2Fjson&Cookie={}'.format(urllib.quote(self.userAgent),urllib.quote(cj_str))
-        licHeaders +='&X-Amz-Target={}'.format(amzUrl['target'])
-        licHeaders +='&csrf-token={}'.format(urllib.quote(self.csrf_token))
-        licHeaders +='&csrf-rnd={}'.format(urllib.quote(self.csrf_rnd))
-        licHeaders +='&csrf-ts={}'.format(urllib.quote(self.csrf_ts))
-        mID = self.getMaestroID()
-        licBody = '{"DrmType":"WIDEVINE","licenseChallenge":"b{SSM}","customerId":"'+self.customerId+'","deviceToken":{"deviceTypeId":"'+self.deviceType+'","deviceId":"'+self.deviceId+'"},"appInfo":{"musicAgent":"'+mID+'"}}'
-        # Maestro/1.0 WebCP/1.0.202649.0 (c8d8-6a2f-dmcp-a62a-1594c)"}}'
+        head['Cookie'] = cj_str
+        licHeaders = '&'.join(['%s=%s' % (k, urllib.quote(v)) for k, v in head.items()])
+        licBody = self.prepReqData('getLicenseForPlaybackV2')
         # licURL expected (req / header / body / response)
         return '{}|{}|{}|JBlicense'.format(url,licHeaders,licBody)
     def getMaestroID(self):
-        #return "Maestro/1.0 WebCP/1.0.202638.0 (17d5-73f8-dmcp-c163-61530)"
-        return "Maestro/1.0 WebCP/1.0.202638.0 (" + self.generatePlayerUID() + ")"
+        return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
         a = str(math.floor(16 * (1 + random.random())).hex())[4:5]
-        return self.doCalc() + "-" + self.doCalc() + "-dmcp-" + self.doCalc() + "-" + self.doCalc() + a
+        return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         return str(math.floor(65536 * (1 + random.random())).hex())[4:8]
     def isInputStream(self): # helper to activate InputStream if available
