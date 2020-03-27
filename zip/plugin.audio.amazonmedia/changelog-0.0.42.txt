@@ -1,3 +1,5 @@
+0.0.42
+- bug fixing: logon fix for unlimited accounts
 0.0.41
 - code improved
 0.0.40
