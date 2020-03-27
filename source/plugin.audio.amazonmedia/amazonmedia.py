@@ -25,7 +25,7 @@ import xbmcaddon
 import xbmcvfs
 from bs4 import BeautifulSoup
 import datetime
-from base64 import b64encode, b64decode
+from base64 import b64encode, b64decode, urlsafe_b64encode
 import math
 import random
 
@@ -345,10 +345,11 @@ class AmazonMedia():
         self.region         = app_config['realm'][:2]
         self.url            = 'https://{}'.format(app_config['serverInfo']['returnUrlServer'])
         self.access         = 'true'
-        if app_config['customerBenefits']['primeAccess'] == 1:
-            self.accessType = 'PRIME'
-        if app_config['customerBenefits']['hawkfireAccess'] == 1:
-            self.accessType = 'UNLIMITED'
+        #if app_config['customerBenefits']['primeAccess'] == 1:
+        #    self.accessType = 'PRIME'
+        #if app_config['customerBenefits']['hawkfireAccess'] == 1:
+        #    self.accessType = 'UNLIMITED'
+        self.accessType = app_config['customerBenefits']['tier']
         self.setSetting('deviceId',         self.deviceId)
         self.setSetting('csrf_token',       self.csrf_token)
         self.setSetting('csrf_ts',          self.csrf_ts)
@@ -1273,8 +1274,18 @@ class AmazonMedia():
             }
             data = json.dumps(data)
         elif mode == 'getLicenseForPlaybackV2':
+            """
+            license_key must be a string template with 4 | separated fields: [license-server url]|[Header]|[Post-Data]|[Response] in which [license-server url]
+            allows B{SSM} placeholder and [Post-Data] allows [b/B/R]{SSM} and [b/B/R]{SID} placeholders to transport the widevine challenge and if required the
+            DRM SessionId in base64NonURLencoded, Base64URLencoded or Raw format.
+            [Response] can be a.) empty or R to specify that the response payload of the license request is binary format, b.) B if the response payload is base64
+            encoded or c.) J[licensetoken] if the license key data is located in a JSON struct returned in the response payload.
+            inputstream.adaptive searches for the key [licensetoken] and handles the value as base64 encoded data.
+            """
             mID = self.getMaestroID()
-            # 'b{SSM}' for linux
+            # 'b{SSM}' base64NonURLencoded
+            # 'B{SSM}' Base64URLencoded
+            # 'R{SSM}' Raw format.
             data = {
                 'DrmType':'WIDEVINE',
                 'licenseChallenge':'b{SSM}',
@@ -2222,7 +2233,6 @@ class AmazonMedia():
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
             li.setProperty('inputstream.adaptive.license_key', lic)
-            li.setProperty('inputstream.adaptive.stream_headers', 'user-agent=' + self.userAgent)
             li.setInfo('video', '')
             li.setMimeType('application/dash+xml')
             li.setContentLookup(False)
@@ -2317,6 +2327,7 @@ class AmazonMedia():
         for cookie in self.cj:
             cookiedict[cookie.name] = cookie.value
         cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookiedict.items()])
+
         head['Cookie'] = cj_str
         licHeaders = '&'.join(['%s=%s' % (k, urllib.quote(v)) for k, v in head.items()])
         licBody = self.prepReqData('getLicenseForPlaybackV2')
