@@ -1856,6 +1856,9 @@ class AmazonMedia():
             meta['isPlayable'] = 'false'
         else:
             meta['isPlayable'] = 'true'
+
+        if (self.accessType == 'UNLIMITED' and meta['isUnlimited']): # workaround for unlimited accounts, songs are now playable in search function
+            meta['isPlayable'] = 'true'
         #self.log(info)
         #self.log(meta)
         return (info,meta)

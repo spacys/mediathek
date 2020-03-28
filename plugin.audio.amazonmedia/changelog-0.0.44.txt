@@ -1,3 +1,5 @@
+0.0.44
+- bug fixing: searched songs - playback with unlimited account was not possible
 0.0.43
 - improved python 3 compatibility
 0.0.42
