@@ -1,12 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import urllib
+# import urllib
 try:
-    import urllib.parse as urlparse # python 3 / kodi 19
-except ImportError: # python 2 / kodi 18
-    import urlparse as urlparse
-# import urllib2
+    import urlparse as urlparse # Python 2
+except ImportError:
+    import urllib.parse as urlparse # Python 3
+try:
+    from urllib import quote as urlquote # Python 2
+except ImportError:
+    from urllib.parse import quote as urlquote # Python 3
+try:
+    from urllib import quote_plus as urlquoteplus # Python 2
+except ImportError:
+    from urllib.parse import quote_plus as urlquoteplus # Python 3
+try:
+    from urllib import urlencode as urlencode # Python 2
+except ImportError:
+    from urllib.parse import urlencode as urlencode # Python 3
+
 import requests
 import mechanize
 try: # python 3
@@ -25,7 +37,6 @@ import xbmcaddon
 import xbmcvfs
 from bs4 import BeautifulSoup
 import datetime
-from base64 import b64encode, b64decode, urlsafe_b64encode
 import math
 import random
 
@@ -1871,9 +1882,11 @@ class AmazonMedia():
         li.setProperty('IsPlayable', 'false')
         url = "{}?mode={}&token={}".format(self.addonBaseUrl,str(self.addonMode[0]),str(nextToken))
         if query:
-            url += "&query={}".format(urllib.quote_plus(query.encode("utf8")))
+            #url += "&query={}".format(urllib.quote_plus(query.encode("utf8")))
+            url += "&query={}".format(urlquoteplus(query.encode("utf8"))) # python 3 correction
         if asin:
-            url += "&asin={}".format(urllib.quote_plus(asin.encode("utf8")))
+            #url += "&asin={}".format(urllib.quote_plus(asin.encode("utf8")))
+            url += "&asin={}".format(urlquoteplus(asin.encode("utf8"))) # python 3 correction
         return (url, li, True)
     def setUrl(self,inf,met):
         url = {
@@ -1885,7 +1898,8 @@ class AmazonMedia():
         }
         if met['objectId'] is not None:
             url['objectId'] = met['objectId']
-        return '{}?{}'.format(self.addonBaseUrl,urllib.urlencode(url))
+        #return '{}?{}'.format(self.addonBaseUrl,urllib.urlencode(url))
+        return '{}?{}'.format(self.addonBaseUrl,urlencode(url)) # python 3 correction
     def setAddonContent(self,mode,param,ctype,stype=None,query=None):
         itemlist = []
         meta = []
@@ -2248,7 +2262,8 @@ class AmazonMedia():
         if ftype == 'mpd':
             m3u_string = manifest
             song = '{}/song.{}'.format(self.addonUDatFo,ftype)
-        m3u_string = m3u_string.replace("\\n", os.linesep)
+        # m3u_string = m3u_string.replace("\\n", os.linesep)
+        m3u_string = str(m3u_string.replace("\\n", os.linesep)) # python 3 correction
         temp_file.write(m3u_string.encode("ascii"))
         temp_file.close()
         return song
@@ -2329,17 +2344,20 @@ class AmazonMedia():
         cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookiedict.items()])
 
         head['Cookie'] = cj_str
-        licHeaders = '&'.join(['%s=%s' % (k, urllib.quote(v)) for k, v in head.items()])
+        #licHeaders = '&'.join(['%s=%s' % (k, urllib.quote(v)) for k, v in head.items()])
+        licHeaders = '&'.join(['%s=%s' % (k, urlquote(v)) for k, v in head.items()]) # python 3 correction
         licBody = self.prepReqData('getLicenseForPlaybackV2')
         # licURL expected (req / header / body / response)
         return '{}|{}|{}|JBlicense'.format(url,licHeaders,licBody)
     def getMaestroID(self):
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
-        a = str(math.floor(16 * (1 + random.random())).hex())[4:5]
+        # a = str(math.floor(16 * (1 + random.random())).hex())[4:5]
+        a = str(float.hex(math.floor(16 * (1 + random.random()))))[4:5] # python 3 correction
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
-        return str(math.floor(65536 * (1 + random.random())).hex())[4:8]
+        # return str(math.floor(65536 * (1 + random.random())).hex())[4:8]
+        return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8] # python 3 correction
     def isInputStream(self): # helper to activate InputStream if available
         verifyISA = '{"jsonrpc":"2.0","id":1,"method":"Addons.GetAddonDetails","params":{"addonid":"inputstream.adaptive"}}'
         if 'error' in xbmc.executeJSONRPC(verifyISA):
