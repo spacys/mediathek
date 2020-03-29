@@ -91,7 +91,7 @@ class AmazonMedia():
         self.csrf_ts      = self.getSetting("csrf_ts")
         self.csrf_rnd     = self.getSetting("csrf_rnd")
         self.customerId   = self.getSetting("customerId")
-        self.marketplaceId= self.getSetting("marketplaceId")
+        self.marketplaceId = self.getSetting("marketplaceId")
         self.deviceType   = self.getSetting("deviceType")
         self.musicTerritory = self.getSetting("musicTerritory")
         self.locale       = self.getSetting("locale")
@@ -105,7 +105,7 @@ class AmazonMedia():
         self.cj           = cookielib.MozillaCookieJar()
         self.logging      = self.getSetting("logging")
         self.showimages   = self.getSetting("showimages")
-        self.showUnplayableSongs= self.getSetting("showUnplayableSongs")
+        self.showUnplayableSongs = self.getSetting("showUnplayableSongs")
         self.showcolentr  = self.getSetting("showcolentr")
 
         self.sPlayLists   = ["search1PlayLists","search2PlayLists","search3PlayLists"]
@@ -396,9 +396,21 @@ class AmazonMedia():
         self.setSetting('showUnplayableSongs', "false")
         self.setSetting('showcolentr', "true")
         self.setSetting('accessType', "")
-        self.setSetting('search1', "")
-        self.setSetting('search2', "")
-        self.setSetting('search3', "")
+        self.setSetting('search1PlayLists', "")
+        self.setSetting('search2PlayLists', "")
+        self.setSetting('search3PlayLists', "")
+        self.setSetting('search1Albums', "")
+        self.setSetting('search2Albums', "")
+        self.setSetting('search3Albums', "")
+        self.setSetting('search1Songs', "")
+        self.setSetting('search2Songs', "")
+        self.setSetting('search3Songs', "")
+        self.setSetting('search1Stations', "")
+        self.setSetting('search2Stations', "")
+        self.setSetting('search3Stations', "")
+        self.setSetting('search1Artists', "")
+        self.setSetting('search2Artists', "")
+        self.setSetting('search3Artists', "")
         self.access = 'false'
     def resetAddon(self):
         self.deviceId = ''
@@ -829,7 +841,7 @@ class AmazonMedia():
             data = json.JSONEncoder().encode(data)
         elif mode == 'getArtistDetails':
             data  = {
-                'requestedContent': 'PRIME', #self.accessType,
+                'requestedContent': self.accessType, #'PRIME', #self.accessType,
                 'asin': asin,
                 'types':[{
                     'sortBy':'popularity-rank',
@@ -2257,15 +2269,15 @@ class AmazonMedia():
         else:
             return None
     def writeSongFile(self,manifest,ftype='m3u8'):
-        song = '{}/song.{}'.format(self.addonUDatFo,ftype) # '/song.mp4'
+        song = '{}{}song.{}'.format(self.addonUDatFo,os.sep,ftype) # '/song.mp4'
         m3u_string = ''
         temp_file = xbmcvfs.File(song, 'w')
         if ftype == 'm3u8':
             m3u_string = manifest[0]
         if ftype == 'mpd':
             m3u_string = manifest
-            song = '{}/song.{}'.format(self.addonUDatFo,ftype)
-        # m3u_string = m3u_string.replace("\\n", os.linesep)
+            song = '{}{}song.{}'.format(self.addonUDatFo,os.sep,ftype)
+            song = song.replace("\\","/") # windows fix that inputstream can work properly
         m3u_string = str(m3u_string.replace("\\n", os.linesep)) # python 3 correction
         temp_file.write(m3u_string.encode("ascii"))
         temp_file.close()
