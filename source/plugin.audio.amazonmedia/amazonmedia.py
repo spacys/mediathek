@@ -77,7 +77,7 @@ class AmazonMedia():
         self.addonHandle  = int(sys.argv[1])
         self.addonArgs    = urlparse.parse_qs(sys.argv[2][1:])
         self.addonMode    = self.addonArgs.get('mode', None)
-        self.siteVerList  = ["com", "co.uk", "de"]
+        self.siteVerList  = ["com", "co.uk", "de", "fr"]
         self.siteVersion  = self.getSetting("siteVersion")
         self.logonURL     = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])
         self.musicURL     = 'https://music.amazon.{}'.format(self.siteVerList[int(self.siteVersion)])
