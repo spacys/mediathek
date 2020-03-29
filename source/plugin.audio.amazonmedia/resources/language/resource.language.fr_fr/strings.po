@@ -7,23 +7,23 @@ msgstr ""
 
 msgctxt "#30001"
 msgid "Playlists - Popular"
-msgstr "Playlists - Popular"
+msgstr "Playlists - Populaire"
 
 msgctxt "#30002"
 msgid "Playlists - Newly Released"
-msgstr "Playlists - Newly Released"
+msgstr "Playlists - Récentes"
 
 msgctxt "#30003"
 msgid "Playlist Recommendations"
-msgstr "Playlist Recommendations"
+msgstr "Recommendations de Playlist "
 
 msgctxt "#30004"
 msgid "Album Recommendations"
-msgstr "Album Recommendations"
+msgstr "Recommendations d'Album"
 
 msgctxt "#30005"
 msgid "Station Recommendations"
-msgstr "Station Recommendations"
+msgstr "Recommendations de Stations"
 
 msgctxt "#30006"
 msgid "Songs - Owned"
@@ -31,7 +31,7 @@ msgstr ""
 
 msgctxt "#30007"
 msgid "Albums - Owned"
-msgstr "Songs - Owned"
+msgstr "Titres - Acquis"
 
 msgctxt "#30008"
 msgid "Stations"
@@ -39,27 +39,27 @@ msgstr "Stations"
 
 msgctxt "#30009"
 msgid "Songs - Purchased"
-msgstr "Songs - Purchased"
+msgstr "Titres - Achetés"
 
 msgctxt "#30010"
 msgid "Albums - Search"
-msgstr "Albums - Search"
+msgstr "Albums - Rechercher"
 
 msgctxt "#30011"
 msgid "Songs - Search"
-msgstr "Songs - Search"
+msgstr "Songs - Rechercher"
 
 msgctxt "#30012"
 msgid "Albums - Purchased"
-msgstr "Albums - Purchased"
+msgstr "Albums - Achetés"
 
 msgctxt "#30013"
 msgid "Playlists - Search"
-msgstr "Playlists - Search"
+msgstr "Playlists - Rechercher"
 
 msgctxt "#30014"
 msgid "Artist - Search"
-msgstr "Artist - Search"
+msgstr "Artist - Rechercher"
 
 msgctxt "#30015"
 msgid "Genres"
@@ -67,31 +67,31 @@ msgstr "Genres"
 
 msgctxt "#30016"
 msgid "Stations - Search"
-msgstr "Stations - Search"
+msgstr "Stations - Rechercher"
 
 msgctxt "#30017"
 msgid "Songs - Recently Played"
-msgstr "Songs - Recently Played"
+msgstr "Titres - Joués récement"
 
 msgctxt "#30018"
 msgid "Playlists - Followed"
-msgstr "Playlists - Followed"
+msgstr "Playlists - Suivies"
 
 msgctxt "#30019"
 msgid "Playlists - Owned"
-msgstr "Playlists - Owned"
+msgstr "Playlists - Acquises"
 
 msgctxt "#30020"
 msgid "Next Page"
-msgstr "Next Page"
+msgstr "Page Suivante"
 
 msgctxt "#30021"
 msgid "Songs - Recently Added"
-msgstr "Songs - Recently Added"
+msgstr "Titres - Récemment ajoutés"
 
 msgctxt "#30022"
 msgid "Songs"
-msgstr "Songs"
+msgstr "Titres"
 
 msgctxt "#30023"
 msgid "Playlists"
@@ -103,47 +103,47 @@ msgstr "Albums"
 
 msgctxt "#30025"
 msgid "Stations - all Artists"
-msgstr "Stations - all Artists"
+msgstr "Stations - Tous les artistes"
 
 msgctxt "#30026"
 msgid "All Stations"
-msgstr "All Stations"
+msgstr "Toutes les stations"
 
 msgctxt "#30027"
 msgid "Artists"
-msgstr "Artists"
+msgstr "Artistes"
 
 msgctxt "#30030"
 msgid "Amazon - Enter your Username (Email)"
-msgstr "Amazon - Enter your Username (Email)"
+msgstr "Amazon - Entrez votre nom d'utilisateur (Email)"
 
 msgctxt "#30031"
 msgid "Amazon - Enter your Password"
-msgstr "Amazon - Enter your Password"
+msgstr "Amazon - Entrez votre mot de passe"
 
 msgctxt "#30032"
 msgid "Last Search -1 : "
-msgstr "Last Search -1 : "
+msgstr "Dernière recherche -1 : "
 
 msgctxt "#30033"
 msgid "Last Search -2 : "
-msgstr "Last Search -2 : "
+msgstr "Dernière recherche -2 : "
 
 msgctxt "#30034"
 msgid "Last Search -3 : "
-msgstr "Last Search -3 : "
+msgstr "Dernière recherche -3 : "
 
 msgctxt "#30035"
 msgid "Soccer Live"
-msgstr "Soccer Live"
+msgstr "Football Live"
 
 msgctxt "#30036"
 msgid "Bundesliga"
-msgstr "Bundesliga"
+msgstr "Bundesligue"
 
 msgctxt "#30037"
 msgid "2. Bundesliga"
-msgstr "2. Bundesliga"
+msgstr "2. Bundesligue"
 
 msgctxt "#30038"
 msgid "DFB Pokal"
@@ -159,15 +159,19 @@ msgstr "SuperCup"
 
 msgctxt "#30100"
 msgid "General"
-msgstr "General"
+msgstr "Géneral"
 
 msgctxt "#30101"
+<<<<<<< HEAD
 msgid "Domain Identifier (DE / UK / US / FR)"
-msgstr "Domain Identifier (DE / UK / US / FR)"
+=======
+msgid "Domain Identifier (DE / UK / US)"
+>>>>>>> abecef71e5df35df2f348628ccfed6d480fde0e2
+msgstr "Domaine d'identification (DE / UK / US / FR)"
 
 msgctxt "#30102"
 msgid "Audio Quality"
-msgstr "Audio Quality"
+msgstr "Qualité Audio"
 
 msgctxt "#30103"
 msgid "Reset Addon"
@@ -175,16 +179,16 @@ msgstr "Reset Addon"
 
 msgctxt "#30104"
 msgid "Activate Logging"
-msgstr "Activate Logging"
+msgstr "Activer les Logs"
 
 msgctxt "#30105"
 msgid "Show all Images (reduce Metadata)"
-msgstr "Show all Images (reduce Metadata)"
+msgstr "Montrer toutes les images (reduit les Metadata)"
 
 msgctxt "#30106"
 msgid "Show colored Entries"
-msgstr "Show colored Entries"
+msgstr "Voir les entrées colorées"
 
 msgctxt "#30107"
 msgid "Show unplayable Songs"
-msgstr "Show unplayable Songs"
+msgstr "Voir les titres non jouables"

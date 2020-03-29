@@ -162,8 +162,8 @@ msgid "General"
 msgstr "Allgemein"
 
 msgctxt "#30101"
-msgid "Domain Identifier (DE / UK / US)"
-msgstr "Domainkennung (DE / UK / US)"
+msgid "Domain Identifier (DE / UK / US / FR)"
+msgstr "Domainkennung (DE / UK / US / FR)"
 
 msgctxt "#30102"
 msgid "Audio Quality"
