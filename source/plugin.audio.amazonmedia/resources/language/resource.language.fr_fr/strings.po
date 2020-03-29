@@ -162,11 +162,7 @@ msgid "General"
 msgstr "Géneral"
 
 msgctxt "#30101"
-<<<<<<< HEAD
 msgid "Domain Identifier (DE / UK / US / FR)"
-=======
-msgid "Domain Identifier (DE / UK / US)"
->>>>>>> abecef71e5df35df2f348628ccfed6d480fde0e2
 msgstr "Domaine d'identification (DE / UK / US / FR)"
 
 msgctxt "#30102"
