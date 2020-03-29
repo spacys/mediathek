@@ -1,6 +1,6 @@
 <settings>
     <category label="30100">
-        <setting id="siteVersion" type="enum" label="30101" values="US|UK|DE" default="2"/>
+        <setting id="siteVersion" type="enum" label="30101" values="US|UK|DE|FR" default="2"/>
         <setting id="quality" type="enum" label="30102" values="256kbit|128kbit|48kbit" default="0"/>
         <setting id="logging" type="bool" label="30104" default="false"/>
         <setting id="showimages" type="bool" label="30105" default="false"/>

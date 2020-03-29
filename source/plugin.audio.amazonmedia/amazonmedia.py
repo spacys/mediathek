@@ -77,7 +77,7 @@ class AmazonMedia():
         self.addonHandle  = int(sys.argv[1])
         self.addonArgs    = urlparse.parse_qs(sys.argv[2][1:])
         self.addonMode    = self.addonArgs.get('mode', None)
-        self.siteVerList  = ["com", "co.uk", "de"]
+        self.siteVerList  = ["com", "co.uk", "de", "fr"]
         self.siteVersion  = self.getSetting("siteVersion")
         self.logonURL     = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])
         self.musicURL     = 'https://music.amazon.{}'.format(self.siteVerList[int(self.siteVersion)])
@@ -795,6 +795,10 @@ class AmazonMedia():
             else:
                 prop = 'pageToken'
                 val = self.addonArgs.get('token', [None])[0]
+            #if self.accessType == 'UNLIMITED':
+            #    tier = 'MUSIC_SUBSCRIPTION'
+            #else:
+            #    tier = self.accessType
             data = {
                 'customerIdentity': {
                     'deviceId': self.deviceId,
@@ -833,15 +837,19 @@ class AmazonMedia():
                             'hasExplicitLanguage': 'true'
                         },
                         'eligibility': {
-                            'tier': self.accessType
+                            'tier': self.accessType # correction for unlimited accounts necessary?
                         }
                     }
                 }]
             }
             data = json.JSONEncoder().encode(data)
         elif mode == 'getArtistDetails':
+            if self.accessType == 'UNLIMITED':
+                tier = 'MUSIC_SUBSCRIPTION'
+            else:
+                tier = self.accessType
             data  = {
-                'requestedContent': self.accessType, #'PRIME', #self.accessType,
+                'requestedContent': tier, # 'PRIME', #self.accessType,
                 'asin': asin,
                 'types':[{
                     'sortBy':'popularity-rank',
@@ -2360,7 +2368,8 @@ class AmazonMedia():
 
         head['Cookie'] = cj_str
         #licHeaders = '&'.join(['%s=%s' % (k, urllib.quote(v)) for k, v in head.items()])
-        licHeaders = '&'.join(['%s=%s' % (k, urlquote(v)) for k, v in head.items()]) # python 3 correction
+        #licHeaders = '&'.join(['%s=%s' % (k, urlquote(v)) for k, v in head.items()]) # python 3 correction
+        licHeaders = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
         licBody = self.prepReqData('getLicenseForPlaybackV2')
         # licURL expected (req / header / body / response)
         return '{}|{}|{}|JBlicense'.format(url,licHeaders,licBody)
