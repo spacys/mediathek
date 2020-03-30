@@ -1,0 +1,190 @@
+# Kodi Media Center language file
+# Addon Name: AmazonMedia
+# Addon id: plugin.audio.amazonmedia
+# Addon Provider: spacy
+msgid ""
+msgstr ""
+
+msgctxt "#30001"
+msgid "Playlists - Popolari"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Playlists - Aggiornate di recente"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Playlist Raccomandate"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Album Raccomandati"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Stazione Raccomandate"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Canzoni - di proprietà"
+msgstr ""
+
+msgctxt "#30007"
+msgid "Albums - di proprietà"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Stazioni"
+msgstr ""
+
+msgctxt "#30009"
+msgid "Canzoni - Acquistate"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Albums - Ricerca"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Canzoni - Ricerca"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Albums - Acquistati"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Playlists - Ricerca"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Artist - Ricerca"
+msgstr ""
+
+msgctxt "#30015"
+msgid "Generi"
+msgstr ""
+
+msgctxt "#30016"
+msgid "Stazioni - Ricerca"
+msgstr ""
+
+msgctxt "#30017"
+msgid "Canzoni - Ascoltate recentemente"
+msgstr ""
+
+msgctxt "#30018"
+msgid "Playlists - Seguite"
+msgstr ""
+
+msgctxt "#30019"
+msgid "Playlists - di proprietà"
+msgstr ""
+
+msgctxt "#30020"
+msgid "Prossima Pagina"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Canzoni - Aggiunte di recente"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Canzoni"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Playlists"
+msgstr ""
+
+msgctxt "#30024"
+msgid "Albums"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Stazioni - tutti gli Artisti"
+msgstr ""
+
+msgctxt "#30026"
+msgid "Tutte le stazioni"
+msgstr ""
+
+msgctxt "#30027"
+msgid "Artisti"
+msgstr ""
+
+msgctxt "#30030"
+msgid "Amazon - Inserisci la tua Username (Email)"
+msgstr ""
+
+msgctxt "#30031"
+msgid "Amazon - Inserisci la tua Password"
+msgstr ""
+
+msgctxt "#30032"
+msgid "Ultima Ricerca -1 : "
+msgstr ""
+
+msgctxt "#30033"
+msgid "Ultima Ricerca -2 : "
+msgstr ""
+
+msgctxt "#30034"
+msgid "Ultima Ricerca -3 : "
+msgstr ""
+
+msgctxt "#30035"
+msgid "Diretta Calcio"
+msgstr ""
+
+msgctxt "#30036"
+msgid "Bundesliga"
+msgstr ""
+
+msgctxt "#30037"
+msgid "2. Bundesliga"
+msgstr ""
+
+msgctxt "#30038"
+msgid "DFB Pokal"
+msgstr ""
+
+msgctxt "#30039"
+msgid "Champions League"
+msgstr ""
+
+msgctxt "#30040"
+msgid "SuperCoppa"
+msgstr ""
+
+msgctxt "#30100"
+msgid "Generale"
+msgstr ""
+
+msgctxt "#30101"
+msgid "Domain Identifier (DE / UK / US / FR)"
+msgstr ""
+
+msgctxt "#30102"
+msgid "Qualità Audio"
+msgstr ""
+
+msgctxt "#30103"
+msgid "Reset Addon"
+msgstr ""
+
+msgctxt "#30104"
+msgid "Attivare Logging"
+msgstr ""
+
+msgctxt "#30105"
+msgid "Mostra tutte le Immagini (riduce Metadata)"
+msgstr ""
+
+msgctxt "#30106"
+msgid "Mostra voci colorate"
+msgstr ""
+
+msgctxt "#30107"
+msgid "Mostra brani non riproducibili"
+msgstr ""
