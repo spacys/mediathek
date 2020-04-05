@@ -157,6 +157,10 @@ msgctxt "#30040"
 msgid "SuperCup"
 msgstr "SuperCoppa"
 
+msgctxt "#30041"
+msgid "Recommendations"
+msgstr "Consigliati"
+
 msgctxt "#30100"
 msgid "General"
 msgstr "Generale"
