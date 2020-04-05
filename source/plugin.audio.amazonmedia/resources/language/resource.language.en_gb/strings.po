@@ -157,12 +157,16 @@ msgctxt "#30040"
 msgid "SuperCup"
 msgstr ""
 
+msgctxt "#30041"
+msgid "Recommendations"
+msgstr ""
+
 msgctxt "#30100"
 msgid "General"
 msgstr ""
 
 msgctxt "#30101"
-msgid "Domain Identifier (DE / UK / US / FR)"
+msgid "Domain Identifier (DE / UK ...)"
 msgstr ""
 
 msgctxt "#30102"

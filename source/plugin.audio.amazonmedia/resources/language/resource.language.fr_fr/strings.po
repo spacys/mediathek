@@ -157,13 +157,17 @@ msgctxt "#30040"
 msgid "SuperCup"
 msgstr "SuperCup"
 
+msgctxt "#30041"
+msgid "Recommendations"
+msgstr "Recommendations"
+
 msgctxt "#30100"
 msgid "General"
 msgstr "Géneral"
 
 msgctxt "#30101"
-msgid "Domain Identifier (DE / UK / US / FR)"
-msgstr "Domaine d'identification (DE / UK / US / FR)"
+msgid "Domain Identifier (DE / UK ...)"
+msgstr "Domaine d'identification (DE / UK ...)"
 
 msgctxt "#30102"
 msgid "Audio Quality"

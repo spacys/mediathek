@@ -44,7 +44,7 @@ NODEBUG = False
 
 class AmazonMedia():
     __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
-        'musicURL','confFile','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale',
+        'musicURL','confFile','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
         'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content',
         'API_getBrowseRecommendations','API_lookup','API_getAddToLibraryRecommendations','API_getSimilarityRecommendations','API_getMusicStoreRecommendations',
@@ -95,6 +95,7 @@ class AmazonMedia():
         self.deviceType   = self.getSetting("deviceType")
         self.musicTerritory = self.getSetting("musicTerritory")
         self.locale       = self.getSetting("locale")
+        self.customerLang = self.getSetting("customerLang")
         self.region       = self.getSetting("region")
         self.url          = self.getSetting("url")
         self.access       = self.getSetting("access")
@@ -236,6 +237,13 @@ class AmazonMedia():
             self.getRecommendations('albums','mp3-prime-browse-carousels_mp3PrimeAlbumsStrategy')
         elif self.addonMode[0] == 'getRecomStations':
             self.getRecommendations('stations','mp3-prime-browse-carousels_mp3ArtistStationStrategy')
+        ## new - getNewRecom
+        elif self.addonMode[0] == 'getNewRecom':
+            self.getNewRecommendations()
+        elif self.addonMode[0] == 'getNewRecomDetails':
+            asin = self.addonArgs.get('target', [None])
+            self.getNewRecomDetails(unicode(asin[0], "utf-8"))
+        # new end
         # get own music, differentiate betwenn purchased and own lib
         # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
         elif self.addonMode[0] == 'getPurAlbums':
@@ -353,6 +361,7 @@ class AmazonMedia():
         self.deviceType     = app_config['deviceType']
         self.musicTerritory = app_config['musicTerritory']
         self.locale         = app_config['i18n']['locale']
+        self.customerLang   = app_config['customerLanguage']
         self.region         = app_config['realm'][:2]
         self.url            = 'https://{}'.format(app_config['serverInfo']['returnUrlServer'])
         self.access         = 'true'
@@ -370,6 +379,7 @@ class AmazonMedia():
         self.setSetting('deviceType',       self.deviceType)
         self.setSetting('musicTerritory',   self.musicTerritory)
         self.setSetting('locale',           self.locale)
+        self.setSetting('customerLang',     self.customerLang)
         self.setSetting('region',           self.region)
         self.setSetting('url',              self.url)
         self.setSetting('access',           self.access)
@@ -421,6 +431,7 @@ class AmazonMedia():
         self.deviceType = ''
         self.musicTerritory = ''
         self.locale = ''
+        self.customerLang = ''
         self.region = ''
         self.url = ''
         self.access = 'false'
@@ -428,6 +439,8 @@ class AmazonMedia():
         self.showimages = 'false'
         self.showUnplayableSongs = 'false'
         self.showcolentr = 'true'
+        #if os.path.exists(self.cookieFile):
+        #    os.remove(self.cookieFile)
         self.delCookies()
         if os.path.exists(self.addonUDatFo):
             try:
@@ -512,6 +525,12 @@ class AmazonMedia():
             'path':   'muse/seeMore',
             'target': '{}seeMore'.format(base)
         }
+        # new
+        self.API_getHome = {
+            'path':   'muse/getHome',
+            'target': '{}getHome'.format(base)
+        }
+        # new end
         self.API_lookupStationsByStationKeys = {
             'path':   'muse/stations/lookupStationsByStationKeys',
             'target': '{}lookupStationsByStationKeys'.format(base)
@@ -734,6 +753,7 @@ class AmazonMedia():
             self.delCookies()
             self.amazonLogon()
         if self.logging == 'true':
+            #self.log(resp) # to be delete
             self.log(resp.text)
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
             return resp
@@ -749,7 +769,7 @@ class AmazonMedia():
         self.br.set_cookiejar(self.cj)
         self.br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
              ('Accept-Encoding', 'deflate,br'), #gzip,
-             ('Accept-Language', 'de,en-US;q=0.7,en;q=0.3'),
+             ('Accept-Language', '{},en-US;q=0.7,en;q=0.3'.format(self.siteVerList[int(self.siteVersion)])), #'de,en-US;q=0.7,en;q=0.3'),
              ('Cache-Control', 'no-cache'),
              ('Connection', 'keep-alive'),
              ('Content-Type', 'application/x-www-form-urlencoded'),
@@ -760,8 +780,9 @@ class AmazonMedia():
              ('Upgrade-Insecure-Requests', '1')]
     def prepReqHeader(self, amzTarget, referer=None):
         head = { 'Accept' : 'application/json, text/javascript, */*; q=0.01',
-                'Accept-Encoding' : 'deflate,br,gzip',
-                'Accept-Language' : 'de,en-US,en;q=0.9',
+                'Accept-Encoding' : 'gzip,deflate,br',
+                'Accept-Language' : '{},en-US,en;q=0.9'.format(self.siteVerList[int(self.siteVersion)]), # 'de,en-US,en;q=0.9',
+                #'Accept-Language' : 'en-US,en;q=0.9,{};q=0.8'.format(self.siteVerList[int(self.siteVersion)]), # 'de,en-US,en;q=0.9',
                 'csrf-rnd' :        self.csrf_rnd,
                 'csrf-token' :      self.csrf_token,
                 'csrf-ts' :         self.csrf_ts,
@@ -769,7 +790,7 @@ class AmazonMedia():
                 'Origin' :          self.musicURL,
                 'User-Agent' :      self.userAgent,
                 'X-Requested-With' : 'XMLHttpRequest'
-                }
+        }
         if amzTarget is not None:
             head['Content-Encoding'] = 'amz-1.0'
             head['content-type'] = 'application/json'
@@ -1020,6 +1041,19 @@ class AmazonMedia():
                 'widgetIdTokenMap' : { mediatype : int(token[0]) }
             }
             data = json.dumps(data)
+        elif mode == 'new_recommendations':
+            data = {
+                'deviceId' :            self.deviceId,
+                'deviceType' :          self.deviceType,
+                'customerId' :          self.customerId,
+                'musicTerritory' :      self.musicTerritory,
+                'lang' :                self.customerLang,
+                'requestedContent' :    'PRIME_UPSELL_MS',#,
+                'options' :             ['populateRecentlyPlayed']
+                #'options' :             'requestBundesligaContent'
+            }
+            data = json.dumps(data)
+            #data = json.JSONEncoder().encode(data)
         elif mode == 'getPurchased': # purchased and all Songs / purchased Albums
             if self.addonMode[0] == 'getPurSongs' or self.addonMode[0] == 'getPurAlbums':
                 filter = ['purchased','EQUALS','true']
@@ -1497,6 +1531,7 @@ class AmazonMedia():
                             {'txt':30008,'fct':'menuStations','img':'stations.jpg'},
                             {'txt':30015,'fct':'getGenres','img':'genres.jpg'},
                             {'txt':30027,'fct':'menuArtists','img':'artists.jpg'},
+                            {'txt':30041,'fct':'getNewRecom','img':'newrecom.jpg'},
                             {'txt':30035,'fct':'menuSoccer','img':'soccer.jpg'}
         ])
     def menuPlaylists(self):
@@ -1558,7 +1593,8 @@ class AmazonMedia():
             isFolder = True
             if dynentry and 'search' in item and item['search'] == '':
                 continue
-            if soccer:
+            # if soccer:
+            if soccer or ('special' in item and item['special'] == 'newrecom'):
                 title = item['txt']
             else:
                 title = self.translation(item['txt'])
@@ -1577,6 +1613,8 @@ class AmazonMedia():
                 url+="&objectId={}".format(str(item['target']))
                 li.setProperty('IsPlayable', 'true')
                 isFolder = False
+            if 'special' in item and item['special'] == 'newrecom' and 'target' in item:
+                url+='&target={}'.format(str(item['target']))
             itemlist.append((url, li, isFolder))
         xbmcplugin.setContent(self.addonHandle, 'albums')
         xbmcplugin.addDirectoryItems(self.addonHandle, itemlist, len(itemlist))
@@ -1633,6 +1671,33 @@ class AmazonMedia():
         elif resp['recommendations'][0]['recommendationType'] == 'STATION':
             sel = 'recstations'
         self.setAddonContent(sel,resp['recommendations'][0],'albums')
+    def getNewRecommendations(self):
+        menuEntries = []
+        resp = self.amzCall(self.API_getHome,'new_recommendations')
+        for item in resp['blocks']:
+            if 'ButtonGrid' in item['__type']:
+                continue
+            menuEntries.append({
+                'txt':      item['title'],
+                'fct':      'getNewRecomDetails',
+                'special':  'newrecom',
+                'target':   urlquote(item['title'].encode('utf8')),
+                'img':      'newrecom.jpg'
+            })
+        self.createList(menuEntries)
+    def getNewRecomDetails(self,target):
+        menuEntries = []
+        items = None
+        resp = self.amzCall(self.API_getHome,'new_recommendations')
+        for item in resp['blocks']:
+            if 'ButtonGrid' in item['__type']: # ignore button fields
+                continue
+            if target in item['title']: # find the category
+                items = item['blocks']
+                break
+        if items == None: # in case of empty list
+            return
+        self.setAddonContent('newrecom',items,'albums')
     def getPurchased(self,mode,ctype):
         resp = self.amzCall(self.API_cirrus,'getPurchased',None,None,mode)
         items = resp['searchLibraryResponse']['searchLibraryResult']
@@ -1926,6 +1991,7 @@ class AmazonMedia():
     def setAddonContent(self,mode,param,ctype,stype=None,query=None):
         itemlist = []
         meta = []
+        mod = None
         mediatype = ['playlistLibraryAvailability','expandTracklist','trackLibraryAvailability','collectionLibraryAvailability']
         if   mode == 'albumList' or mode == 'playlistList':
             meta = self.getMetaTracks(param[0]['asin'])['resultList']
@@ -2058,6 +2124,29 @@ class AmazonMedia():
                 itemlist.append((url, li, False))
             if not param['nextToken'] == None and len(param['recentTrackList']) <= self.maxResults: # next page
                 itemlist.append(self.setPaginator(param['nextToken']))
+        elif mode == 'newrecom':                # new recommendations
+            for item in param:
+                i = item['hint']['__type']
+                self.log(i)
+                if (('AlbumHint'    in i) or
+                    ('PlaylistHint' in i) or
+                    ('ArtistHint'   in i)):
+                    ctype   = 'albums'
+                    mod     = {'mode':'lookup'}
+                    fold    = True
+                elif 'StationHint' in i:
+                    ctype   = 'albums'
+                    mod     = {'mode':'createQueue'}
+                    fold    = True
+                elif 'TrackHint' in i:
+                    ctype   = 'songs'
+                    mod    = {'mode':'getTrack'}
+                    fold    = False
+                inf, met = self.setData(item['hint'],mod)
+                url, li  = self.setItem(inf,met)
+                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false' and mod['mode'] == 'getTrack':
+                    continue
+                itemlist.append((url, li, fold))
         elif mode == 'recentlyaddedsongs':      # recently added songs
             for item in param['trackInfoList']:
                 meta.append(item['metadata']['asin'])
@@ -2144,14 +2233,14 @@ class AmazonMedia():
         elif mode == 'searchitems':             # search items (songs / albums)
             for item in param['hits']:
                 if stype == 'albums':
-                    mode = {'mode':'lookup'}
+                    mod  = {'mode':'lookup'}
                     fold = True
                 elif stype == 'tracks' or stype == 'artists':
-                    mode = {'mode':'getTrack'}
+                    mod  = {'mode':'getTrack'}
                     fold = False
-                inf, met = self.setData(item['document'],mode)
+                inf, met = self.setData(item['document'],mod)
                 url, li  = self.setItem(inf,met)
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false' and mode['mode'] == 'getTrack':
+                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false' and mod['mode'] == 'getTrack':
                     continue
                 itemlist.append((url, li, fold))
             try:

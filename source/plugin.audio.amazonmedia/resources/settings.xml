@@ -19,6 +19,7 @@
         <setting id="musicTerritory" type="text" visible="false" label="musicTerritory" default=""/>
         <setting id="marketplaceId" type="text" visible="false" label="marketplaceId" default=""/>
         <setting id="locale" type="text" visible="false" label="locale" default=""/>
+        <setting id="customerLang" type="text" visible="false" label="customerLang" default=""/>
         <setting id="region" type="text" visible="false" label="region" default=""/>
         <setting id="url" type="text" visible="false" label="url" default=""/>
         <setting id="access" type="text" visible="false" label="access" default="false"/>
