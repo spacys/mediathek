@@ -40,6 +40,8 @@ import datetime
 import math
 import random
 
+import base64
+
 NODEBUG = False
 
 class AmazonMedia():
@@ -119,7 +121,7 @@ class AmazonMedia():
             xbmcvfs.mkdirs(self.addonUDatFo)
         self.addonFolRes  = os.path.join(self.addonFolder, "resources")
         self.addonIcon    = os.path.join(self.addonFolder, "icon.png")
-        self.defFanart    = os.path.join(self.addonFolRes, "fanart.png")
+        #self.defFanart    = os.path.join(self.addonFolRes, "fanart.png")
         self.cookieFile   = os.path.join(self.addonUDatFo, self.siteVerList[int(self.siteVersion)] + ".cookies")
         if os.path.isfile(self.cookieFile):
             self.cj.load(self.cookieFile)
@@ -328,8 +330,8 @@ class AmazonMedia():
             self.setSetting(q[1],self.getSetting(q[0]))
             self.setSetting(q[0],query)
     def getFolder(self,oPath):
-        return xbmc.translatePath(oPath) #.decode('utf-8')
-    def getUserInput(self,title,txt,hidden=False,uni=False): # uni=True
+        return xbmc.translatePath(oPath)
+    def getUserInput(self,title,txt,hidden=False,uni=False):
         kb = xbmc.Keyboard()
         kb.setHeading(title)
         kb.setDefault(txt)
@@ -346,8 +348,8 @@ class AmazonMedia():
         else:
             return False
     def log(self, msg, level=xbmc.LOGNOTICE):
-        log_message = '{0}: {1}'.format(self.addonId, msg).encode("utf-8")
-        xbmc.log(log_message, level) #.encode("utf-8")
+        log_message = '{}: {}'.format(self.addonId, msg).encode("utf-8")
+        xbmc.log(log_message, level)
     # read / write config file
     def appConfig(self,app_config):
         if app_config is None:
@@ -365,11 +367,7 @@ class AmazonMedia():
         self.region         = app_config['realm'][:2]
         self.url            = 'https://{}'.format(app_config['serverInfo']['returnUrlServer'])
         self.access         = 'true'
-        #if app_config['customerBenefits']['primeAccess'] == 1:
-        #    self.accessType = 'PRIME'
-        #if app_config['customerBenefits']['hawkfireAccess'] == 1:
-        #    self.accessType = 'UNLIMITED'
-        self.accessType = app_config['customerBenefits']['tier']
+        self.accessType     = app_config['customerBenefits']['tier']
         self.setSetting('deviceId',         self.deviceId)
         self.setSetting('csrf_token',       self.csrf_token)
         self.setSetting('csrf_ts',          self.csrf_ts)
@@ -398,6 +396,7 @@ class AmazonMedia():
         self.setSetting('deviceType', "")
         self.setSetting('musicTerritory', "")
         self.setSetting('locale', "")
+        self.setSetting('customerLang', "")
         self.setSetting('region', "")
         self.setSetting('url', "")
         self.setSetting('access', "false")
@@ -439,8 +438,6 @@ class AmazonMedia():
         self.showimages = 'false'
         self.showUnplayableSongs = 'false'
         self.showcolentr = 'true'
-        #if os.path.exists(self.cookieFile):
-        #    os.remove(self.cookieFile)
         self.delCookies()
         if os.path.exists(self.addonUDatFo):
             try:
@@ -753,7 +750,6 @@ class AmazonMedia():
             self.delCookies()
             self.amazonLogon()
         if self.logging == 'true':
-            #self.log(resp) # to be delete
             self.log(resp.text)
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
             return resp
@@ -781,8 +777,7 @@ class AmazonMedia():
     def prepReqHeader(self, amzTarget, referer=None):
         head = { 'Accept' : 'application/json, text/javascript, */*; q=0.01',
                 'Accept-Encoding' : 'gzip,deflate,br',
-                'Accept-Language' : '{},en-US,en;q=0.9'.format(self.siteVerList[int(self.siteVersion)]), # 'de,en-US,en;q=0.9',
-                #'Accept-Language' : 'en-US,en;q=0.9,{};q=0.8'.format(self.siteVerList[int(self.siteVersion)]), # 'de,en-US,en;q=0.9',
+                'Accept-Language' : '{},en-US,en;q=0.9'.format(self.siteVerList[int(self.siteVersion)]),
                 'csrf-rnd' :        self.csrf_rnd,
                 'csrf-token' :      self.csrf_token,
                 'csrf-ts' :         self.csrf_ts,
@@ -1449,7 +1444,6 @@ class AmazonMedia():
                     xbmcgui.Dialog().ok(self.addonName, 'Logon issue')
                     return False
                 self.setCookie()
-                # self.cj.save(self.cookieFile, ignore_discard=True, ignore_expires=True)
                 # MFA check
                 while 'action="verify"' in self.content or 'id="auth-mfa-remember-device' in self.content:
                     soup = self.parseHTML(self.content)
@@ -1624,13 +1618,17 @@ class AmazonMedia():
         mediatype = ['playlistLibraryAvailability','expandTracklist','trackLibraryAvailability','collectionLibraryAvailability']
         data = self.amzCall( self.API_lookup,'itemLookup',None,asin,mediatype)
         sel = ''
-        if   data['metadata']['albumList'] is not None:
+        # if   data['metadata']['albumList'] is not None:
+        if   len(data['albumList']) > 0:
             sel = 'albumList'
-        elif data['metadata']['artistList'] is not None:
+            #elif data['metadata']['artistList'] is not None:
+        elif len(data['artistList']) > 0:
             sel = 'artistList'
-        elif data['metadata']['playlistList'] is not None:
+            # elif data['metadata']['playlistList'] is not None:
+        elif len(data['playlistList']) > 0:
             sel = 'playlistList'
-        elif data['metadata']['trackList'] is not None:
+            #elif data['metadata']['trackList'] is not None:
+        elif len(data['trackList']) > 0:
             sel = 'trackList'
         else:
             data = self.amzCall(self.API_cirrus, 'itemLookup2ndRound', '/my/albums', [asin], None)['selectTrackMetadataResponse']['selectTrackMetadataResult']
@@ -2046,8 +2044,6 @@ class AmazonMedia():
             for item in param['playlistList']:
                 inf, met = self.setData(item,{'mode':'lookup'})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
             if not param['nextTokenMap']['playlist'] == None and not len(param['playlistList']) < self.maxResults: # next page
                 itemlist.append(self.setPaginator(param['nextTokenMap']['playlist']))
@@ -2057,8 +2053,6 @@ class AmazonMedia():
                 url, li  = self.setItem(inf,met)
             #if not param['nextTokenMap']['playlist'] == None and not len(param['playlistList']) < self.maxResults: # next page
             #    itemlist.append(self.setPaginator(param['nextTokenMap']['playlist']))
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
         elif mode == 'ownedplaylists':          # owned playlists
             for item in param['playlists']:
@@ -2307,7 +2301,7 @@ class AmazonMedia():
         if song == None:
             song = self.tryGetStreamHLS(asin,objectId)
         if song == None:
-            song = self.tryGetStreamDash(asin,objectId)
+            self.tryGetStreamDash(asin,objectId)
             return
         if song == None:
             xbmc.PlayList(0).clear()
@@ -2316,7 +2310,7 @@ class AmazonMedia():
             return False
         li = xbmcgui.ListItem(path=song)
         li.setContentLookup(False)
-        li.setInfo('video', '')
+        li.setInfo('video', {})
         xbmcplugin.setResolvedUrl(self.addonHandle, True, listitem=li)
     def tryGetStream(self,asin,objectId):
         if objectId == None:
@@ -2352,6 +2346,8 @@ class AmazonMedia():
         resp = self.amzCall(self.API_streamDash,'getTrackDash',None,asin,'ASIN')
         manifest = json.loads(resp.text)['contentResponseList'][0]['manifest']
         if manifest:
+            if not self.isInputStream():
+                return
             lic = self.getLicenseKey()
             song = self.writeSongFile(manifest,'mpd')
             li = xbmcgui.ListItem(path=song)
@@ -2359,12 +2355,12 @@ class AmazonMedia():
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
             li.setProperty('inputstream.adaptive.license_key', lic)
-            li.setInfo('video', '')
+            li.setInfo('video', {})
             li.setMimeType('application/dash+xml')
             li.setContentLookup(False)
             xbmcplugin.setResolvedUrl(self.addonHandle, True, listitem=li)
         else:
-            return None
+            return
     def writeSongFile(self,manifest,ftype='m3u8'):
         song = '{}{}song.{}'.format(self.addonUDatFo,os.sep,ftype) # '/song.mp4'
         m3u_string = ''
@@ -2456,8 +2452,6 @@ class AmazonMedia():
         cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookiedict.items()])
 
         head['Cookie'] = cj_str
-        #licHeaders = '&'.join(['%s=%s' % (k, urllib.quote(v)) for k, v in head.items()])
-        #licHeaders = '&'.join(['%s=%s' % (k, urlquote(v)) for k, v in head.items()]) # python 3 correction
         licHeaders = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
         licBody = self.prepReqData('getLicenseForPlaybackV2')
         # licURL expected (req / header / body / response)
@@ -2466,11 +2460,11 @@ class AmazonMedia():
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
         # a = str(math.floor(16 * (1 + random.random())).hex())[4:5]
-        a = str(float.hex(math.floor(16 * (1 + random.random()))))[4:5] # python 3 correction
+        a = str(float.hex(math.floor(16 * (1 + random.random()))))[4:5]
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         # return str(math.floor(65536 * (1 + random.random())).hex())[4:8]
-        return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8] # python 3 correction
+        return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8]
     def isInputStream(self): # helper to activate InputStream if available
         verifyISA = '{"jsonrpc":"2.0","id":1,"method":"Addons.GetAddonDetails","params":{"addonid":"inputstream.adaptive"}}'
         if 'error' in xbmc.executeJSONRPC(verifyISA):
