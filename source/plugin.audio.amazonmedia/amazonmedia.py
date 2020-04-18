@@ -1053,8 +1053,8 @@ class AmazonMedia():
             if self.addonMode[0] == 'getPurSongs' or self.addonMode[0] == 'getPurAlbums':
                 filter = ['purchased','EQUALS','true']
             else:
-                #filter = ['purchased','LIKE','%']
-                filter = ['primeStatus','NOT_EQUALS','NOT_PRIME']
+                #filter = ['primeStatus','NOT_EQUALS','NOT_PRIME']
+                filter = [None,None,None]
             data = {
                 'searchReturnType': mediatype[0],
                 'searchCriteria.member.1.attributeName': 'assetType',
@@ -1984,8 +1984,7 @@ class AmazonMedia():
         }
         if met['objectId'] is not None:
             url['objectId'] = met['objectId']
-        #return '{}?{}'.format(self.addonBaseUrl,urllib.urlencode(url))
-        return '{}?{}'.format(self.addonBaseUrl,urlencode(url)) # python 3 correction
+        return '{}?{}'.format(self.addonBaseUrl,urlencode(url))
     def setAddonContent(self,mode,param,ctype,stype=None,query=None):
         itemlist = []
         meta = []
@@ -2351,10 +2350,40 @@ class AmazonMedia():
             lic = self.getLicenseKey()
             song = self.writeSongFile(manifest,'mpd')
             li = xbmcgui.ListItem(path=song)
+            """
+            widevine issues with different OS
+            architecture_name : x86-64
+            company_name      : Google
+            model_name        : ChromeCDM
+            platform_name     : Linux --> works fine, as expected ;-)
+
+            architecture_name : arm
+            company_name      : Google
+            model_name        : ChromeCDM
+            platform_name     : ChromeOS --> issue
+
+            architecture_name : x86-64
+            company_name      : Google
+            model_name        : ChromeCDM
+            platform_name     : Windows --> issue, bad request - additional license payload? and MVP
+
+            Widevine Pssh
+            {
+            	"algorithm":"AESCTR",
+            	"keyIds":["<b64 id>"],
+            	"provider":"AmazonMusic",
+            	"contentId":"<b64 id>",
+            	"trackType":"AUDIO"
+            }
+            """
             li.setProperty('inputstreamaddon', 'inputstream.adaptive')
+            li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
             li.setProperty('inputstream.adaptive.license_key', lic)
+            #li.setProperty('inputstream.adaptive.server_certificate', scert)
+            li.setProperty('isFolder', 'false')
+            li.setProperty('IsPlayable', 'true')
             li.setInfo('video', {})
             li.setMimeType('application/dash+xml')
             li.setContentLookup(False)
@@ -2362,19 +2391,20 @@ class AmazonMedia():
         else:
             return
     def writeSongFile(self,manifest,ftype='m3u8'):
-        song = '{}{}song.{}'.format(self.addonUDatFo,os.sep,ftype) # '/song.mp4'
+        song = '{}{}song.{}'.format(self.addonUDatFo,os.sep,ftype)
         m3u_string = ''
         temp_file = xbmcvfs.File(song, 'w')
         if ftype == 'm3u8':
             m3u_string = manifest[0]
         if ftype == 'mpd':
             m3u_string = manifest
-            song = '{}{}song.{}'.format(self.addonUDatFo,os.sep,ftype)
             song = song.replace("\\","/") # windows fix that inputstream can work properly
-        m3u_string = str(m3u_string.replace("\\n", os.linesep)) # python 3 correction
+
+        m3u_string = str(m3u_string.replace("\\n", os.linesep))
         temp_file.write(m3u_string.encode("ascii"))
         temp_file.close()
         return song
+
     ############# SOCCER LIVE ##############
     #def getSoccer(self):
     #    resp = self.amzCall(self.API_GetSoccerMain,'getSoccerMain')
@@ -2459,11 +2489,9 @@ class AmazonMedia():
     def getMaestroID(self):
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
-        # a = str(math.floor(16 * (1 + random.random())).hex())[4:5]
         a = str(float.hex(math.floor(16 * (1 + random.random()))))[4:5]
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
-        # return str(math.floor(65536 * (1 + random.random())).hex())[4:8]
         return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8]
     def isInputStream(self): # helper to activate InputStream if available
         verifyISA = '{"jsonrpc":"2.0","id":1,"method":"Addons.GetAddonDetails","params":{"addonid":"inputstream.adaptive"}}'
@@ -2479,7 +2507,6 @@ class AmazonMedia():
         else:
             return True
 
-# method:POST
 if __name__ == '__main__':
     am = AmazonMedia()
     am.reqDispatch()
