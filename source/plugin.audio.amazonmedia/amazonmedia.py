@@ -50,7 +50,7 @@ class AmazonMedia():
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
         'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content',
         'API_getBrowseRecommendations','API_lookup','API_getAddToLibraryRecommendations','API_getSimilarityRecommendations','API_getMusicStoreRecommendations',
-        'API_artistDetailCatalog','API_getStationSections','API_artistDetailsMetadata','API_getTopMusicEntities','API_browseHierarchyV2','API_seeMore',
+        'API_artistDetailCatalog','API_getStationSections','API_artistDetailsMetadata','API_getTopMusicEntities','API_browseHierarchyV2','API_seeMore','API_getHome',
         'API_lookupStationsByStationKeys','API_createQueue','API_QueueGetNextTracks',
         'API_stream','API_streamHLS','API_streamDash','API_LicenseForPlaybackV2','API_search','API_cirrus','API_cirrusV1','API_cirrusV2','API_cirrusV3',
         'API_V3getTracksByAsin','API_V3getTracks','API_V3getTracksById',
@@ -135,7 +135,7 @@ class AmazonMedia():
         # logon
         if self.access == 'false':
             if not self.amazonLogon():
-                xbmc.executebuiltin(unicode('XBMC.Notification("Error:","Logon was not possible.",5000,)').encode("utf-8"))
+                xbmc.executebuiltin(u'XBMC.Notification("Error:","Logon was not possible.",5000,)'.encode("utf-8"))
                 return False
         # main menu
         if self.addonMode is None:
@@ -244,7 +244,7 @@ class AmazonMedia():
             self.getNewRecommendations()
         elif self.addonMode[0] == 'getNewRecomDetails':
             asin = self.addonArgs.get('target', [None])
-            self.getNewRecomDetails(unicode(asin[0], "utf-8"))
+            self.getNewRecomDetails(u'{}'.format(asin[0]).encode("utf-8"))
         # new end
         # get own music, differentiate betwenn purchased and own lib
         # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
@@ -444,7 +444,7 @@ class AmazonMedia():
                 shutil.rmtree(self.addonUDatFo)
             except:
                 shutil.rmtree(self.addonUDatFo)
-            xbmc.executebuiltin(unicode('XBMC.Notification("Information:","Addon reset successful",5000,)').encode("utf-8"))
+            xbmc.executebuiltin(u'XBMC.Notification("Information:","Addon reset successful",5000,)'.encode("utf-8"))
     def delCredentials(self):
         self.userEmail = ''
         self.userPassword = ''
@@ -1514,7 +1514,7 @@ class AmazonMedia():
                 self.content = self.content.replace("\\","")
                 captcha_match = re.compile('ap_captcha_title', re.DOTALL).findall(self.content)
                 if captcha_match:
-                    xbmc.executebuiltin(unicode('XBMC.Notification("Error:","Captcha required! Logon is not possible.",5000,)').encode("utf-8"))
+                    xbmc.executebuiltin(u'XBMC.Notification("Error:","Captcha required! Logon is not possible.",5000,)'.encode("utf-8"))
                     self.log("ERROR: Captcha required!")
                     return False
         return True
@@ -2306,7 +2306,7 @@ class AmazonMedia():
         if song == None:
             xbmc.PlayList(0).clear()
             xbmc.Player().stop()
-            xbmc.executebuiltin(unicode('XBMC.Notification("Information:","Playback not possible! Cannot find streaming URL.",10000,)').encode("utf-8"))
+            xbmc.executebuiltin(u'XBMC.Notification("Information:","Playback not possible! Cannot find streaming URL.",10000,)'.encode("utf-8"))
             return False
         li = xbmcgui.ListItem(path=song)
         li.setContentLookup(False)
@@ -2319,7 +2319,7 @@ class AmazonMedia():
             if 'statusCode' in obj and obj['statusCode'] == 'MAX_CONCURRENCY_REACHED':
                 xbmc.PlayList(0).clear()
                 xbmc.Player().stop()
-                xbmc.executebuiltin(unicode('XBMC.Notification("Information:","Playback not possible! Another instance is running.",10000,)').encode("utf-8"))
+                xbmc.executebuiltin(u'XBMC.Notification("Information:","Playback not possible! Another instance is running.",10000,)'.encode("utf-8"))
                 return None
             try:
                 song = obj['contentResponse']['urlList'][0]
@@ -2402,7 +2402,7 @@ class AmazonMedia():
             song = song.replace("\\","/") # windows fix that inputstream can work properly
 
         m3u_string = str(m3u_string.replace("\\n", os.linesep))
-        temp_file.write(m3u_string.encode("ascii"))
+        temp_file.write(m3u_string)
         temp_file.close()
         return song
 
@@ -2521,10 +2521,10 @@ class AmazonMedia():
     def getMaestroID(self):
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
-        a = str(float.hex(math.floor(16 * (1 + random.random()))))[4:5]
+        a = str(float.hex(float(math.floor(16 * (1 + random.random())))))[4:5] #Floor return int in Python 3
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
-        return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8]
+        return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
     def isInputStream(self): # helper to activate InputStream if available
         verifyISA = '{"jsonrpc":"2.0","id":1,"method":"Addons.GetAddonDetails","params":{"addonid":"inputstream.adaptive"}}'
         if 'error' in xbmc.executeJSONRPC(verifyISA):
