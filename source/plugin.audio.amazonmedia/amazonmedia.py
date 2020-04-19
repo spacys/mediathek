@@ -1050,11 +1050,6 @@ class AmazonMedia():
             data = json.dumps(data)
             #data = json.JSONEncoder().encode(data)
         elif mode == 'getPurchased': # purchased and all Songs / purchased Albums
-            if self.addonMode[0] == 'getPurSongs' or self.addonMode[0] == 'getPurAlbums':
-                filter = ['purchased','EQUALS','true']
-            else:
-                #filter = ['primeStatus','NOT_EQUALS','NOT_PRIME']
-                filter = [None,None,None]
             data = {
                 'searchReturnType': mediatype[0],
                 'searchCriteria.member.1.attributeName': 'assetType',
@@ -1063,9 +1058,9 @@ class AmazonMedia():
                 'searchCriteria.member.2.attributeName':  'status',
                 'searchCriteria.member.2.comparisonType': 'EQUALS',
                 'searchCriteria.member.2.attributeValue': 'AVAILABLE',
-                'searchCriteria.member.3.attributeName':  filter[0],
-                'searchCriteria.member.3.comparisonType': filter[1],
-                'searchCriteria.member.3.attributeValue': filter[2],
+                #'searchCriteria.member.3.attributeName':  filter[0],
+                #'searchCriteria.member.3.comparisonType': filter[1],
+                #'searchCriteria.member.3.attributeValue': filter[2],
                 'albumArtUrlsRedirects': 'false',
                 'distinctOnly': 'false',
                 'countOnly': 'false',
@@ -1097,6 +1092,12 @@ class AmazonMedia():
                 'customerInfo.deviceId': self.deviceId,
                 'customerInfo.deviceType': self.deviceType
             }
+            if self.addonMode[0] == 'getPurSongs' or self.addonMode[0] == 'getPurAlbums':
+                data['searchCriteria.member.3.attributeName']  = 'purchased'
+                data['searchCriteria.member.3.comparisonType'] = 'EQUALS'
+                data['searchCriteria.member.3.attributeValue'] = 'true'
+            #else:
+                #filter = ['primeStatus','NOT_EQUALS','NOT_PRIME']
         elif mode == 'songs':
             data  = {
                 'asins' : [ asin ],
@@ -2479,6 +2480,37 @@ class AmazonMedia():
         cookiedict = {}
         for cookie in self.cj:
             cookiedict[cookie.name] = cookie.value
+        """ from amzn video addon
+        cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookie.items()])
+        opt = '|Content-Type=application%2Fx-www-form-urlencoded&Cookie=' + quote_plus(cj_str)
+        opt += '|widevine2Challenge=B{SSM}&includeHdcpTestKeyInLicense=true'
+        opt += '|JBlicense;hdcpEnforcementResolutionPixels'
+        licURL = getURLData('catalog/GetPlaybackResources', asin, opt=opt, extra=True, vMT=vMT, dRes='Widevine2License', retURL=True)
+
+        url = g.ATVUrl + '/cdp/' + mode
+        url += '?asin=' + asin
+        url += '&deviceTypeID=' + devicetypeid
+        url += '&firmware=' + firmware
+        url += '&deviceID=' + g.deviceID
+        url += '&marketplaceID=' + g.MarketID
+        url += '&format=' + retformat
+        url += '&version=' + str(version)
+        url += '&gascEnabled=' + str(g.UsePrimeVideo).lower()
+        if 'SubtitleUrls' in dRes.split(','):
+            url += "&subtitleFormat=TTMLv2"
+        if ('catalog/GetPlaybackResources' == mode) and (g.platform & g.OS_ANDROID):
+            url += '&operatingSystemName=Windows'
+        if extra:
+            url += '&resourceUsage=ImmediateConsumption&consumptionType=Streaming&deviceDrmOverride=CENC' \
+                   '&deviceStreamingTechnologyOverride=DASH&deviceProtocolOverride=Https' \
+                   '&deviceBitrateAdaptationsOverride=CVBR%2CCBR&audioTrackId=all'
+            url += '&languageFeature=MLFv2'  # Audio Description tracks
+            url += '&videoMaterialType=' + vMT
+            url += '&desiredResources=' + dRes
+            url += '&supportedDRMKeyScheme=DUAL_KEY' if (not g.platform & g.OS_ANDROID) and ('PlaybackUrls' in dRes) else ''
+        url += opt
+
+        """
         cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookiedict.items()])
 
         head['Cookie'] = cj_str
