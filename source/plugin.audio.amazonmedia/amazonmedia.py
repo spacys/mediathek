@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-# import urllib
 try:
     import urlparse as urlparse # Python 2
 except ImportError:
@@ -43,14 +42,19 @@ import random
 import base64
 
 NODEBUG = False
-
+"""
+class PopupWindow(xbmcgui.WindowDialog):
+    def __init__(self, header, image):
+        self.addControl(xbmcgui.ControlImage(x=190, y=25, width=200, height=70, filename=image))
+        self.addControl(xbmcgui.ControlLabel(x=190, y=200, width=500, height=25, label=header))
+"""
 class AmazonMedia():
     __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
         'musicURL','confFile','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
         'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content',
         'API_getBrowseRecommendations','API_lookup','API_getAddToLibraryRecommendations','API_getSimilarityRecommendations','API_getMusicStoreRecommendations',
-        'API_artistDetailCatalog','API_getStationSections','API_artistDetailsMetadata','API_getTopMusicEntities','API_browseHierarchyV2','API_seeMore',
+        'API_artistDetailCatalog','API_getStationSections','API_artistDetailsMetadata','API_getTopMusicEntities','API_browseHierarchyV2','API_seeMore','API_getHome'
         'API_lookupStationsByStationKeys','API_createQueue','API_QueueGetNextTracks',
         'API_stream','API_streamHLS','API_streamDash','API_LicenseForPlaybackV2','API_search','API_cirrus','API_cirrusV1','API_cirrusV2','API_cirrusV3',
         'API_V3getTracksByAsin','API_V3getTracks','API_V3getTracksById',
@@ -66,7 +70,7 @@ class AmazonMedia():
         self.setAPIConstants()
         self.setQueryConstants()
         if self.logging == 'true':
-            self.log( '\nhandle: ' + self.addonHandle.__str__()
+            self.log( 'handle: ' + self.addonHandle.__str__()
                     + '\nArgs: ' + self.addonArgs.__str__()
                     + '\nmode: ' + self.addonMode.__str__())
     def setVariables(self):
@@ -84,8 +88,8 @@ class AmazonMedia():
         self.logonURL     = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])
         self.musicURL     = 'https://music.amazon.{}'.format(self.siteVerList[int(self.siteVersion)])
         self.confFile     = self.getSetting("confFile")
-        self.userEmail    = '' #self.getSetting("userEmail")
-        self.userPassword = '' #self.getSetting("userPassword")
+        self.userEmail    = ''
+        self.userPassword = ''
         self.userAgent    = self.getSetting("userAgent")
 
         self.deviceId     = self.getSetting("deviceId")
@@ -121,12 +125,9 @@ class AmazonMedia():
             xbmcvfs.mkdirs(self.addonUDatFo)
         self.addonFolRes  = os.path.join(self.addonFolder, "resources")
         self.addonIcon    = os.path.join(self.addonFolder, "icon.png")
-        #self.defFanart    = os.path.join(self.addonFolRes, "fanart.png")
-        self.cookieFile   = os.path.join(self.addonUDatFo, self.siteVerList[int(self.siteVersion)] + ".cookies")
+        self.cookieFile   = os.path.join(self.addonUDatFo, "cookie")
         if os.path.isfile(self.cookieFile):
             self.cj.load(self.cookieFile)
-        if os.path.exists(os.path.join(self.addonUDatFo, "cookies")):
-            os.rename(os.path.join(self.addonUDatFo, "cookies"), self.cookieFile)
     def reqDispatch(self):
         # reset addon
         if self.addonMode is not None and self.addonMode[0] == 'resetAddon':
@@ -135,165 +136,104 @@ class AmazonMedia():
         # logon
         if self.access == 'false':
             if not self.amazonLogon():
-                xbmc.executebuiltin(unicode('XBMC.Notification("Error:","Logon was not possible.",5000,)').encode("utf-8"))
-                return False
-        # main menu
+                xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.translation(30070)))
+                return
+
         if self.addonMode is None:
+            mode = None
+        else:
+            mode = self.addonMode[0]
+
+        if mode is None:
             self.menuHome()
-        elif self.addonMode[0] == 'menuPlaylists':
-            self.menuPlaylists()
-        elif self.addonMode[0] == 'menuAlbums':
-            self.menuAlbums()
-        elif self.addonMode[0] == 'menuSongs':
-            self.menuSongs()
-        elif self.addonMode[0] == 'menuStations':
-            self.menuStations()
-        elif self.addonMode[0] == 'menuArtists':
-            self.menuArtists()
-        # search - 'resultSpecs' needs a combination of label : type
-        # playlists : catalog_playlist
-        # albums : catalog_album
-        # tracks : catalog_track
-        # artists : catalog_artist
-        # stations : catalog_station
-        # requestedContent = [UNLIMITED, FULL, PRIME]
-        # set to dynamic
-        elif self.addonMode[0] == 'searchPlayLists':
+        elif mode in ['menuPlaylists','menuAlbums','menuSongs','menuStations','menuArtists']:
+            exec('self.{}()'.format(mode))
+
+        elif mode == 'searchPlayLists':
             self.searchItems(['playlists','catalog_playlist'],30013)
-        elif self.addonMode[0] == 'search1PlayLists':
-            self.searchItems(['playlists','catalog_playlist'],None,self.getSetting("search1PlayLists"))
-        elif self.addonMode[0] == 'search2PlayLists':
-            self.searchItems(['playlists','catalog_playlist'],None,self.getSetting("search2PlayLists"))
-        elif self.addonMode[0] == 'search3PlayLists':
-            self.searchItems(['playlists','catalog_playlist'],None,self.getSetting("search3PlayLists"))
+        elif mode in ['search1PlayLists','search2PlayLists','search3PlayLists']:
+            exec('self.searchItems([\'playlists\',\'catalog_playlist\'],None,self.getSetting("{}"))'.format(mode))
 
-        elif self.addonMode[0] == 'searchAlbums':
+        elif mode == 'searchAlbums':
             self.searchItems(['albums','catalog_album'],30010)
-        elif self.addonMode[0] == 'search1Albums':
-            self.searchItems(['albums','catalog_album'],None,self.getSetting("search1Albums"))
-        elif self.addonMode[0] == 'search2Albums':
-            self.searchItems(['albums','catalog_album'],None,self.getSetting("search2Albums"))
-        elif self.addonMode[0] == 'search3Albums':
-            self.searchItems(['albums','catalog_album'],None,self.getSetting("search3Albums"))
+        elif mode in ['search1Albums','search2Albums','search3Albums']:
+            exec('self.searchItems([\'albums\',\'catalog_album\'],None,self.getSetting("{}"))'.format(mode))
 
-        elif self.addonMode[0] == 'searchSongs':
+        elif mode == 'searchSongs':
             self.searchItems(['tracks','catalog_track'],30011)
-        elif self.addonMode[0] == 'search1Songs':
-            self.searchItems(['tracks','catalog_track'],None,self.getSetting("search1Songs"))
-        elif self.addonMode[0] == 'search2Songs':
-            self.searchItems(['tracks','catalog_track'],None,self.getSetting("search2Songs"))
-        elif self.addonMode[0] == 'search3Songs':
-            self.searchItems(['tracks','catalog_track'],None,self.getSetting("search3Songs"))
+        elif mode in ['search1Songs','search2Songs','search3Songs']:
+            exec('self.searchItems([\'tracks\',\'catalog_track\'],None,self.getSetting("{}"))'.format(mode))
 
-        elif self.addonMode[0] == 'searchArtist':
+        elif mode == 'searchArtist':
             self.searchItems(['artists','catalog_artist'],30014)
-        elif self.addonMode[0] == 'search1Artists':
-            self.searchItems(['artists','catalog_artist'],None,self.getSetting("search1Artists"))
-        elif self.addonMode[0] == 'search2Artists':
-            self.searchItems(['artists','catalog_artist'],None,self.getSetting("search2Artists"))
-        elif self.addonMode[0] == 'search3Artists':
-            self.searchItems(['artists','catalog_artist'],None,self.getSetting("search3Artists"))
+        elif mode in ['search1Artists','search2Artists','search3Artists']:
+            exec('self.searchItems([\'artists\',\'catalog_artist\'],None,self.getSetting("{}"))'.format(mode))
 
-        elif self.addonMode[0] == 'searchStations':
+        elif mode == 'searchStations':
             self.searchItems(['stations','catalog_station'],30016)
-        elif self.addonMode[0] == 'search1Stations':
-            self.searchItems(['stations','catalog_station'],None,self.getSetting("search1Stations"))
-        elif self.addonMode[0] == 'search2Stations':
-            self.searchItems(['stations','catalog_station'],None,self.getSetting("search2Stations"))
-        elif self.addonMode[0] == 'search3Stations':
-            self.searchItems(['stations','catalog_station'],None,self.getSetting("search3Stations"))
+        elif mode in ['search1Stations','search2Stations','search3Stations']:
+            exec('self.searchItems([\'stations\',\'catalog_station\'],None,self.getSetting("{}"))'.format(mode))
 
-        elif self.addonMode[0] == 'getArtistDetails':
+        elif mode == 'getArtistDetails':
             asin = self.addonArgs.get('asin', [None])
             self.getArtistDetails(asin[0])
 
-        elif self.addonMode[0] == 'getRecentlyPlayed':
+        elif mode == 'getRecentlyPlayed':
             self.getRecentlyPlayed('PLAYED')
-        elif self.addonMode[0] == 'getRecentlyAddedSongs':
+        elif mode == 'getRecentlyAddedSongs':
             self.getRecentlyAddedSongs()
-        # playlists - different types of playlists
-        # popularity-rank
-        # newly-released
-        # requestedContent = [FULL_CATALOG, KATANA, MUSIC_SUBSCRIPTION, PRIME_UPSELL_MS, ALL_STREAMABLE, PRIME]
-        # set to 'PRIME'
-        elif self.addonMode[0] == 'getPopularPlayLists':
+
+        elif mode == 'getPopularPlayLists':
             self.getPlayLists('popularity-rank')
-        elif self.addonMode[0] == 'getNewPlayLists':
+        elif mode == 'getNewPlayLists':
             self.getPlayLists('newly-released')
-        elif self.addonMode[0] == 'getFollowedPlayLists':
+        elif mode == 'getFollowedPlayLists':
             self.getFollowedPlayLists()
-        elif self.addonMode[0] == 'getOwnedPlaylists':
+        elif mode == 'getOwnedPlaylists':
             self.getOwnedPlaylists()
-        elif self.addonMode[0] == 'getPlaylistsByIdV2':
+        elif mode == 'getPlaylistsByIdV2':
             asin = self.addonArgs.get('asin', [None])
             self.getPlaylistsByIdV2(asin[0])
-        # recommendations
-        # mediatypes:
-        # mp3-prime-browse-carousels_playlistStrategy
-        # mp3-prime-browse-carousels_mp3PrimeAlbumsStrategy
-        # mp3-prime-browse-carousels_mp3PrimeTracksStrategy
-        # mp3-prime-browse-carousels_mp3ArtistStationStrategy
-        elif self.addonMode[0] == 'getRecomPlayLists':
+
+        elif mode == 'getRecomPlayLists':
             self.getRecommendations('playlists','mp3-prime-browse-carousels_playlistStrategy')
-        elif self.addonMode[0] == 'getRecomAlbums':
+        elif mode == 'getRecomAlbums':
             self.getRecommendations('albums','mp3-prime-browse-carousels_mp3PrimeAlbumsStrategy')
-        elif self.addonMode[0] == 'getRecomStations':
+        elif mode == 'getRecomStations':
             self.getRecommendations('stations','mp3-prime-browse-carousels_mp3ArtistStationStrategy')
-        ## new - getNewRecom
-        elif self.addonMode[0] == 'getNewRecom':
+
+        elif mode == 'getNewRecom':
             self.getNewRecommendations()
-        elif self.addonMode[0] == 'getNewRecomDetails':
+        elif mode == 'getNewRecomDetails':
             asin = self.addonArgs.get('target', [None])
             self.getNewRecomDetails(unicode(asin[0], "utf-8"))
-        # new end
         # get own music, differentiate betwenn purchased and own lib
         # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
-        elif self.addonMode[0] == 'getPurAlbums':
+        elif mode in ['getPurAlbums','getAllAlbums']:
             self.getPurchased(['ALBUMS','getAllDataByMetaType','sortAlbumName'],'albums')
-        elif self.addonMode[0] == 'getAllAlbums':
-            self.getPurchased(['ALBUMS','getAllDataByMetaType','sortAlbumName'],'albums')
-        elif self.addonMode[0] == 'getAllSongs':
-            self.getPurchased(['TRACKS','getServerSongs','sortTitle'],'songs')
-        elif self.addonMode[0] == 'getPurSongs':
+        elif mode in ['getAllSongs','getPurSongs']:
             self.getPurchased(['TRACKS','getServerSongs','sortTitle'],'songs')
         # get amazon stations
-        elif self.addonMode[0] == 'getStations':
-            self.getStations('stations')
-        elif self.addonMode[0] == 'getAllArtistsStations':
-            self.getStations('stationsallartists')
-        elif self.addonMode[0] == 'getGenres':
-            self.getStations('genres') # 1st level
-        elif self.addonMode[0] == 'getGenres2':
-            self.getStations('genres2') # 2nd level
-        elif self.addonMode[0] == 'getGenrePlaylist':
+        elif mode in ['getStations','getAllArtistsStations','getGenres','getGenres2']:
+            self.getStations(mode.replace('get','').lower())
+        elif mode in ['getGenrePlaylist','createQueue']:
             asin = self.addonArgs.get('asin', None)
-            self.getGenrePlaylist(asin[0]) # get genre playlist
-        elif self.addonMode[0] == 'createQueue':
-            asin = self.addonArgs.get('asin', None)
-            self.createQueue(asin[0])
+            exec('self.{}(asin[0])'.format(mode))
         # get song lists
-        elif self.addonMode[0] == 'lookup':
+        elif mode == 'lookup':
             asin = self.addonArgs.get('asin', None)
             self.lookup(asin)
         # play the song
-        elif self.addonMode[0] == 'getTrack':
+        elif mode == 'getTrack':
             asin = self.addonArgs.get('asin', [None])[0]
             objectId = self.addonArgs.get('objectId', [None])[0]
             self.getTrack(asin,objectId)
         # Amazon Soccer Live
-        elif self.addonMode[0] == 'menuSoccer':
+        elif mode == 'menuSoccer':
             self.menuSoccer()
-        elif self.addonMode[0] == 'soccerBUND':
-            self.getSoccerFilter('BUND')
-        elif self.addonMode[0] == 'soccerBUND2':
-            self.getSoccerFilter('BUND2')
-        elif self.addonMode[0] == 'soccerCHAMP':
-            self.getSoccerFilter('CHAMP')
-        elif self.addonMode[0] == 'soccerDFBPOKAL':
-            self.getSoccerFilter('DFBPOKAL')
-        elif self.addonMode[0] == 'soccerSUPR':
-            self.getSoccerFilter('SUPR')
-        elif self.addonMode[0] == 'getSoccerDetail':
+        elif mode in ['soccerBUND','soccerBUND2','soccerCHAMP','soccerDFBPOKAL','soccerSUPR']:
+            self.getSoccerFilter(mode.replace('soccer',''))
+        elif mode == 'getSoccerDetail':
             objectId = self.addonArgs.get('objectId', [None])[0]
             self.getSoccerDetail(objectId)
     def translation(self,oId):
@@ -348,108 +288,56 @@ class AmazonMedia():
         else:
             return False
     def log(self, msg, level=xbmc.LOGNOTICE):
-        log_message = '{}: {}'.format(self.addonId, msg).encode("utf-8")
+        log_message = '[{}] {}'.format(self.addonName, msg).encode("utf-8")
         xbmc.log(log_message, level)
+    def checkSiteVersion(self,siteVersion):
+        if siteVersion in self.siteVerList:
+            x = 0
+            for i in self.siteVerList:
+                if siteVersion == i:
+                    self.setSetting("siteVersion", str(x))
+                    break
+                else:
+                    x+=1
+        else:
+            self.setSetting("siteVersion", "2")
     # read / write config file
     def appConfig(self,app_config):
         if app_config is None:
             return False
-        self.deviceId       = app_config['deviceId']
-        self.csrf_token     = app_config['CSRFTokenConfig']['csrf_token']
-        self.csrf_ts        = app_config['CSRFTokenConfig']['csrf_ts']
-        self.csrf_rnd       = app_config['CSRFTokenConfig']['csrf_rnd']
-        self.customerId     = app_config['customerId']
-        self.marketplaceId  = app_config['marketplaceId']
-        self.deviceType     = app_config['deviceType']
-        self.musicTerritory = app_config['musicTerritory']
-        self.locale         = app_config['i18n']['locale']
-        self.customerLang   = app_config['customerLanguage']
-        self.region         = app_config['realm'][:2]
-        self.url            = 'https://{}'.format(app_config['serverInfo']['returnUrlServer'])
-        self.access         = 'true'
-        self.accessType     = app_config['customerBenefits']['tier']
-        self.setSetting('deviceId',         self.deviceId)
-        self.setSetting('csrf_token',       self.csrf_token)
-        self.setSetting('csrf_ts',          self.csrf_ts)
-        self.setSetting('csrf_rnd',         self.csrf_rnd)
-        self.setSetting('customerId',       self.customerId)
-        self.setSetting('marketplaceId',    self.marketplaceId)
-        self.setSetting('deviceType',       self.deviceType)
-        self.setSetting('musicTerritory',   self.musicTerritory)
-        self.setSetting('locale',           self.locale)
-        self.setSetting('customerLang',     self.customerLang)
-        self.setSetting('region',           self.region)
-        self.setSetting('url',              self.url)
-        self.setSetting('access',           self.access)
-        self.setSetting('accessType',       self.accessType)
-        return True
+        self.setSetting('deviceId',         app_config['deviceId'])
+        self.setSetting('csrf_token',       app_config['CSRFTokenConfig']['csrf_token'])
+        self.setSetting('csrf_ts',          app_config['CSRFTokenConfig']['csrf_ts'])
+        self.setSetting('csrf_rnd',         app_config['CSRFTokenConfig']['csrf_rnd'])
+        self.setSetting('customerId',       app_config['customerId'])
+        self.setSetting('marketplaceId',    app_config['marketplaceId'])
+        self.setSetting('deviceType',       app_config['deviceType'])
+        self.setSetting('musicTerritory',   app_config['musicTerritory'])
+        self.setSetting('locale',           app_config['i18n']['locale'])
+        self.setSetting('customerLang',     app_config['customerLanguage'])
+        self.setSetting('region',           app_config['realm'][:2])
+        self.setSetting('url',              'https://{}'.format(app_config['serverInfo']['returnUrlServer']))
+        self.setSetting('access',           'true')
+        self.setSetting('accessType',       app_config['customerBenefits']['tier'])
+
+        self.checkSiteVersion(app_config['musicTerritory'].lower())
+        self.setVariables()
+        self.prepFolder()
+        self.prepBrowser()
     # cleanup
     def delCookies(self):
         if os.path.exists(self.cookieFile):
             os.remove(self.cookieFile)
-        self.setSetting('csrf_ts', "")
-        self.setSetting('csrf_rnd', "")
-        self.setSetting('csrf_token', "")
-        self.setSetting('customerId', "")
-        self.setSetting('marketplaceId', "")
-        self.setSetting('deviceId', "")
-        self.setSetting('deviceType', "")
-        self.setSetting('musicTerritory', "")
-        self.setSetting('locale', "")
-        self.setSetting('customerLang', "")
-        self.setSetting('region', "")
-        self.setSetting('url', "")
-        self.setSetting('access', "false")
-        self.setSetting('logging', "false")
-        self.setSetting('showimages', "false")
-        self.setSetting('showUnplayableSongs', "false")
-        self.setSetting('showcolentr', "true")
-        self.setSetting('accessType', "")
-        self.setSetting('search1PlayLists', "")
-        self.setSetting('search2PlayLists', "")
-        self.setSetting('search3PlayLists', "")
-        self.setSetting('search1Albums', "")
-        self.setSetting('search2Albums', "")
-        self.setSetting('search3Albums', "")
-        self.setSetting('search1Songs', "")
-        self.setSetting('search2Songs', "")
-        self.setSetting('search3Songs', "")
-        self.setSetting('search1Stations', "")
-        self.setSetting('search2Stations', "")
-        self.setSetting('search3Stations', "")
-        self.setSetting('search1Artists', "")
-        self.setSetting('search2Artists', "")
-        self.setSetting('search3Artists', "")
-        self.access = 'false'
     def resetAddon(self):
-        self.deviceId = ''
-        self.csrf_token = ''
-        self.csrf_ts = ''
-        self.csrf_rnd = ''
-        self.customerId = ''
-        self.deviceType = ''
-        self.musicTerritory = ''
-        self.locale = ''
-        self.customerLang = ''
-        self.region = ''
-        self.url = ''
-        self.access = 'false'
-        self.logging = 'false'
-        self.showimages = 'false'
-        self.showUnplayableSongs = 'false'
-        self.showcolentr = 'true'
         self.delCookies()
-        if os.path.exists(self.addonUDatFo):
-            try:
-                shutil.rmtree(self.addonUDatFo)
-            except:
-                shutil.rmtree(self.addonUDatFo)
-            xbmc.executebuiltin(unicode('XBMC.Notification("Information:","Addon reset successful",5000,)').encode("utf-8"))
+        settings = '{}{}{}'.format(self.addonUDatFo, os.sep, 'settings.xml')
+        if os.path.exists(settings):
+            os.remove(settings)
+            xbmc.executebuiltin('Notification("Information:", %s, 5000, )'%(self.translation(30071)))
     def delCredentials(self):
         self.userEmail = ''
         self.userPassword = ''
     def getCredentials(self):
-        status = True
         if not self.userEmail or not self.userPassword:
             user = self.getUserInput(self.translation(30030),'', hidden=False, uni=False) # get Email
             if user:
@@ -457,17 +345,16 @@ class AmazonMedia():
                 if pw:
                     self.userEmail = user
                     self.userPassword = pw
-                    status = True
+                    return True
                 else:
-                    status = False
+                    return False
             else:
-                status = False
-        return status
+                return False
+        return True
     # web communication
     def parseHTML(self,resp):
         resp = re.sub(r'(?i)(<!doctype \w+).*>', r'\1>', resp)
-        soup = BeautifulSoup(resp, 'html.parser')
-        return soup
+        return BeautifulSoup(resp, 'html.parser')
     ################################################################################
     def setAPIConstants(self):
         """
@@ -740,6 +627,142 @@ class AmazonMedia():
         }
         """
     ################################################################################
+    # amazon logon
+    def amazonLogon(self):
+        app_config = None
+        self.access = 'false'
+        self.prepBrowser()
+        while self.access == 'false':
+            if not self.getCredentials():
+                return False
+            self.br.open(self.logonURL)
+            self.doLogonForm()
+            self.content = self.getLogonResponse()
+
+            if 'message error' in self.content:
+                xbmcgui.Dialog().ok(self.addonName, 'Logon issue')
+                return False
+            if not self.checkMFA():
+                return False
+
+            self.setCookie()
+            if not os.path.isfile(self.cookieFile):
+                break
+
+            self.cj.load(self.cookieFile)
+            head = self.prepReqHeader('')
+            resp = requests.post(self.musicURL, data=None, headers=head, cookies=self.cj)
+
+            for line in resp.iter_lines(decode_unicode=True):
+                if 'applicationContextConfiguration =' in line or 'amznMusic.appConfig =' in line:
+                    app_config = json.loads(re.sub(r'^[^{]*', '', re.sub(r';$', '', line)))
+                    break
+
+            if app_config is None or app_config['isRecognizedCustomer'] == 0:
+                if app_config is not None and app_config['isTravelingCustomer']:
+                    self.checkSiteVersion(app_config['stratusMusicTerritory'].lower())
+                    self.doReInit()
+                self.delCookies()
+                app_config = None
+                self.access = 'false'
+            else:
+                self.appConfig(app_config)
+                self.setCookie()
+                self.doReInit()
+                self.delCredentials()
+                self.access = 'true'
+        return True
+    def doReInit(self):
+        self.setVariables()
+        self.prepFolder()
+        self.prepBrowser()
+    def doLogonForm(self):
+        self.br.select_form(name="signIn")
+        if not self.br.find_control("email").readonly:
+            self.br["email"] = self.userEmail
+        self.br["password"] = self.userPassword
+    def getLogonResponse(self):
+        self.br.submit()
+        resp = self.br.response()
+        try:
+            return unicode(resp.read(), "utf-8") # for kodi 18
+        except:
+            return str(resp.read(), encoding = 'utf-8') # for kodi 19
+    def checkMFA(self):
+        while 'action="verify"' in self.content or 'id="auth-mfa-remember-device' in self.content:
+            soup = self.parseHTML(self.content)
+            if 'cvf-widget-form cvf-widget-form-dcq fwcim-form a-spacing-none' in self.content:
+                self.log('MFA - account name')
+                form = soup.find('form', class_="cvf-widget-form cvf-widget-form-dcq fwcim-form a-spacing-none")
+                msgheading = form.find('label', class_="a-form-label").getText().strip()
+                msgtxt = ""
+                inp = self.getUserInput(msgheading, msgtxt)
+                if self.checkMFAInput(inp,'dcq_question_subjective_1') == False:
+                    return False
+            elif 'name="claimspicker"' in self.content:
+                self.log('MFA - SMS code step 1')
+                form = soup.find_all('form', attrs={'name':'claimspicker'})
+                msgheading = form[0].find('h1').renderContents().strip()
+                msgtxt = form[0].findAll('div', class_='a-row')[1].renderContents().strip()
+                if xbmcgui.Dialog().yesno(msgheading, msgtxt):
+                    self.br.select_form(nr=0)
+                    self.content = self.getLogonResponse()
+                else:
+                    return False
+            elif 'name="code"' in self.content: # sms info
+                self.log('MFA - SMS code step 2')
+                form = soup.find_all('form', class_='cvf-widget-form fwcim-form a-spacing-none')
+                msgheading = form[0].findAll(lambda tag: tag.name == 'span' and not tag.attrs)
+                msgheading = msgheading[1].text + '\n' + msgheading[2].text
+                msgtxt = ''
+                inp = self.getUserInput(msgheading, msgtxt)
+                if self.checkMFAInput(inp,'code') == False:
+                    return False
+            elif 'auth-mfa-form' in self.content:
+                msg = soup.find('form', id='auth-mfa-form')
+                self.log('### MFA ###############')
+                msgheading = msg.p.renderContents().strip()
+                msgtxt = ''
+                inp = self.getUserInput(msgheading, msgtxt)
+                if self.checkMFAInput(inp,'otpCode','ActivateWindow(busydialog)') == False:
+                    return False
+            else: # Unknown form
+                # captcha call here
+                return False
+        return True
+    def checkMFAInput(self, inp, target, action=None):
+        if inp:
+            if action:
+                xbmc.executebuiltin(action)
+            self.br.select_form(nr=0)
+            self.br[target] = inp
+            self.content = self.getLogonResponse()
+        else:
+            return False
+    def checkCaptcha(self):
+        #self.br.select_form(action="/errors/validateCaptcha") --> kodi 19 only?!?
+        """
+        self.log('########### captcha ###########')
+        self.br.select_form(name="")
+        self.content = self.br.response().read()
+        soup = self.parseHTML(self.content)
+        self.log(soup)
+        form = soup.find_all('form')
+        msgheading = form[0].find('h4').renderContents().strip()
+        img = form[0].find('img') #.renderContents().strip()
+        self.log(msgheading)
+        self.log(img)
+        """
+        """ create popup window for captcha """
+        """
+        window = PopupWindow(msgheading,img)
+        window.show()
+        xbmc.sleep(5000)
+        window.close()
+        del window
+        """
+        return
+    # default communication
     def amzCall(self,amzUrl,mode,referer=None,asin=None,mediatype=None):
         url = '{}/{}/api/{}'.format(self.url, self.region, amzUrl['path'])
         head = self.prepReqHeader(amzUrl['target'],referer)
@@ -865,7 +888,7 @@ class AmazonMedia():
             else:
                 tier = self.accessType
             data  = {
-                'requestedContent': tier, # 'PRIME', #self.accessType,
+                'requestedContent': tier,
                 'asin': asin,
                 'types':[{
                     'sortBy':'popularity-rank',
@@ -1335,21 +1358,13 @@ class AmazonMedia():
             }
             data = json.dumps(data)
         elif mode == 'getLicenseForPlaybackV2':
-            """
-            license_key must be a string template with 4 | separated fields: [license-server url]|[Header]|[Post-Data]|[Response] in which [license-server url]
-            allows B{SSM} placeholder and [Post-Data] allows [b/B/R]{SSM} and [b/B/R]{SID} placeholders to transport the widevine challenge and if required the
-            DRM SessionId in base64NonURLencoded, Base64URLencoded or Raw format.
-            [Response] can be a.) empty or R to specify that the response payload of the license request is binary format, b.) B if the response payload is base64
-            encoded or c.) J[licensetoken] if the license key data is located in a JSON struct returned in the response payload.
-            inputstream.adaptive searches for the key [licensetoken] and handles the value as base64 encoded data.
-            """
             mID = self.getMaestroID()
             # 'b{SSM}' base64NonURLencoded
             # 'B{SSM}' Base64URLencoded
             # 'R{SSM}' Raw format.
             data = {
                 'DrmType':'WIDEVINE',
-                'licenseChallenge':'b{SSM}',
+                #'licenseChallenge':'b{SSM}',
                 'customerId':self.customerId,
                 'deviceToken':{
                     'deviceTypeId':self.deviceType,
@@ -1359,6 +1374,10 @@ class AmazonMedia():
                     'musicAgent':mID
                 }
             }
+            if mediatype:
+                data['licenseChallenge'] = mediatype
+            else:
+                data['licenseChallenge'] = 'b{SSM}'
             data = json.dumps(data)
         elif mode == 'getSoccerMain':
             data = { # TODO
@@ -1404,120 +1423,6 @@ class AmazonMedia():
             }
             data = json.dumps(data)
         return data
-    def amazonLogon(self):
-        app_config = None
-        while app_config is None:
-            if os.path.isfile(self.cookieFile): # logon via cookie
-                self.cj.load(self.cookieFile)
-                head = self.prepReqHeader('')
-                resp = requests.post(self.musicURL, data=None, headers=head, cookies=self.cj)
-                for line in resp.iter_lines(decode_unicode=True):
-                    if 'applicationContextConfiguration =' in line or 'amznMusic.appConfig =' in line:
-                        app_config = json.loads(re.sub(r'^[^{]*', '', re.sub(r';$', '', line)))
-                        break
-                if app_config is None or app_config['isRecognizedCustomer'] == 0:
-                    app_config = None
-                    self.delCookies()
-                    self.delCredentials()
-                else:
-                    self.appConfig(app_config)
-                    self.setCookie()
-                    break
-            else: # logon via user password
-                self.delCookies()
-                if not self.getCredentials():
-                    return False # user input missing
-                self.br.open(self.logonURL)
-                self.br.select_form(name="signIn")
-                if not self.br.find_control("email").readonly:
-                    #self.br["email"] = self.deEncrypt('de',self.userEmail)
-                    self.br["email"] = self.userEmail
-                #self.br["password"] = self.deEncrypt('de',self.userPassword)
-                self.br["password"] = self.userPassword
-                self.br.submit()
-                resp = self.br.response()
-                try:
-                    self.content = unicode(resp.read(), "utf-8") # for kodi 18
-                except:
-                    self.content = str(resp.read(), encoding = 'utf-8') # for kodi 19
-                #error_str = 'message error'
-                if 'message error' in self.content:
-                    xbmcgui.Dialog().ok(self.addonName, 'Logon issue')
-                    return False
-                self.setCookie()
-                # MFA check
-                while 'action="verify"' in self.content or 'id="auth-mfa-remember-device' in self.content:
-                    soup = self.parseHTML(self.content)
-                    if 'cvf-widget-form cvf-widget-form-dcq fwcim-form a-spacing-none' in self.content:
-                        # step 0 - account name
-                        form = soup.find('form', class_="cvf-widget-form cvf-widget-form-dcq fwcim-form a-spacing-none")
-                        # msgheading = 'Enter Account Name'
-                        #self.log('### Account Name ###############')
-                        #self.log(form)
-                        msgheading = form.find('label', class_="a-form-label").getText().strip()
-                        msgtxt = ""
-                        inp = self.getUserInput(msgheading, msgtxt)
-                        if inp:
-                            self.br.select_form(nr=0)
-                            self.br['dcq_question_subjective_1'] = inp
-                        else:
-                            return False
-                    elif 'name="claimspicker"' in self.content:
-                        # step 1
-                        #self.log('MFA - form step 1')
-                        form = soup.find_all('form', attrs={'name':'claimspicker'})
-                        #self.log('### claimspicker ###############')
-                        #self.log(form)
-                        msgheading = form[0].find('h1').renderContents().strip()
-                        msgtxt = form[0].findAll('div', class_='a-row')[1].renderContents().strip()
-                        if xbmcgui.Dialog().yesno(msgheading, msgtxt):
-                            self.br.select_form(nr=0)
-                        else:
-                            return False
-                    elif 'name="code"' in self.content: # sms info
-                        # step 2
-                        #self.log('MFA - form step 2')
-                        form = soup.find_all('form', class_='cvf-widget-form fwcim-form a-spacing-none')
-                        #self.log('### CODE ###############')
-                        #self.log(form)
-                        #msgheading = form[0].find('div', class_='a-row a-spacing-none').renderContents().strip()
-                        msgheading = form[0].findAll(lambda tag: tag.name == 'span' and not tag.attrs)
-                        msgheading = msgheading[1].text + '\n' + msgheading[2].text
-                        msgtxt = ''
-                        inp = self.getUserInput(msgheading, msgtxt)
-                        if inp:
-                            self.br.select_form(nr=0)
-                            self.br['code'] = inp
-                        else:
-                            return False
-                    elif 'auth-mfa-form' in self.content:
-                        msg = soup.find('form', id='auth-mfa-form')
-                        #self.log('### MFA ###############')
-                        #self.log(msg)
-                        msgheading = msg.p.renderContents().strip()
-                        msgtxt = ''
-                        inp = self.getUserInput(msgheading, msgtxt)
-                        if inp:
-                            xbmc.executebuiltin('ActivateWindow(busydialog)')
-                            self.br.select_form(nr=0)
-                            self.br['otpCode'] = inp
-                        else:
-                            return False
-                    else: # Unknown form
-                        return False
-                    self.br.submit()
-                    resp = self.br.response()
-                    try:
-                        self.content = unicode(resp.read(), "utf-8") # for kodi 18
-                    except:
-                        self.content = str(resp.read(), encoding = 'utf-8') # for kodi 19
-                self.content = self.content.replace("\\","")
-                captcha_match = re.compile('ap_captcha_title', re.DOTALL).findall(self.content)
-                if captcha_match:
-                    xbmc.executebuiltin(unicode('XBMC.Notification("Error:","Captcha required! Logon is not possible.",5000,)').encode("utf-8"))
-                    self.log("ERROR: Captcha required!")
-                    return False
-        return True
     # music content
     def menuHome(self):
         self.createList([   {'txt':30023,'fct':'menuPlaylists','img':'playlists.jpg'},
@@ -2166,7 +2071,7 @@ class AmazonMedia():
                 #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
                 #    continue
                 itemlist.append((url, li, True))
-        elif mode == 'stationsallartists':      # (all artists) stations
+        elif mode == 'allartistsstations':      # (all artists) stations
             items = param['categories'].get('artistsAZ')['stationMapIds']
             for item in items:
                 inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
@@ -2306,7 +2211,7 @@ class AmazonMedia():
         if song == None:
             xbmc.PlayList(0).clear()
             xbmc.Player().stop()
-            xbmc.executebuiltin(unicode('XBMC.Notification("Information:","Playback not possible! Cannot find streaming URL.",10000,)').encode("utf-8"))
+            xbmc.executebuiltin('Notification("Information:", %s %s %s, 10000, )'%(self.translation(30073),' ',self.translation(30074)))
             return False
         li = xbmcgui.ListItem(path=song)
         li.setContentLookup(False)
@@ -2319,7 +2224,7 @@ class AmazonMedia():
             if 'statusCode' in obj and obj['statusCode'] == 'MAX_CONCURRENCY_REACHED':
                 xbmc.PlayList(0).clear()
                 xbmc.Player().stop()
-                xbmc.executebuiltin(unicode('XBMC.Notification("Information:","Playback not possible! Another instance is running.",10000,)').encode("utf-8"))
+                xbmc.executebuiltin('Notification("Information:", %s %s %s, 10000, )'%(self.translation(30073),' ',self.translation(30075)))
                 return None
             try:
                 song = obj['contentResponse']['urlList'][0]
@@ -2351,32 +2256,6 @@ class AmazonMedia():
             lic = self.getLicenseKey()
             song = self.writeSongFile(manifest,'mpd')
             li = xbmcgui.ListItem(path=song)
-            """
-            widevine issues with different OS
-            architecture_name : x86-64
-            company_name      : Google
-            model_name        : ChromeCDM
-            platform_name     : Linux --> works fine, as expected ;-)
-
-            architecture_name : arm
-            company_name      : Google
-            model_name        : ChromeCDM
-            platform_name     : ChromeOS --> issue
-
-            architecture_name : x86-64
-            company_name      : Google
-            model_name        : ChromeCDM
-            platform_name     : Windows --> issue, bad request - additional license payload? and MVP
-
-            Widevine Pssh
-            {
-            	"algorithm":"AESCTR",
-            	"keyIds":["<b64 id>"],
-            	"provider":"AmazonMusic",
-            	"contentId":"<b64 id>",
-            	"trackType":"AUDIO"
-            }
-            """
             li.setProperty('inputstreamaddon', 'inputstream.adaptive')
             li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
@@ -2400,19 +2279,10 @@ class AmazonMedia():
         if ftype == 'mpd':
             m3u_string = manifest
             song = song.replace("\\","/") # windows fix that inputstream can work properly
-
         m3u_string = str(m3u_string.replace("\\n", os.linesep))
         temp_file.write(m3u_string.encode("ascii"))
         temp_file.close()
         return song
-
-    ############# SOCCER LIVE ##############
-    #def getSoccer(self):
-    #    resp = self.amzCall(self.API_GetSoccerMain,'getSoccerMain')
-    #    menuEntries = []
-    #    for item in resp['blocks'][0]['filterSelector']['filterOptions']:
-    #        menuEntries.append({'txt':item['text'],'fct':'getSoccerFilter','target':item['value'],'img':item['image']})
-    #    self.createList(menuEntries,False,True)
     def getSoccerFilter(self,target=None): # 'BUND', 'BUND2', 'CHAMP', 'DFBPOKAL', 'SUPR'
         menuEntries = []
         resp = self.amzCall(self.API_GetSoccerMain,'getSoccerMain',None,None,target)
@@ -2480,44 +2350,14 @@ class AmazonMedia():
         cookiedict = {}
         for cookie in self.cj:
             cookiedict[cookie.name] = cookie.value
-        """ from amzn video addon
-        cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookie.items()])
-        opt = '|Content-Type=application%2Fx-www-form-urlencoded&Cookie=' + quote_plus(cj_str)
-        opt += '|widevine2Challenge=B{SSM}&includeHdcpTestKeyInLicense=true'
-        opt += '|JBlicense;hdcpEnforcementResolutionPixels'
-        licURL = getURLData('catalog/GetPlaybackResources', asin, opt=opt, extra=True, vMT=vMT, dRes='Widevine2License', retURL=True)
 
-        url = g.ATVUrl + '/cdp/' + mode
-        url += '?asin=' + asin
-        url += '&deviceTypeID=' + devicetypeid
-        url += '&firmware=' + firmware
-        url += '&deviceID=' + g.deviceID
-        url += '&marketplaceID=' + g.MarketID
-        url += '&format=' + retformat
-        url += '&version=' + str(version)
-        url += '&gascEnabled=' + str(g.UsePrimeVideo).lower()
-        if 'SubtitleUrls' in dRes.split(','):
-            url += "&subtitleFormat=TTMLv2"
-        if ('catalog/GetPlaybackResources' == mode) and (g.platform & g.OS_ANDROID):
-            url += '&operatingSystemName=Windows'
-        if extra:
-            url += '&resourceUsage=ImmediateConsumption&consumptionType=Streaming&deviceDrmOverride=CENC' \
-                   '&deviceStreamingTechnologyOverride=DASH&deviceProtocolOverride=Https' \
-                   '&deviceBitrateAdaptationsOverride=CVBR%2CCBR&audioTrackId=all'
-            url += '&languageFeature=MLFv2'  # Audio Description tracks
-            url += '&videoMaterialType=' + vMT
-            url += '&desiredResources=' + dRes
-            url += '&supportedDRMKeyScheme=DUAL_KEY' if (not g.platform & g.OS_ANDROID) and ('PlaybackUrls' in dRes) else ''
-        url += opt
-
-        """
         cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookiedict.items()])
 
         head['Cookie'] = cj_str
-        licHeaders = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
+        licHeader = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
         licBody = self.prepReqData('getLicenseForPlaybackV2')
         # licURL expected (req / header / body / response)
-        return '{}|{}|{}|JBlicense'.format(url,licHeaders,licBody)
+        return '{}|{}|{}|JBlicense'.format(url,licHeader,licBody)
     def getMaestroID(self):
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
@@ -2540,5 +2380,4 @@ class AmazonMedia():
             return True
 
 if __name__ == '__main__':
-    am = AmazonMedia()
-    am.reqDispatch()
+    AmazonMedia().reqDispatch()
