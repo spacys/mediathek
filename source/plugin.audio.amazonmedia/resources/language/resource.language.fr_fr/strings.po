@@ -161,6 +161,30 @@ msgctxt "#30041"
 msgid "Recommendations"
 msgstr "Recommendations"
 
+msgctxt "#30070"
+msgid "Logon was not possible."
+msgstr "La connexion n'a pas été possible."
+
+msgctxt "#30071"
+msgid "Addon reset successful."
+msgstr "Réinitialisation de l'addon réussie."
+
+msgctxt "#30072"
+msgid "Captcha required!"
+msgstr "Captcha required!"
+
+msgctxt "#30073"
+msgid "Playback not possible!"
+msgstr "Playback not possible!"
+
+msgctxt "#30074"
+msgid "Cannot find streaming URL."
+msgstr "Cannot find streaming URL."
+
+msgctxt "#30075"
+msgid "Another instance is running."
+msgstr "Another instance is running."
+
 msgctxt "#30100"
 msgid "General"
 msgstr "Géneral"
