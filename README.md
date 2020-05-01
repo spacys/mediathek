@@ -20,3 +20,7 @@ This addon provides easy access to
 ## Contributing
 If you like to improve or extend this addon, feel free to create pull requests.
 Any help are welcome.
+
+## Known issues / restrictions
+- Due to VMP validation of the widevine library playback on Windows, Libreelec and iOS is currently not possible.
+- US support will be removed shortly. music.amazon.com has different interfaces than Europe.
