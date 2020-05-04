@@ -1,6 +1,6 @@
 <settings>
     <category label="30100">
-        <setting id="siteVersion" type="enum" label="30101" values="US|UK|DE|FR|IT|ES" default="2"/>
+        <setting id="siteVersion" type="enum" label="30101" values="DE|FR|UK|IT|ES" default="0"/>
         <setting id="quality" type="enum" label="30102" values="256kbit|128kbit|48kbit" default="0"/>
         <setting id="logging" type="bool" label="30104" default="false"/>
         <setting id="showimages" type="bool" label="30105" default="false"/>
@@ -8,7 +8,6 @@
         <setting id="showcolentr" type="bool" label="30106" default="true"/>
         <setting label="30103" type="action" action="RunPlugin(plugin://plugin.audio.amazonmedia/?mode=resetAddon)"/>
 
-        <setting id="confFile" type="text" visible="false" label="confFile" default="conf"/>
         <setting id="userAgent" type="text" visible="false" label="userAgent" default="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"/>
         <setting id="deviceId" type="text" visible="false" label="deviceId" default=""/>
         <setting id="csrf_token" type="text" visible="false" label="csrf_token" default=""/>
@@ -22,7 +21,7 @@
         <setting id="customerLang" type="text" visible="false" label="customerLang" default=""/>
         <setting id="region" type="text" visible="false" label="region" default=""/>
         <setting id="url" type="text" visible="false" label="url" default=""/>
-        <setting id="access" type="text" visible="false" label="access" default="false"/>
+        <setting id="access" type="bool" visible="false" label="access" default="false"/>
         <setting id="accessType" type="text" visible="false" label="accessType" default=""/>
         <setting id="search1PlayLists" type="text" visible="false" label="search1PlayLists" default=""/>
         <setting id="search2PlayLists" type="text" visible="false" label="search2PlayLists" default=""/>

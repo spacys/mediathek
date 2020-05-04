@@ -42,15 +42,10 @@ import random
 import base64
 
 NODEBUG = False
-"""
-class PopupWindow(xbmcgui.WindowDialog):
-    def __init__(self, header, image):
-        self.addControl(xbmcgui.ControlImage(x=190, y=25, width=200, height=70, filename=image))
-        self.addControl(xbmcgui.ControlLabel(x=190, y=200, width=500, height=25, label=header))
-"""
+
 class AmazonMedia():
     __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
-        'musicURL','confFile','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
+        'musicURL','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
         'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content',
         'API_getBrowseRecommendations','API_lookup','API_getAddToLibraryRecommendations','API_getSimilarityRecommendations','API_getMusicStoreRecommendations',
@@ -69,10 +64,13 @@ class AmazonMedia():
         self.prepBrowser()
         self.setAPIConstants()
         self.setQueryConstants()
-        if self.logging == 'true':
+        if self.logging:
             self.log( 'handle: ' + self.addonHandle.__str__()
                     + '\nArgs: ' + self.addonArgs.__str__()
                     + '\nmode: ' + self.addonMode.__str__())
+    def __del__(self):
+        ''' Cleanup instances '''
+        del self.addonId
     def setVariables(self):
         self.addon        = xbmcaddon.Addon()
         self.addonId      = self.getInfo('id')
@@ -83,11 +81,10 @@ class AmazonMedia():
         self.addonHandle  = int(sys.argv[1])
         self.addonArgs    = urlparse.parse_qs(sys.argv[2][1:])
         self.addonMode    = self.addonArgs.get('mode', None)
-        self.siteVerList  = ["com", "co.uk", "de", "fr", "it", "es"]
+        self.siteVerList  = ["de", "fr", "co.uk", "it", "es"]
         self.siteVersion  = self.getSetting("siteVersion")
         self.logonURL     = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])
         self.musicURL     = 'https://music.amazon.{}'.format(self.siteVerList[int(self.siteVersion)])
-        self.confFile     = self.getSetting("confFile")
         self.userEmail    = ''
         self.userPassword = ''
         self.userAgent    = self.getSetting("userAgent")
@@ -104,16 +101,16 @@ class AmazonMedia():
         self.customerLang = self.getSetting("customerLang")
         self.region       = self.getSetting("region")
         self.url          = self.getSetting("url")
-        self.access       = self.getSetting("access")
+        self.access       = self.toBool(self.getSetting("access"))
         self.accessType   = self.getSetting("accessType")
         self.maxResults   = 50
         self.audioQualist = ["HIGH","MEDIUM","LOW"]
         self.audioQuality = self.audioQualist[int(self.getSetting("quality"))]
         self.cj           = cookielib.MozillaCookieJar()
-        self.logging      = self.getSetting("logging")
-        self.showimages   = self.getSetting("showimages")
-        self.showUnplayableSongs = self.getSetting("showUnplayableSongs")
-        self.showcolentr  = self.getSetting("showcolentr")
+        self.logging      = self.toBool(self.getSetting("logging"))
+        self.showimages   = self.toBool(self.getSetting("showimages"))
+        self.showUnplayableSongs = self.toBool(self.getSetting("showUnplayableSongs"))
+        self.showcolentr  = self.toBool(self.getSetting("showcolentr"))
 
         self.sPlayLists   = ["search1PlayLists","search2PlayLists","search3PlayLists"]
         self.sAlbums      = ["search1Albums","search2Albums","search3Albums"]
@@ -134,10 +131,9 @@ class AmazonMedia():
             self.resetAddon()
             return
         # logon
-        if self.access == 'false':
-            if not self.amazonLogon():
-                xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.translation(30070)))
-                return
+        if not self.access and not self.amazonLogon():
+            xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.translation(30070)))
+            return
 
         if self.addonMode is None:
             mode = None
@@ -244,6 +240,11 @@ class AmazonMedia():
         return self.addon.getSetting(oProp)
     def setSetting(self,oProp,val):
         self.addon.setSetting(oProp,val)
+    def toBool(self,s):
+        if s == 'True' or s == 'true':
+             return True
+        else:
+             return False
     def setContent(self,cont):
         xbmcplugin.setContent(int(sys.argv[1]), cont)
     def setCookie(self):
@@ -300,7 +301,7 @@ class AmazonMedia():
                 else:
                     x+=1
         else:
-            self.setSetting("siteVersion", "2")
+            self.setSetting("siteVersion", "0")
     # read / write config file
     def appConfig(self,app_config):
         if app_config is None:
@@ -321,9 +322,6 @@ class AmazonMedia():
         self.setSetting('accessType',       app_config['customerBenefits']['tier'])
 
         self.checkSiteVersion(app_config['musicTerritory'].lower())
-        self.setVariables()
-        self.prepFolder()
-        self.prepBrowser()
     # cleanup
     def delCookies(self):
         if os.path.exists(self.cookieFile):
@@ -333,7 +331,41 @@ class AmazonMedia():
         settings = '{}{}{}'.format(self.addonUDatFo, os.sep, 'settings.xml')
         if os.path.exists(settings):
             os.remove(settings)
-            xbmc.executebuiltin('Notification("Information:", %s, 5000, )'%(self.translation(30071)))
+        self.setSetting('csrf_ts', "")
+        self.setSetting('csrf_rnd', "")
+        self.setSetting('csrf_token', "")
+        self.setSetting('customerId', "")
+        self.setSetting('marketplaceId', "")
+        self.setSetting('deviceId', "")
+        self.setSetting('deviceType', "")
+        self.setSetting('musicTerritory', "")
+        self.setSetting('locale', "")
+        self.setSetting('customerLang', "")
+        self.setSetting('region', "")
+        self.setSetting('url', "")
+        self.setSetting('access', "false")
+        self.setSetting('logging', "false")
+        self.setSetting('showimages', "false")
+        self.setSetting('showUnplayableSongs', "false")
+        self.setSetting('showcolentr', "true")
+        self.setSetting('accessType', "")
+        self.setSetting('search1PlayLists', "")
+        self.setSetting('search2PlayLists', "")
+        self.setSetting('search3PlayLists', "")
+        self.setSetting('search1Albums', "")
+        self.setSetting('search2Albums', "")
+        self.setSetting('search3Albums', "")
+        self.setSetting('search1Songs', "")
+        self.setSetting('search2Songs', "")
+        self.setSetting('search3Songs', "")
+        self.setSetting('search1Stations', "")
+        self.setSetting('search2Stations', "")
+        self.setSetting('search3Stations', "")
+        self.setSetting('search1Artists', "")
+        self.setSetting('search2Artists', "")
+        self.setSetting('search3Artists', "")
+        self.access = False
+        xbmc.executebuiltin('Notification("Information:", %s, 5000, )'%(self.translation(30071)))
     def delCredentials(self):
         self.userEmail = ''
         self.userPassword = ''
@@ -630,16 +662,22 @@ class AmazonMedia():
     # amazon logon
     def amazonLogon(self):
         app_config = None
-        self.access = 'false'
-        self.prepBrowser()
-        while self.access == 'false':
+        self.delCookies()
+        xbmcaddon.Addon(id=self.addonId).openSettings()
+        self.doReInit()
+        x = 1
+        while not self.access:
             if not self.getCredentials():
                 return False
             self.br.open(self.logonURL)
+            #self.log(self.br.response().code)
+            #self.log(self.br.response().info())
+            #self.log(unicode(self.br.response().read(), "utf-8"))
+
             self.doLogonForm()
             self.content = self.getLogonResponse()
 
-            if 'message error' in self.content:
+            if 'message error' in self.content or x == 3:
                 xbmcgui.Dialog().ok(self.addonName, 'Logon issue')
                 return False
             if not self.checkMFA():
@@ -664,13 +702,14 @@ class AmazonMedia():
                     self.doReInit()
                 self.delCookies()
                 app_config = None
-                self.access = 'false'
+                self.access = False
             else:
                 self.appConfig(app_config)
                 self.setCookie()
                 self.doReInit()
                 self.delCredentials()
-                self.access = 'true'
+                self.access = True
+            x+=1
         return True
     def doReInit(self):
         self.setVariables()
@@ -770,9 +809,8 @@ class AmazonMedia():
         resp = requests.post(url=url, data=data, headers=head, cookies=self.cj)
         self.setCookie()
         if resp.status_code == 401 :
-            self.delCookies()
             self.amazonLogon()
-        if self.logging == 'true':
+        if self.logging:
             self.log(resp.text)
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
             return resp
@@ -1524,16 +1562,12 @@ class AmazonMedia():
         mediatype = ['playlistLibraryAvailability','expandTracklist','trackLibraryAvailability','collectionLibraryAvailability']
         data = self.amzCall( self.API_lookup,'itemLookup',None,asin,mediatype)
         sel = ''
-        # if   data['metadata']['albumList'] is not None:
         if   len(data['albumList']) > 0:
             sel = 'albumList'
-            #elif data['metadata']['artistList'] is not None:
         elif len(data['artistList']) > 0:
             sel = 'artistList'
-            # elif data['metadata']['playlistList'] is not None:
         elif len(data['playlistList']) > 0:
             sel = 'playlistList'
-            #elif data['metadata']['trackList'] is not None:
         elif len(data['trackList']) > 0:
             sel = 'trackList'
         else:
@@ -1690,13 +1724,13 @@ class AmazonMedia():
             meta = {
                 'mode':         None,
                 'asin':         None,
-                'objectId':     '',
+                'objectId':     None,
                 'thumb':        None,
                 'purchased':    False,
                 'isPrime':      False,
                 'isUnlimited':  False,
                 'color':        '%s',
-                'isPlayable':   'true'
+                'isPlayable':   True
             }
             meta['mode'] = filter['mode']
         # tracknumber : discnumber : duration : year : genre : album : artist : title : rating
@@ -1830,7 +1864,7 @@ class AmazonMedia():
         if ('isMusicSubscription' in item and (item['isMusicSubscription'] == True or item['isMusicSubscription'] == 'true')):
             meta['isUnlimited'] = True
 
-        if self.showcolentr == 'true':
+        if self.showcolentr:
             if meta['purchased']:
                 meta['color'] = '[COLOR gold]%s[/COLOR]'
             elif meta['isPrime'] or 'stationMapIds' in item:
@@ -1842,12 +1876,12 @@ class AmazonMedia():
 
         if ((self.accessType == 'PRIME'     and not meta['isPrime'] and not meta['purchased']) or
             (self.accessType == 'UNLIMITED' and not meta['isPrime'] and not meta['purchased'] and not meta['isUnlimited'] )):
-            meta['isPlayable'] = 'false'
+            meta['isPlayable'] = False
         else:
-            meta['isPlayable'] = 'true'
+            meta['isPlayable'] = True
 
-        if (self.accessType == 'UNLIMITED' and meta['isUnlimited']): # workaround for unlimited accounts, songs are now playable in search function
-            meta['isPlayable'] = 'true'
+        if (self.accessType == 'UNLIMITED' and meta['isUnlimited']):
+            meta['isPlayable'] = True
         #self.log(info)
         #self.log(meta)
         return (info,meta)
@@ -1856,16 +1890,16 @@ class AmazonMedia():
         if not met['thumb'] == None:
             li.setArt(self.setImage(met['thumb']))
         li.setInfo(type="music", infoLabels=inf)
-        if met['isPlayable'] == 'false': # workaround for unplayable items
+        if not met['isPlayable']: # workaround for unplayable items
             met['mode'] = '1234'
         url = self.setUrl(inf,met)
-        li.setProperty('IsPlayable', met['isPlayable'])
+        li.setProperty('IsPlayable', str(met['isPlayable']))
         # self.log(url)
         # self.log(inf)
         # self.log(met)
         return (url,li)
     def setImage(self,img):
-        if self.showimages == 'true':
+        if self.showimages:
             return ({'icon':img,'thumb':img,'fanart':img,'poster':img,'banner':img,'landscape':img})
         else:
             return ({'thumb':img}) # there is a bug in the listitems, after setting multiple arts, setInfo shows the Genre only
@@ -1874,19 +1908,14 @@ class AmazonMedia():
         li.setProperty('IsPlayable', 'false')
         url = "{}?mode={}&token={}".format(self.addonBaseUrl,str(self.addonMode[0]),str(nextToken))
         if query:
-            #url += "&query={}".format(urllib.quote_plus(query.encode("utf8")))
-            url += "&query={}".format(urlquoteplus(query.encode("utf8"))) # python 3 correction
+            url += "&query={}".format(urlquoteplus(query.encode("utf8")))
         if asin:
-            #url += "&asin={}".format(urllib.quote_plus(asin.encode("utf8")))
-            url += "&asin={}".format(urlquoteplus(asin.encode("utf8"))) # python 3 correction
+            url += "&asin={}".format(urlquoteplus(asin.encode("utf8")))
         return (url, li, True)
     def setUrl(self,inf,met):
         url = {
             'mode':     met['mode'],
             'asin':     met['asin']
-            #'objectId': met['objectId']
-            #'title':    inf['title'].encode("utf8"),
-            #'thumb':    met['thumb']
         }
         if met['objectId'] is not None:
             url['objectId'] = met['objectId']
@@ -1910,7 +1939,7 @@ class AmazonMedia():
                 met['thumb'] = param[0]['image']
                 met['album'] = param[0]['title']
                 url, li  = self.setItem(inf,met)
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
+                if not self.showUnplayableSongs and not met['isPlayable']:
                     continue
                 itemlist.append((url, li, False))
         elif mode == 'artistList':      # no content at the moment
@@ -1927,7 +1956,7 @@ class AmazonMedia():
                     else:
                         continue
                 url, li  = self.setItem(inf,met)
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
+                if not self.showUnplayableSongs and not met['isPlayable']:
                     continue
                 itemlist.append((url, li, False))
         elif mode == 'stationList':             # station playlist
@@ -1942,8 +1971,6 @@ class AmazonMedia():
                     else:
                         continue
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, False))
         elif mode == 'playlists':               # playlists
             for item in param['playlistList']:
@@ -1965,7 +1992,7 @@ class AmazonMedia():
                 url, li  = self.setItem(inf,met)
             #if not param['nextTokenMap']['playlist'] == None and not len(param['playlistList']) < self.maxResults: # next page
             #    itemlist.append(self.setPaginator(param['nextTokenMap']['playlist']))
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
+                if not self.showUnplayableSongs and not met['isPlayable']:
                     continue
                 itemlist.append((url, li, True))
         elif mode == 'getplaylistsbyid':        # playlists by Id
@@ -1984,15 +2011,13 @@ class AmazonMedia():
                     url, li  = self.setItem(inf,met)
                 #if not param['nextTokenMap']['playlist'] == None and not len(param['playlistList']) < self.maxResults: # next page
                 #    itemlist.append(self.setPaginator(param['nextTokenMap']['playlist']))
-                    if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
+                    if not self.showUnplayableSongs and not met['isPlayable']:
                         continue
                     itemlist.append((url, li, False))
         elif mode == 'recplaylists':            # recommended playlists
             for item in param['playlists']:
                 inf, met = self.setData(item,{'mode':'lookup'})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
             if not param['nextResultsToken'] == None and len(param['playlists']) <= self.maxResults: # next page
                 itemlist.append(self.setPaginator(param['nextResultsToken']))
@@ -2000,8 +2025,6 @@ class AmazonMedia():
             for item in param['albums']:
                 inf, met = self.setData(item,{'mode':'lookup','isAlbum':True})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
             if not param['nextResultsToken'] == None and len(param['albums']) <= self.maxResults: # next page
                 itemlist.append(self.setPaginator(param['nextResultsToken']))
@@ -2009,8 +2032,6 @@ class AmazonMedia():
             for item in param['stations']:
                 inf, met = self.setData(item,{'mode':'createQueue'})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
             if not param['nextResultsToken'] == None and len(param['stations']) <= self.maxResults: # next page
                 itemlist.append(self.setPaginator(param['nextResultsToken']))
@@ -2018,7 +2039,7 @@ class AmazonMedia():
             for item in param['recentTrackList']:
                 inf, met = self.setData(item,{'mode':'getTrack'})
                 url, li  = self.setItem(inf,met)
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
+                if not self.showUnplayableSongs and not met['isPlayable']:
                     continue
                 itemlist.append((url, li, False))
             if not param['nextToken'] == None and len(param['recentTrackList']) <= self.maxResults: # next page
@@ -2043,7 +2064,7 @@ class AmazonMedia():
                     fold    = False
                 inf, met = self.setData(item['hint'],mod)
                 url, li  = self.setItem(inf,met)
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false' and mod['mode'] == 'getTrack':
+                if not self.showUnplayableSongs and not met['isPlayable'] and mod['mode'] == 'getTrack':
                     continue
                 itemlist.append((url, li, fold))
         elif mode == 'recentlyaddedsongs':      # recently added songs
@@ -2058,7 +2079,7 @@ class AmazonMedia():
                     else:
                         continue
                 url, li  = self.setItem(inf,met)
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
+                if not self.showUnplayableSongs and not met['isPlayable']:
                     continue
                 itemlist.append((url, li, False))
             if not param['nextResultsToken'] == None and len(param['trackInfoList']) <= self.maxResults: # next page
@@ -2068,16 +2089,12 @@ class AmazonMedia():
             for item in items:
                 inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
         elif mode == 'allartistsstations':      # (all artists) stations
             items = param['categories'].get('artistsAZ')['stationMapIds']
             for item in items:
                 inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
         elif mode == 'genres':                  # genre 1st level
             for sec in param['sections']:
@@ -2085,8 +2102,6 @@ class AmazonMedia():
                     for item in sec['categoryMapIds']:
                         inf, met = self.setData(param['categories'].get(item),{'mode':'getGenres2','isStation':True})
                         url, li  = self.setItem(inf,met)
-                        #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                        #    continue
                         itemlist.append((url, li, True))
                 else:
                     continue
@@ -2096,8 +2111,6 @@ class AmazonMedia():
             for item in items:
                 inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
         elif mode == 'purchasedalbums':         # purchased and owned albums
             for item in param['searchReturnItemList']:
@@ -2124,7 +2137,7 @@ class AmazonMedia():
                 #    else:
                 #        continue
                 url, li  = self.setItem(inf,met)
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
+                if not self.showUnplayableSongs and not met['isPlayable']:
                     continue
                 itemlist.append((url, li, False))
             if not param['nextResultsToken'] == None and len(param['searchReturnItemList']) <= self.maxResults: # next page
@@ -2139,7 +2152,7 @@ class AmazonMedia():
                     fold = False
                 inf, met = self.setData(item['document'],mod)
                 url, li  = self.setItem(inf,met)
-                if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false' and mod['mode'] == 'getTrack':
+                if not self.showUnplayableSongs and not met['isPlayable'] and mod['mode'] == 'getTrack':
                     continue
                 itemlist.append((url, li, fold))
             try:
@@ -2151,8 +2164,6 @@ class AmazonMedia():
             for item in param['hits']:
                 inf, met = self.setData(item['document'],{'mode':'lookup'})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
             try:
                 if not param['nextPage'] == None and len(param['hits']) <= self.maxResults: # next page
@@ -2163,8 +2174,6 @@ class AmazonMedia():
             for item in param['hits']:
                 inf, met = self.setData(item['document'],{'mode':'getArtistDetails'})#,'isAlbum':True})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
             try:
                 if not param['nextPage'] == None and len(param['hits']) <= self.maxResults: # next page
@@ -2175,8 +2184,6 @@ class AmazonMedia():
             for item in param['hits']:
                 inf, met = self.setData(item['document'],{'mode':'createQueue','query':query})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
             try:
                 if not param['nextPage'] == None and len(param['hits']) <= self.maxResults: # next page
@@ -2187,8 +2194,6 @@ class AmazonMedia():
             for item in param['albumList']:
                 inf, met = self.setData(item,{'mode':'lookup'})
                 url, li  = self.setItem(inf,met)
-                #if self.showUnplayableSongs == 'false' and met['isPlayable'] == 'false':
-                #    continue
                 itemlist.append((url, li, True))
             try:
                 if len(param['albumList']) == self.maxResults:
