@@ -1,3 +1,5 @@
+0.1.2
+- typo fixed
 0.1.1
 - bug fixing: search for unlimited_HD accounts fixed
 0.1.0
