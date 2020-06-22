@@ -319,7 +319,7 @@ class AmazonMedia():
         self.setSetting('region',           app_config['realm'][:2])
         self.setSetting('url',              'https://{}'.format(app_config['serverInfo']['returnUrlServer']))
         self.setSetting('access',           'true')
-        if app_config['customerBenefits']['tier']) == 'UNLIMITED_HD':
+        if app_config['customerBenefits']['tier'] == 'UNLIMITED_HD':
                 self.setSetting('accessType', 'UNLIMITED')
         else:
             self.setSetting('accessType',   app_config['customerBenefits']['tier'])
