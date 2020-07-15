@@ -1,29 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-try:
-    import urlparse as urlparse # Python 2
-except ImportError:
-    import urllib.parse as urlparse # Python 3
-try:
-    from urllib import quote as urlquote # Python 2
-except ImportError:
-    from urllib.parse import quote as urlquote # Python 3
-try:
-    from urllib import quote_plus as urlquoteplus # Python 2
-except ImportError:
-    from urllib.parse import quote_plus as urlquoteplus # Python 3
-try:
-    from urllib import urlencode as urlencode # Python 2
-except ImportError:
-    from urllib.parse import urlencode as urlencode # Python 3
+import urllib.parse as urlparse
+from urllib.parse import quote as urlquote
+from urllib.parse import quote_plus as urlquoteplus
+from urllib.parse import urlencode as urlencode
 
 import requests
 import mechanize
-try: # python 3
-    import http.cookiejar as cookielib
-except ImportError: # python 2
-    import cookielib as cookielib
+import http.cookiejar as cookielib
 import sys
 import re
 import os
@@ -65,9 +50,9 @@ class AmazonMedia():
         self.setAPIConstants()
         self.setQueryConstants()
         if self.logging:
-            self.log( 'handle: ' + self.addonHandle.__str__()
-                    + '\nArgs: ' + self.addonArgs.__str__()
-                    + '\nmode: ' + self.addonMode.__str__())
+            self.log( 'handle: ' + str(self.addonHandle)
+                    + '\nArgs: ' + str(self.addonArgs)
+                    + '\nmode: ' + str(self.addonMode))
     def __del__(self):
         ''' Cleanup instances '''
         del self.addonId
@@ -202,7 +187,7 @@ class AmazonMedia():
             self.getNewRecommendations()
         elif mode == 'getNewRecomDetails':
             asin = self.addonArgs.get('target', [None])
-            self.getNewRecomDetails(unicode(asin[0], "utf-8"))
+            self.getNewRecomDetails(asin[0])
         # get own music, differentiate betwenn purchased and own lib
         # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
         elif mode in ['getPurAlbums','getAllAlbums']:
@@ -233,7 +218,7 @@ class AmazonMedia():
             objectId = self.addonArgs.get('objectId', [None])[0]
             self.getSoccerDetail(objectId)
     def translation(self,oId):
-        return self.addon.getLocalizedString(oId).encode('utf-8')
+        return self.addon.getLocalizedString(oId)
     def getInfo(self,oProp):
         return self.addon.getAddonInfo(oProp)
     def getSetting(self,oProp):
@@ -289,7 +274,7 @@ class AmazonMedia():
         else:
             return False
     def log(self, msg, level=xbmc.LOGNOTICE):
-        log_message = '[{}] {}'.format(self.addonName, msg).encode("utf-8")
+        log_message = '[{}] {}'.format(self.addonName, msg)
         xbmc.log(log_message, level)
     def checkSiteVersion(self,siteVersion):
         if siteVersion in self.siteVerList:
@@ -2264,7 +2249,7 @@ class AmazonMedia():
             lic = self.getLicenseKey()
             song = self.writeSongFile(manifest,'mpd')
             li = xbmcgui.ListItem(path=song)
-            li.setProperty('inputstreamaddon', 'inputstream.adaptive')
+            li.setProperty('inputstream', 'inputstream.adaptive')
             li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
@@ -2288,7 +2273,7 @@ class AmazonMedia():
             m3u_string = manifest
             song = song.replace("\\","/") # windows fix that inputstream can work properly
         m3u_string = str(m3u_string.replace("\\n", os.linesep))
-        temp_file.write(m3u_string.encode("ascii"))
+        temp_file.write(m3u_string)
         temp_file.close()
         return song
     def getSoccerFilter(self,target=None): # 'BUND', 'BUND2', 'CHAMP', 'DFBPOKAL', 'SUPR'
@@ -2343,7 +2328,7 @@ class AmazonMedia():
         if not self.isInputStream():
             return False
         li = xbmcgui.ListItem(path=target)
-        li.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        li.setProperty('inputstream', 'inputstream.adaptive')
         li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
         li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
         li.setInfo('video', '')
@@ -2369,10 +2354,10 @@ class AmazonMedia():
     def getMaestroID(self):
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
-        a = str(float.hex(math.floor(16 * (1 + random.random()))))[4:5]
+        a = str(float.hex(float(math.floor(16 * (1 + random.random())))))[4:5]
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
-        return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8]
+        return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
     def isInputStream(self): # helper to activate InputStream if available
         verifyISA = '{"jsonrpc":"2.0","id":1,"method":"Addons.GetAddonDetails","params":{"addonid":"inputstream.adaptive"}}'
         if 'error' in xbmc.executeJSONRPC(verifyISA):
