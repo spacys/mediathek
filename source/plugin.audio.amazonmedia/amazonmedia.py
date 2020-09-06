@@ -271,7 +271,7 @@ class AmazonMedia():
             self.setSetting(q[1],self.getSetting(q[0]))
             self.setSetting(q[0],query)
     def getFolder(self,oPath):
-        return xbmc.translatePath(oPath)
+        return xbmc.translatePath(oPath).decode('utf-8') # xbmcvfs
     def getUserInput(self,title,txt,hidden=False,uni=False):
         kb = xbmc.Keyboard()
         kb.setHeading(title)
@@ -368,7 +368,7 @@ class AmazonMedia():
         self.setSetting('search2Artists', "")
         self.setSetting('search3Artists', "")
         self.access = False
-        xbmc.executebuiltin('Notification("Information:", %s, 5000, )'%(self.translation(30071)))
+        xbmc.executebuiltin('Notification("Information:", {}, 5000, )'.format(self.translation(30071)))
     def delCredentials(self):
         self.userEmail = ''
         self.userPassword = ''
@@ -2261,8 +2261,6 @@ class AmazonMedia():
         resp = self.amzCall(self.API_streamDash,'getTrackDash',None,asin,'ASIN')
         manifest = json.loads(resp.text)['contentResponseList'][0]['manifest']
         if manifest:
-            if not self.isInputStream():
-                return
             lic = self.getLicenseKey()
             song = self.writeSongFile(manifest,'mpd')
             li = xbmcgui.ListItem(path=song)
@@ -2342,8 +2340,6 @@ class AmazonMedia():
         resp = self.amzCall(self.API_GetSoccerStreamingURLs,'getSoccerStreamingURL','soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
         # get the xml file and extract the source
-        if not self.isInputStream():
-            return False
         li = xbmcgui.ListItem(path=target)
         li.setProperty('inputstreamaddon', 'inputstream.adaptive')
         li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
@@ -2375,19 +2371,6 @@ class AmazonMedia():
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8]
-    def isInputStream(self): # helper to activate InputStream if available
-        verifyISA = '{"jsonrpc":"2.0","id":1,"method":"Addons.GetAddonDetails","params":{"addonid":"inputstream.adaptive"}}'
-        if 'error' in xbmc.executeJSONRPC(verifyISA):
-            xbmc.executebuiltin('UpdateAddonRepos', True)
-            xbmc.executebuiltin('InstallAddon(inputstream.adaptive)', True)
-            if 'error' in xbmc.executeJSONRPC(verifyISA):
-                self.log('InputStream.Adaptive addon is not installed')
-                return False
-            else:
-                self.log('InputStream.Adaptive activated')
-                return True
-        else:
-            return True
 
 if __name__ == '__main__':
     amz = AmazonMedia()
