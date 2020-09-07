@@ -1451,66 +1451,66 @@ class AmazonMedia():
         return data
     # music content
     def menuHome(self):
-        self.createList([   {'txt':30023,'fct':'menuPlaylists','img':'playlists.jpg'},
-                            {'txt':30024,'fct':'menuAlbums','img':'albums.jpg'},
-                            {'txt':30022,'fct':'menuSongs','img':'songs.jpg'},
-                            {'txt':30008,'fct':'menuStations','img':'stations.jpg'},
-                            {'txt':30015,'fct':'getGenres','img':'genres.jpg'},
-                            {'txt':30027,'fct':'menuArtists','img':'artists.jpg'},
-                            {'txt':30041,'fct':'getNewRecom','img':'newrecom.jpg'},
-                            {'txt':30035,'fct':'menuSoccer','img':'soccer.jpg'}
+        self.createList([   {'txt':30023,'fct':'menuPlaylists',         'img':self.getSetting("img_playlists")},
+                            {'txt':30024,'fct':'menuAlbums',            'img':self.getSetting("img_albums")},
+                            {'txt':30022,'fct':'menuSongs',             'img':self.getSetting("img_songs")},
+                            {'txt':30008,'fct':'menuStations',          'img':self.getSetting("img_stations")},
+                            {'txt':30015,'fct':'getGenres',             'img':self.getSetting("img_genres")},
+                            {'txt':30027,'fct':'menuArtists',           'img':self.getSetting("img_artists")},
+                            {'txt':30041,'fct':'getNewRecom',           'img':self.getSetting("img_newrecom")},
+                            {'txt':30035,'fct':'menuSoccer',            'img':self.getSetting("img_soccer")}
         ])
     def menuPlaylists(self):
-        self.createList([   {'txt':30013,'fct':'searchPlayLists','img':'search.png'},
-                            {'txt':30032,'fct':'search1PlayLists','img':'search.png','search':self.getSetting(self.sPlayLists[0])},
-                            {'txt':30033,'fct':'search2PlayLists','img':'search.png','search':self.getSetting(self.sPlayLists[1])},
-                            {'txt':30034,'fct':'search3PlayLists','img':'search.png','search':self.getSetting(self.sPlayLists[2])},
-                            {'txt':30003,'fct':'getRecomPlayLists','img':'playlists.jpg'},
-                            {'txt':30002,'fct':'getNewPlayLists','img':'playlists.jpg'},
-                            {'txt':30001,'fct':'getPopularPlayLists','img':'playlists.jpg'},
-                            {'txt':30018,'fct':'getFollowedPlayLists','img':'playlists.jpg'},
-                            {'txt':30019,'fct':'getOwnedPlaylists','img':'playlists.jpg'}
+        self.createList([   {'txt':30013,'fct':'searchPlayLists',       'img':self.getSetting("img_search")},
+                            {'txt':30032,'fct':'search1PlayLists',      'img':self.getSetting("img_search"),'search':self.getSetting(self.sPlayLists[0])},
+                            {'txt':30033,'fct':'search2PlayLists',      'img':self.getSetting("img_search"),'search':self.getSetting(self.sPlayLists[1])},
+                            {'txt':30034,'fct':'search3PlayLists',      'img':self.getSetting("img_search"),'search':self.getSetting(self.sPlayLists[2])},
+                            {'txt':30003,'fct':'getRecomPlayLists',     'img':self.getSetting("img_playlists")},
+                            {'txt':30002,'fct':'getNewPlayLists',       'img':self.getSetting("img_playlists")},
+                            {'txt':30001,'fct':'getPopularPlayLists',   'img':self.getSetting("img_playlists")},
+                            {'txt':30018,'fct':'getFollowedPlayLists',  'img':self.getSetting("img_playlists")},
+                            {'txt':30019,'fct':'getOwnedPlaylists',     'img':self.getSetting("img_playlists")}
         ],True)
     def menuAlbums(self):
-        self.createList([   {'txt':30010,'fct':'searchAlbums','img':'search.png'},
-                            {'txt':30032,'fct':'search1Albums','img':'search.png','search':self.getSetting(self.sAlbums[0])},
-                            {'txt':30033,'fct':'search2Albums','img':'search.png','search':self.getSetting(self.sAlbums[1])},
-                            {'txt':30034,'fct':'search3Albums','img':'search.png','search':self.getSetting(self.sAlbums[2])},
-                            {'txt':30004,'fct':'getRecomAlbums','img':'albums.jpg'},
-                            {'txt':30012,'fct':'getPurAlbums','img':'albums.jpg'},
-                            {'txt':30007,'fct':'getAllAlbums','img':'albums.jpg'}
+        self.createList([   {'txt':30010,'fct':'searchAlbums',          'img':self.getSetting("img_search")},
+                            {'txt':30032,'fct':'search1Albums',         'img':self.getSetting("img_search"),'search':self.getSetting(self.sAlbums[0])},
+                            {'txt':30033,'fct':'search2Albums',         'img':self.getSetting("img_search"),'search':self.getSetting(self.sAlbums[1])},
+                            {'txt':30034,'fct':'search3Albums',         'img':self.getSetting("img_search"),'search':self.getSetting(self.sAlbums[2])},
+                            {'txt':30004,'fct':'getRecomAlbums',        'img':self.getSetting("img_albums")},
+                            {'txt':30012,'fct':'getPurAlbums',          'img':self.getSetting("img_albums")},
+                            {'txt':30007,'fct':'getAllAlbums',          'img':self.getSetting("img_albums")}
         ],True)
     def menuSongs(self):
-        self.createList([   {'txt':30011,'fct':'searchSongs','img':'search.png'},
-                            {'txt':30032,'fct':'search1Songs','img':'search.png','search':self.getSetting(self.sSongs[0])},
-                            {'txt':30033,'fct':'search2Songs','img':'search.png','search':self.getSetting(self.sSongs[1])},
-                            {'txt':30034,'fct':'search3Songs','img':'search.png','search':self.getSetting(self.sSongs[2])},
-                            {'txt':30009,'fct':'getPurSongs','img':'songs.jpg'},
-                            {'txt':30006,'fct':'getAllSongs','img':'songs.jpg'},
-                            {'txt':30017,'fct':'getRecentlyPlayed','img':'songs.jpg'},
-                            {'txt':30021,'fct':'getRecentlyAddedSongs','img':'songs.jpg'}
+        self.createList([   {'txt':30011,'fct':'searchSongs',           'img':self.getSetting("img_search")},
+                            {'txt':30032,'fct':'search1Songs',          'img':self.getSetting("img_search"),'search':self.getSetting(self.sSongs[0])},
+                            {'txt':30033,'fct':'search2Songs',          'img':self.getSetting("img_search"),'search':self.getSetting(self.sSongs[1])},
+                            {'txt':30034,'fct':'search3Songs',          'img':self.getSetting("img_search"),'search':self.getSetting(self.sSongs[2])},
+                            {'txt':30009,'fct':'getPurSongs',           'img':self.getSetting("img_songs")},
+                            {'txt':30006,'fct':'getAllSongs',           'img':self.getSetting("img_songs")},
+                            {'txt':30017,'fct':'getRecentlyPlayed',     'img':self.getSetting("img_songs")},
+                            {'txt':30021,'fct':'getRecentlyAddedSongs', 'img':self.getSetting("img_songs")}
         ],True)
     def menuStations(self):
-        self.createList([   {'txt':30016,'fct':'searchStations','img':'search.png'},
-                            {'txt':30032,'fct':'search1Stations','img':'search.png','search':self.getSetting(self.sStations[0])},
-                            {'txt':30033,'fct':'search2Stations','img':'search.png','search':self.getSetting(self.sStations[1])},
-                            {'txt':30034,'fct':'search3Stations','img':'search.png','search':self.getSetting(self.sStations[2])},
-                            {'txt':30005,'fct':'getRecomStations','img':'stations.jpg'},
-                            {'txt':30026,'fct':'getStations','img':'stations.jpg'},
-                            {'txt':30025,'fct':'getAllArtistsStations','img':'stations.jpg'}
+        self.createList([   {'txt':30016,'fct':'searchStations',        'img':self.getSetting("img_search")},
+                            {'txt':30032,'fct':'search1Stations',       'img':self.getSetting("img_search"),'search':self.getSetting(self.sStations[0])},
+                            {'txt':30033,'fct':'search2Stations',       'img':self.getSetting("img_search"),'search':self.getSetting(self.sStations[1])},
+                            {'txt':30034,'fct':'search3Stations',       'img':self.getSetting("img_search"),'search':self.getSetting(self.sStations[2])},
+                            {'txt':30005,'fct':'getRecomStations',      'img':self.getSetting("img_stations")},
+                            {'txt':30026,'fct':'getStations',           'img':self.getSetting("img_stations")},
+                            {'txt':30025,'fct':'getAllArtistsStations', 'img':self.getSetting("img_stations")}
         ],True)
     def menuArtists(self):
-        self.createList([   {'txt':30014,'fct':'searchArtist','img':'search.png'},
-                            {'txt':30032,'fct':'search1Artists','img':'search.png','search':self.getSetting(self.sArtists[0])},
-                            {'txt':30033,'fct':'search2Artists','img':'search.png','search':self.getSetting(self.sArtists[1])},
-                            {'txt':30034,'fct':'search3Artists','img':'search.png','search':self.getSetting(self.sArtists[2])}
+        self.createList([   {'txt':30014,'fct':'searchArtist',          'img':self.getSetting("img_search")},
+                            {'txt':30032,'fct':'search1Artists',        'img':self.getSetting("img_search"),'search':self.getSetting(self.sArtists[0])},
+                            {'txt':30033,'fct':'search2Artists',        'img':self.getSetting("img_search"),'search':self.getSetting(self.sArtists[1])},
+                            {'txt':30034,'fct':'search3Artists',        'img':self.getSetting("img_search"),'search':self.getSetting(self.sArtists[2])}
         ],True)
     def menuSoccer(self):
-        self.createList([   {'txt':30036,'fct':'soccerBUND','img':'soccer_BUND.jpg'},
-                            {'txt':30037,'fct':'soccerBUND2','img':'soccer_BUND2.jpg'},
-                            {'txt':30038,'fct':'soccerDFBPOKAL','img':'soccer_DFBPOKAL.jpg'},
-                            {'txt':30039,'fct':'soccerCHAMP','img':'soccer_CHAMP.jpg'},
-                            {'txt':30040,'fct':'soccerSUPR','img':'soccer_SUPR.jpg'}
+        self.createList([   {'txt':30036,'fct':'soccerBUND',            'img':self.getSetting("img_sBUND")},
+                            {'txt':30037,'fct':'soccerBUND2',           'img':self.getSetting("img_sBUND2")},
+                            {'txt':30038,'fct':'soccerDFBPOKAL',        'img':self.getSetting("img_sDFBPOKAL")},
+                            {'txt':30039,'fct':'soccerCHAMP',           'img':self.getSetting("img_sCHAMP")},
+                            {'txt':30040,'fct':'soccerSUPR',            'img':self.getSetting("img_sSUPR")}
         ])
     def createList(self,data,dynentry=False,soccer=False):
         itemlist = []
