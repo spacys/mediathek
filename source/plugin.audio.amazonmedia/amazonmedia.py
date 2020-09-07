@@ -50,9 +50,9 @@ class AmazonMedia():
         self.setAPIConstants()
         self.setQueryConstants()
         if self.logging:
-            self.log( 'handle: ' + str(self.addonHandle)
-                    + '\nArgs: ' + str(self.addonArgs)
-                    + '\nmode: ' + str(self.addonMode))
+            self.log( 'Handle: ' + self.addonHandle.__str__() + '\n'
+                    + 'Args  : ' + self.addonArgs.__str__() + '\n'
+                    + 'Mode  : ' + self.addonMode.__str__())
     def __del__(self):
         ''' Cleanup instances '''
         del self.addonId
