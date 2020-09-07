@@ -1542,9 +1542,7 @@ class AmazonMedia():
             if 'special' in item and item['special'] == 'newrecom' and 'target' in item:
                 url+='&target={}'.format(str(item['target']))
             itemlist.append((url, li, isFolder))
-        xbmcplugin.setContent(self.addonHandle, 'albums')
-        xbmcplugin.addDirectoryItems(self.addonHandle, itemlist, len(itemlist))
-        xbmcplugin.endOfDirectory(self.addonHandle)
+        self.finalizeContent(itemlist,'albums')
     # get music information
     def lookup(self,asin):
         mediatype = ['playlistLibraryAvailability','expandTracklist','trackLibraryAvailability','collectionLibraryAvailability']
@@ -2189,10 +2187,12 @@ class AmazonMedia():
                     itemlist.append((url, li, True))
             except:
                 pass
+        self.finalizeContent(itemlist,ctype)
+        xbmc.sleep(100)
+    def finalizeContent(self,itemlist,ctype):
         xbmcplugin.addDirectoryItems(self.addonHandle, itemlist, len(itemlist))
         xbmcplugin.setContent(self.addonHandle, ctype)
         xbmcplugin.endOfDirectory(self.addonHandle)
-        xbmc.sleep(100)
     # play music
     def getTrack(self,asin,objectId):
         song = self.tryGetStream(asin,objectId)
