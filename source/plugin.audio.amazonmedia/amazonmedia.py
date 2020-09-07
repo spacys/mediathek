@@ -2356,4 +2356,5 @@ class AmazonMedia():
         return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
 
 if __name__ == '__main__':
-    AmazonMedia().reqDispatch()
+    amz = AmazonMedia()
+    amz.reqDispatch()
