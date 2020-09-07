@@ -2244,8 +2244,6 @@ class AmazonMedia():
         resp = self.amzCall(self.API_streamDash,'getTrackDash',None,asin,'ASIN')
         manifest = json.loads(resp.text)['contentResponseList'][0]['manifest']
         if manifest:
-            if not self.isInputStream():
-                return
             lic = self.getLicenseKey()
             song = self.writeSongFile(manifest,'mpd')
             li = xbmcgui.ListItem(path=song)
@@ -2325,8 +2323,6 @@ class AmazonMedia():
         resp = self.amzCall(self.API_GetSoccerStreamingURLs,'getSoccerStreamingURL','soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
         # get the xml file and extract the source
-        if not self.isInputStream():
-            return False
         li = xbmcgui.ListItem(path=target)
         li.setProperty('inputstream', 'inputstream.adaptive')
         li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
@@ -2358,19 +2354,6 @@ class AmazonMedia():
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
-    def isInputStream(self): # helper to activate InputStream if available
-        verifyISA = '{"jsonrpc":"2.0","id":1,"method":"Addons.GetAddonDetails","params":{"addonid":"inputstream.adaptive"}}'
-        if 'error' in xbmc.executeJSONRPC(verifyISA):
-            xbmc.executebuiltin('UpdateAddonRepos', True)
-            xbmc.executebuiltin('InstallAddon(inputstream.adaptive)', True)
-            if 'error' in xbmc.executeJSONRPC(verifyISA):
-                self.log('InputStream.Adaptive addon is not installed')
-                return False
-            else:
-                self.log('InputStream.Adaptive activated')
-                return True
-        else:
-            return True
 
 if __name__ == '__main__':
     AmazonMedia().reqDispatch()
