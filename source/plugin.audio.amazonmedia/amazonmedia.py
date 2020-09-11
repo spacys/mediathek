@@ -563,8 +563,10 @@ class AmazonMedia():
             'target': base
         }
         self.API_GetSoccerStreamingURLs = {
-            'path':   'amals/getOnDemandStreamingURLs',
-            'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetOnDemandStreamingURLs'
+            # 'path':   'amals/getOnDemandStreamingURLs',
+            #'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetOnDemandStreamingURLs'
+            'path':   'amals/getLiveStreamingUrls',
+            'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetLiveStreamingURLs'
         }
     def setQueryConstants(self):
         self.Q_getServerSongs = {
@@ -1446,7 +1448,8 @@ class AmazonMedia():
             data = json.dumps(data)
         elif mode == 'getSoccerStreamingURL':
             data = {
-                'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getondemandstreamingurls#GetOnDemandStreamingURLs',
+                #'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getondemandstreamingurls#GetOnDemandStreamingURLs',
+                'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getlivestreamingurls#GetLiveStreamingURLs',
                 'Service':'com.amazon.amazonmusicaudiolocatorservice.model#AmazonMusicAudioLocatorServiceExternal',
                 'Input':{
                     'customerId':self.customerId,
@@ -1554,7 +1557,11 @@ class AmazonMedia():
             url = '{}?mode={}'.format(self.addonBaseUrl,str(item['fct']))
             if soccer:
                 url+="&objectId={}".format(str(item['target']))
-                li.setProperty('IsPlayable', 'true')
+                if item['playable']:
+                    pl = 'true'
+                else:
+                    pl = 'false'
+                li.setProperty('IsPlayable', pl)
                 isFolder = False
             if 'special' in item and item['special'] == 'newrecom' and 'target' in item:
                 url+='&target={}'.format(str(item['target']))
@@ -2302,11 +2309,13 @@ class AmazonMedia():
                 idx1+=1
                 continue
             break
-        idx1-= 1 # todo can be set as user input variable / currently last matchday
+        idx1-= 1 # there is no history anymore available
         if idx1 < 0:
             idx1 = 0
         idx1 = resp['blocks'][0]['positionSelector']['positionOptions'][idx1]['blockIndex'] # last matchday index
-        while idx1 <= idx:
+        playable = True
+        fct = 'getSoccerDetail'
+        while idx1 <= idx + 1: # due to missing history, next match day is now visible
             dat = resp['blocks'][0]['blocks'][idx1]['title'] # day of matchday
             for item in resp['blocks'][0]['blocks'][idx1]['blocks']:
                 img = None
@@ -2327,7 +2336,10 @@ class AmazonMedia():
                     img = item['image3']['IMAGE_PROGRAM_COVER']
                 else:
                     img = item['image']
-                menuEntries.append({'txt':title,'fct':'getSoccerDetail','target':target,'img':img})
+                if idx1 >= idx + 1:
+                    playable = False # future matches are not playable
+                    fct = None
+                menuEntries.append({'txt':title,'fct':fct,'target':target,'img':img,'playable':playable})
             idx1 += 1
         self.createList(menuEntries,False,True)
     def getSoccerDetail(self,target=None):
