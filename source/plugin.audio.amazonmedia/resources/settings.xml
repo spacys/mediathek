@@ -1,42 +1,57 @@
 <settings>
     <category label="30100">
-        <setting id="siteVersion" type="enum" label="30101" values="DE|FR|UK|IT|ES" default="0"/>
-        <setting id="quality" type="enum" label="30102" values="256kbit|128kbit|48kbit" default="0"/>
-        <setting id="logging" type="bool" label="30104" default="false"/>
-        <setting id="showimages" type="bool" label="30105" default="false"/>
+        <setting id="siteVersion"       type="enum" label="30101" values="DE|FR|UK|IT|ES" default="0"/>
+        <setting id="quality"           type="enum" label="30102" values="256kbit|128kbit|48kbit" default="0"/>
+        <setting id="logging"           type="bool" label="30104" default="false"/>
+        <setting id="showimages"        type="bool" label="30105" default="false"/>
         <setting id="showUnplayableSongs" type="bool" label="30107" default="false"/>
-        <setting id="showcolentr" type="bool" label="30106" default="true"/>
-        <setting label="30103" type="action" action="RunPlugin(plugin://plugin.audio.amazonmedia/?mode=resetAddon)"/>
+        <setting id="showcolentr"       type="bool" label="30106" default="true"/>
+        <setting label="30103"          type="action" action="RunPlugin(plugin://plugin.audio.amazonmedia/?mode=resetAddon)"/>
 
-        <setting id="userAgent" type="text" visible="false" label="userAgent" default="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"/>
-        <setting id="deviceId" type="text" visible="false" label="deviceId" default=""/>
-        <setting id="csrf_token" type="text" visible="false" label="csrf_token" default=""/>
-        <setting id="csrf_ts" type="text" visible="false" label="csrf_ts" default=""/>
-        <setting id="csrf_rnd" type="text" visible="false" label="csrf_rnd" default=""/>
-        <setting id="customerId" type="text" visible="false" label="customerId" default=""/>
-        <setting id="deviceType" type="text" visible="false" label="deviceType" default=""/>
-        <setting id="musicTerritory" type="text" visible="false" label="musicTerritory" default=""/>
-        <setting id="marketplaceId" type="text" visible="false" label="marketplaceId" default=""/>
-        <setting id="locale" type="text" visible="false" label="locale" default=""/>
-        <setting id="customerLang" type="text" visible="false" label="customerLang" default=""/>
-        <setting id="region" type="text" visible="false" label="region" default=""/>
-        <setting id="url" type="text" visible="false" label="url" default=""/>
-        <setting id="access" type="bool" visible="false" label="access" default="false"/>
-        <setting id="accessType" type="text" visible="false" label="accessType" default=""/>
-        <setting id="search1PlayLists" type="text" visible="false" label="search1PlayLists" default=""/>
-        <setting id="search2PlayLists" type="text" visible="false" label="search2PlayLists" default=""/>
-        <setting id="search3PlayLists" type="text" visible="false" label="search3PlayLists" default=""/>
-        <setting id="search1Albums" type="text" visible="false" label="search1Albums" default=""/>
-        <setting id="search2Albums" type="text" visible="false" label="search2Albums" default=""/>
-        <setting id="search3Albums" type="text" visible="false" label="search3Albums" default=""/>
-        <setting id="search1Songs" type="text" visible="false" label="search1Songs" default=""/>
-        <setting id="search2Songs" type="text" visible="false" label="search2Songs" default=""/>
-        <setting id="search3Songs" type="text" visible="false" label="search3Songs" default=""/>
-        <setting id="search1Stations" type="text" visible="false" label="search1Stations" default=""/>
-        <setting id="search2Stations" type="text" visible="false" label="search2Stations" default=""/>
-        <setting id="search3Stations" type="text" visible="false" label="search3Stations" default=""/>
-        <setting id="search1Artists" type="text" visible="false" label="search1Artists" default=""/>
-        <setting id="search2Artists" type="text" visible="false" label="search2Artists" default=""/>
-        <setting id="search3Artists" type="text" visible="false" label="search3Artists" default=""/>
+        <setting id="userAgent"         type="text" visible="false" label="userAgent"       default="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"/>
+        <setting id="deviceId"          type="text" visible="false" label="deviceId"        default=""/>
+        <setting id="csrf_token"        type="text" visible="false" label="csrf_token"      default=""/>
+        <setting id="csrf_ts"           type="text" visible="false" label="csrf_ts"         default=""/>
+        <setting id="csrf_rnd"          type="text" visible="false" label="csrf_rnd"        default=""/>
+        <setting id="customerId"        type="text" visible="false" label="customerId"      default=""/>
+        <setting id="deviceType"        type="text" visible="false" label="deviceType"      default=""/>
+        <setting id="musicTerritory"    type="text" visible="false" label="musicTerritory"  default=""/>
+        <setting id="marketplaceId"     type="text" visible="false" label="marketplaceId"   default=""/>
+        <setting id="locale"            type="text" visible="false" label="locale"          default=""/>
+        <setting id="customerLang"      type="text" visible="false" label="customerLang"    default=""/>
+        <setting id="region"            type="text" visible="false" label="region"          default=""/>
+        <setting id="url"               type="text" visible="false" label="url"             default=""/>
+        <setting id="access"            type="bool" visible="false" label="access"          default="false"/>
+        <setting id="accessType"        type="text" visible="false" label="accessType"      default=""/>
+        <setting id="search1PlayLists"  type="text" visible="false" label="search1PlayLists" default=""/>
+        <setting id="search2PlayLists"  type="text" visible="false" label="search2PlayLists" default=""/>
+        <setting id="search3PlayLists"  type="text" visible="false" label="search3PlayLists" default=""/>
+        <setting id="search1Albums"     type="text" visible="false" label="search1Albums"   default=""/>
+        <setting id="search2Albums"     type="text" visible="false" label="search2Albums"   default=""/>
+        <setting id="search3Albums"     type="text" visible="false" label="search3Albums"   default=""/>
+        <setting id="search1Songs"      type="text" visible="false" label="search1Songs"    default=""/>
+        <setting id="search2Songs"      type="text" visible="false" label="search2Songs"    default=""/>
+        <setting id="search3Songs"      type="text" visible="false" label="search3Songs"    default=""/>
+        <setting id="search1Stations"   type="text" visible="false" label="search1Stations" default=""/>
+        <setting id="search2Stations"   type="text" visible="false" label="search2Stations" default=""/>
+        <setting id="search3Stations"   type="text" visible="false" label="search3Stations" default=""/>
+        <setting id="search1Artists"    type="text" visible="false" label="search1Artists"  default=""/>
+        <setting id="search2Artists"    type="text" visible="false" label="search2Artists"  default=""/>
+        <setting id="search3Artists"    type="text" visible="false" label="search3Artists"  default=""/>
+
+        <setting id="img_search"        type="text" visible="false" label="img_search"      default="search.png"/>
+        <setting id="img_playlists"     type="text" visible="false" label="img_playlists"   default="playlists.jpg"/>
+        <setting id="img_albums"        type="text" visible="false" label="img_albums"      default="albums.jpg"/>
+        <setting id="img_songs"         type="text" visible="false" label="img_songs"       default="songs.jpg"/>
+        <setting id="img_stations"      type="text" visible="false" label="img_stations"    default="stations.jpg"/>
+        <setting id="img_genres"        type="text" visible="false" label="img_genres"      default="genres.jpg"/>
+        <setting id="img_artists"       type="text" visible="false" label="img_artists"     default="artists.jpg"/>
+        <setting id="img_newrecom"      type="text" visible="false" label="img_newrecom"    default="newrecom.jpg"/>
+        <setting id="img_soccer"        type="text" visible="false" label="img_soccer"      default="soccer.jpg"/>
+        <setting id="img_sBUND"         type="text" visible="false" label="img_sBUND"       default="soccer_BUND.jpg"/>
+        <setting id="img_sBUND2"        type="text" visible="false" label="img_sBUND2"      default="soccer_BUND2.jpg"/>
+        <setting id="img_sDFBPOKAL"     type="text" visible="false" label="img_sDFBPOKAL"   default="soccer_DFBPOKAL.jpg"/>
+        <setting id="img_sCHAMP"        type="text" visible="false" label="img_sCHAMP"      default="soccer_CHAMP.jpg"/>
+        <setting id="img_sSUPR"         type="text" visible="false" label="img_sSUPR"       default="soccer_SUPR.jpg"/>
     </category>
 </settings>
