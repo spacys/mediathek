@@ -55,7 +55,7 @@ class AmazonMedia():
         'API_V3getTracksByAsin','API_V3getTracks','API_V3getTracksById',
         'API_getPlaylistsByIdV2','API_getPubliclyAvailablePlaylistsById','API_sociallySharePlaylist','API_getConfigurationV2','API_getFollowedPlaylistsInLibrary','API_getOwnedPlaylistsInLibrary',
         'API_GetRecentTrackActivity','API_GetRecentActivity',
-        'API_GetSoccerMain','API_GetSoccerProgramDetails','API_GetSoccerStreamingURLs',
+        'API_GetSoccerMain','API_GetSoccerProgramDetails','API_GetSoccerLiveURLs','API_GetSoccerOnDemandURLs',
         'Q_getServerSongs','Q_getAllDataCountByMetaType','Q_getAllDataByMetaType','Q_getAlbumsCountForMetatype','Q_getAlbumsForMetatype','Q_getSongForPlayerBySearchLibrary',
         'Q_getTracks','Q_getTracksByAlbum','Q_getServerListSongs']
     def __init__(self):
@@ -117,32 +117,6 @@ class AmazonMedia():
         self.sSongs       = ["search1Songs","search2Songs","search3Songs"]
         self.sStations    = ["search1Stations","search2Stations","search3Stations"]
         self.sArtists     = ["search1Artists","search2Artists","search3Artists"]
-
-        platform = 0
-        OS_WINDOWS = 1
-        OS_LINUX = 2
-        OS_OSX = 4
-        OS_ANDROID = 8
-        OS_LE = 16
-
-        self.log(xbmc.getCondVisibility('system.platform.windows'))
-        self.log(xbmc.getCondVisibility('system.platform.linux'))
-        self.log(xbmc.getCondVisibility('system.platform.osx'))
-        self.log(xbmc.getCondVisibility('system.platform.android'))
-
-        if xbmc.getCondVisibility('system.platform.windows'):
-            platform |= OS_WINDOWS
-        if xbmc.getCondVisibility('system.platform.linux'):
-            platform |= OS_LINUX
-        if xbmc.getCondVisibility('system.platform.osx'):
-            platform |= OS_OSX
-        if xbmc.getCondVisibility('system.platform.android'):
-            platform |= OS_ANDROID
-        if (xbmcvfs.exists('/etc/os-release')) and ('libreelec' in xbmcvfs.File('/etc/os-release').read()):
-            platform |= OS_LE
-
-        self.log(platform)
-
     def prepFolder(self):
         if not xbmcvfs.exists(self.addonUDatFo):
             xbmcvfs.mkdirs(self.addonUDatFo)
@@ -255,9 +229,12 @@ class AmazonMedia():
             self.menuSoccer()
         elif mode in ['soccerBUND','soccerBUND2','soccerCHAMP','soccerDFBPOKAL','soccerSUPR']:
             self.getSoccerFilter(mode.replace('soccer',''))
-        elif mode == 'getSoccerDetail':
+        elif mode == 'getSoccerLive':
             objectId = self.addonArgs.get('objectId', [None])[0]
-            self.getSoccerDetail(objectId)
+            self.getSoccer(objectId,'LIVE')
+        elif mode == 'getSoccerOnDemand':
+            objectId = self.addonArgs.get('objectId', [None])[0]
+            self.getSoccer(objectId,'ONDEMAND')
     def translation(self,oId):
         return self.addon.getLocalizedString(oId).encode('utf-8')
     def getInfo(self,oProp):
@@ -588,11 +565,13 @@ class AmazonMedia():
             'path':   'eve/getProgramDetails',
             'target': base
         }
-        self.API_GetSoccerStreamingURLs = {
-            # 'path':   'amals/getOnDemandStreamingURLs',
-            #'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetOnDemandStreamingURLs'
+        self.API_GetSoccerLiveURLs = {
             'path':   'amals/getLiveStreamingUrls',
             'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetLiveStreamingURLs'
+        }
+        self.API_GetSoccerOnDemandURLs = {
+            'path':   'amals/getOnDemandStreamingURLs',
+            'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetOnDemandStreamingURLs'
         }
     def setQueryConstants(self):
         self.Q_getServerSongs = {
@@ -1472,10 +1451,30 @@ class AmazonMedia():
                 'lang':             self.locale
             }
             data = json.dumps(data)
-        elif mode == 'getSoccerStreamingURL':
+        elif mode == 'getSoccerLiveURL':
             data = {
-                #'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getondemandstreamingurls#GetOnDemandStreamingURLs',
                 'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getlivestreamingurls#GetLiveStreamingURLs',
+                'Service':'com.amazon.amazonmusicaudiolocatorservice.model#AmazonMusicAudioLocatorServiceExternal',
+                'Input':{
+                    'customerId':self.customerId,
+                    'deviceToken':{
+                        'deviceTypeId':self.deviceType,
+                        'deviceId':self.deviceId
+                    },
+                    'appMetadata':{'appId':'WebCP'},
+                    'clientMetadata':{
+                        'clientId':self.deviceType,
+                        'clientIpAddress':''},
+                    'contentIdList':[{
+                        'identifier':mediatype,
+                        'identifierType':'MCID'}],
+                    'protocol':'DASH'
+                }
+            }
+            data = json.dumps(data)
+        elif mode == 'getSoccerOnDemandURL':
+            data = {
+                'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getondemandstreamingurls#GetOnDemandStreamingURLs',
                 'Service':'com.amazon.amazonmusicaudiolocatorservice.model#AmazonMusicAudioLocatorServiceExternal',
                 'Input':{
                     'customerId':self.customerId,
@@ -2335,20 +2334,22 @@ class AmazonMedia():
                 idx1+=1
                 continue
             break
-        idx1-= 1 # there is no history anymore available
+        idx1-= 1
         if idx1 < 0:
             idx1 = 0
         idx1 = resp['blocks'][0]['positionSelector']['positionOptions'][idx1]['blockIndex'] # last matchday index
         playable = True
-        fct = 'getSoccerDetail'
-        while idx1 <= idx + 1: # due to missing history, next match day is now visible
+        fct = None
+        while idx1 <= idx + 1: # next match day is now visible
             dat = resp['blocks'][0]['blocks'][idx1]['title'] # day of matchday
             for item in resp['blocks'][0]['blocks'][idx1]['blocks']:
                 img = None
                 if 'programHint' in item: # show matches only
                     target = item['programHint']['programId']
+                    streamStatus = item['programHint']['streamStatus']
                 else:
                     target = None
+                    streamStatus = None
                     continue
                 title = '{}  {}'.format(dat,item['title'])
                 if 'decorator1' in item and item['decorator1'] is not None:
@@ -2362,20 +2363,41 @@ class AmazonMedia():
                     img = item['image3']['IMAGE_PROGRAM_COVER']
                 else:
                     img = item['image']
-                if idx1 >= idx + 1:
-                    playable = False # future matches are not playable
+                if streamStatus == 'FUTURE' or streamStatus == 'PAST': # future matches are not playable
+                    playable = False
+                    fct = None
+                elif streamStatus == 'AVAILABLE':
+                    playable = True
+                    fct = 'getSoccerOnDemand' # TODO
+                elif streamStatus == 'LIVE':
+                    playable = True
+                    fct = 'getSoccerLive' # TODO
+                else: # unknown status
+                    playable = False
                     fct = None
                 menuEntries.append({'txt':title,'fct':fct,'target':target,'img':img,'playable':playable})
             idx1 += 1
         self.createList(menuEntries,False,True)
-    def getSoccerDetail(self,target=None):
+    def getSoccer(self,target,status):
+        if status == 'LIVE':
+            amz = {
+                'path': self.API_GetSoccerLiveURLs,
+                'target': 'getSoccerLiveURL'
+            }
+        elif status == 'ONDEMAND':
+            amz = {
+                'path': self.API_GetSoccerOnDemandURLs,
+                'target': 'getSoccerOnDemandURL'
+            }
+        else:
+            return False
         resp = self.amzCall(self.API_GetSoccerProgramDetails,'getSoccerProgramDetails',None,None,target)
         try:
             target = resp['program']['mediaContentList'][0]['mediaContentId']
         except:
             return False
         # target for xml source
-        resp = self.amzCall(self.API_GetSoccerStreamingURLs,'getSoccerStreamingURL','soccer',None,target)
+        resp = self.amzCall(amz['path'],amz['target'],'soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
         r = requests.get(target)
         song = self.writeSongFile(r.content,'mpd')
