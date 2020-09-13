@@ -117,6 +117,32 @@ class AmazonMedia():
         self.sSongs       = ["search1Songs","search2Songs","search3Songs"]
         self.sStations    = ["search1Stations","search2Stations","search3Stations"]
         self.sArtists     = ["search1Artists","search2Artists","search3Artists"]
+
+        platform = 0
+        OS_WINDOWS = 1
+        OS_LINUX = 2
+        OS_OSX = 4
+        OS_ANDROID = 8
+        OS_LE = 16
+
+        self.log(xbmc.getCondVisibility('system.platform.windows'))
+        self.log(xbmc.getCondVisibility('system.platform.linux'))
+        self.log(xbmc.getCondVisibility('system.platform.osx'))
+        self.log(xbmc.getCondVisibility('system.platform.android'))
+
+        if xbmc.getCondVisibility('system.platform.windows'):
+            platform |= OS_WINDOWS
+        if xbmc.getCondVisibility('system.platform.linux'):
+            platform |= OS_LINUX
+        if xbmc.getCondVisibility('system.platform.osx'):
+            platform |= OS_OSX
+        if xbmc.getCondVisibility('system.platform.android'):
+            platform |= OS_ANDROID
+        if (xbmcvfs.exists('/etc/os-release')) and ('libreelec' in xbmcvfs.File('/etc/os-release').read()):
+            platform |= OS_LE
+
+        self.log(platform)
+
     def prepFolder(self):
         if not xbmcvfs.exists(self.addonUDatFo):
             xbmcvfs.mkdirs(self.addonUDatFo)
@@ -2351,12 +2377,18 @@ class AmazonMedia():
         # target for xml source
         resp = self.amzCall(self.API_GetSoccerStreamingURLs,'getSoccerStreamingURL','soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
+        r = requests.get(target)
+        song = self.writeSongFile(r.content,'mpd')
         # get the xml file and extract the source
-        li = xbmcgui.ListItem(path=target)
+        li = xbmcgui.ListItem(path=song)
         li.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
         li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
         li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
-        li.setInfo('video', '')
+        #li.setProperty('inputstream.adaptive.license_key', lic)
+        li.setProperty('isFolder', 'false')
+        li.setProperty('IsPlayable', 'true')
+        li.setInfo('video', {})
         li.setMimeType('application/dash+xml')
         li.setContentLookup(False)
         xbmcplugin.setResolvedUrl(self.addonHandle, True, listitem=li)
