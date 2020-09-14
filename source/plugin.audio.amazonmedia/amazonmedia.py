@@ -2327,6 +2327,10 @@ class AmazonMedia():
         menuEntries = []
         resp = self.amzCall(self.API_GetSoccerMain,'getSoccerMain',None,None,target)
         idx = resp['blocks'][0]['positionSelector']['currentPosition']['blockIndex'] # current matchday
+        if idx == -1: # if no entries are available
+            menuEntries.append({'txt':'Empty List','fct':None,'target':None,'img':self.getSetting('img_soccer'),'playable':False})
+            self.createList(menuEntries,False,True)
+            return
         param = resp['blocks'][0]['positionSelector']['positionOptions']
         idx1 = 0
         for item in param: # find last matchday based on current matchday
@@ -2340,7 +2344,7 @@ class AmazonMedia():
         idx1 = resp['blocks'][0]['positionSelector']['positionOptions'][idx1]['blockIndex'] # last matchday index
         playable = True
         fct = None
-        while idx1 <= idx + 1: # next match day is now visible
+        while idx1 <= idx: # + 1: # next match day is now visible
             dat = resp['blocks'][0]['blocks'][idx1]['title'] # day of matchday
             for item in resp['blocks'][0]['blocks'][idx1]['blocks']:
                 img = None
@@ -2368,10 +2372,10 @@ class AmazonMedia():
                     fct = None
                 elif streamStatus == 'AVAILABLE':
                     playable = True
-                    fct = 'getSoccerOnDemand' # TODO
+                    fct = 'getSoccerOnDemand'
                 elif streamStatus == 'LIVE':
                     playable = True
-                    fct = 'getSoccerLive' # TODO
+                    fct = 'getSoccerLive'
                 else: # unknown status
                     playable = False
                     fct = None
