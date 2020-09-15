@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # Kodi Media Center language file
 # Addon Name: AmazonMedia
 # Addon id: plugin.audio.amazonmedia

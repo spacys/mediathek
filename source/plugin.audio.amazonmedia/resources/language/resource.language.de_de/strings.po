@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # Kodi Media Center language file
 # Addon Name: AmazonMedia
 # Addon id: plugin.audio.amazonmedia
@@ -163,11 +164,11 @@ msgstr "Empfehlungen"
 
 msgctxt "#30070"
 msgid "Logon was not possible."
-msgstr "Anmeldung war nicht möglich"
+msgstr "Anmeldung war nicht erfolgreich."
 
 msgctxt "#30071"
 msgid "Addon reset successful."
-msgstr "Addon erfolgreich zurückgesetzt."
+msgstr "Addon erfolgreich initialisiert."
 
 msgctxt "#30072"
 msgid "Captcha required!"
