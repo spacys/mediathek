@@ -1,3 +1,5 @@
+0.1.7
+- bug fixing: language adjusted
 0.1.6
 - bug fixing: hide empty lists
 0.1.5
