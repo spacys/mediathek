@@ -273,7 +273,7 @@ class AmazonMedia():
                 return kb.getText() # for password needed, due to encryption
         else:
             return False
-    def log(self, msg, level=xbmc.LOGNOTICE):
+    def log(self, msg, level=xbmc.LOGINFO):
         log_message = '[{}] {}'.format(self.addonName, msg)
         xbmc.log(log_message, level)
     def checkSiteVersion(self,siteVersion):
