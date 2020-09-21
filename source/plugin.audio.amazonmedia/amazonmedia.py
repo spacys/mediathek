@@ -1668,7 +1668,7 @@ class AmazonMedia():
         menuEntries = []
         resp = self.amzCall(self.API_getHome,'new_recommendations')
         for item in resp['blocks']:
-            if 'ButtonGrid' in item['__type']:
+            if (('ButtonGrid' in item['__type']) or ('Barker' in item['__type'])):
                 continue
             menuEntries.append({
                 'txt':      item['title'],
@@ -1683,7 +1683,7 @@ class AmazonMedia():
         items = None
         resp = self.amzCall(self.API_getHome,'new_recommendations')
         for item in resp['blocks']:
-            if 'ButtonGrid' in item['__type']: # ignore button fields
+            if (('ButtonGrid' in item['__type']) or ('Barker' in item['__type'])): # ignore button fields
                 continue
             if target in item['title']: # find the category
                 items = item['blocks']
