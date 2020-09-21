@@ -45,7 +45,7 @@ NODEBUG = False
 
 class AmazonMedia():
     __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
-        'musicURL','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
+        'musicURL','saveUsername','savePassword','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
         'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content',
         'API_getBrowseRecommendations','API_lookup','API_getAddToLibraryRecommendations','API_getSimilarityRecommendations','API_getMusicStoreRecommendations',
@@ -85,10 +85,17 @@ class AmazonMedia():
         self.siteVersion  = self.getSetting("siteVersion")
         self.logonURL     = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])
         self.musicURL     = 'https://music.amazon.{}'.format(self.siteVerList[int(self.siteVersion)])
-        self.userEmail    = ''
-        self.userPassword = ''
+        self.saveUsername = self.toBool(self.getSetting("saveUsername"))
+        if not self.saveUsername:
+            self.setSetting('savePassword', "false")
+            self.setSetting('userEmail', "")
+            self.setSetting('userPassword', "")
+        self.savePassword = self.toBool(self.getSetting("savePassword"))
+        if not self.savePassword:
+            self.setSetting('userPassword', "")
+        self.userEmail    = self.getSetting("userEmail")
+        self.userPassword = base64.urlsafe_b64decode(self.getSetting("userPassword"))
         self.userAgent    = self.getSetting("userAgent")
-
         self.deviceId     = self.getSetting("deviceId")
         self.csrf_token   = self.getSetting("csrf_token")
         self.csrf_ts      = self.getSetting("csrf_ts")
@@ -349,6 +356,10 @@ class AmazonMedia():
         self.setSetting('customerLang', "")
         self.setSetting('region', "")
         self.setSetting('url', "")
+        self.setSetting('saveUsername', "false")
+        self.setSetting('savePassword', "false")
+        self.setSetting('userEmail', "")
+        self.setSetting('userPassword', "")
         self.setSetting('access', "false")
         self.setSetting('logging', "false")
         self.setSetting('showimages', "false")
@@ -377,12 +388,20 @@ class AmazonMedia():
         self.userPassword = ''
     def getCredentials(self):
         if not self.userEmail or not self.userPassword:
-            user = self.getUserInput(self.translation(30030),'', hidden=False, uni=False) # get Email
-            if user:
+            if not self.userEmail:
+                user = self.getUserInput(self.translation(30030),'', hidden=False, uni=False) # get Email
+                if user:
+                    self.userEmail = user
+                    if self.saveUsername:
+                        self.setSetting('userEmail', user)
+            else:
+                user = True
+            if user and not self.userPassword:
                 pw = self.getUserInput(self.translation(30031),'', hidden=True, uni=False) # get Password
                 if pw:
-                    self.userEmail = user
                     self.userPassword = pw
+                    if self.savePassword and self.saveUsername:
+                        self.setSetting('userPassword', base64.urlsafe_b64encode(pw.encode("utf-8")))
                     return True
                 else:
                     return False
@@ -821,7 +840,8 @@ class AmazonMedia():
         resp = requests.post(url=url, data=data, headers=head, cookies=self.cj)
         self.setCookie()
         if resp.status_code == 401 :
-            self.amazonLogon()
+            if self.amazonLogon():
+                return self.amzCall(amzUrl,mode,referer,asin,mediatype)
         if self.logging:
             self.log(resp.text)
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
