@@ -217,3 +217,15 @@ msgstr "Voir les entrées colorées"
 msgctxt "#30107"
 msgid "Show unplayable Songs"
 msgstr "Voir les titres non jouables"
+
+msgctxt "#30108"
+msgid "Save Username?"
+msgstr "Enregistrer le nom d'utilisateur?"
+
+msgctxt "#30109"
+msgid "Save Password?"
+msgstr "Enregistrez le mot de passe?"
+
+msgctxt "#30200"
+msgid "User Credentials"
+msgstr "Identifiants de l'utilisateur"

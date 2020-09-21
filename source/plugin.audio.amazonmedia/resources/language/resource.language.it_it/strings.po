@@ -217,3 +217,15 @@ msgstr "Mostra Voci colorate"
 msgctxt "#30107"
 msgid "Show unplayable Songs"
 msgstr "Mostra canzoni non riproducibili"
+
+msgctxt "#30108"
+msgid "Save Username?"
+msgstr "Salva nome utente?"
+
+msgctxt "#30109"
+msgid "Save Password?"
+msgstr "Salva la password"
+
+msgctxt "#30200"
+msgid "User Credentials"
+msgstr "Credenziali utente"
