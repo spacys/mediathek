@@ -2146,9 +2146,17 @@ class AmazonMedia():
                 url, li  = self.setItem(inf,met)
                 itemlist.append((url, li, True))
         elif mode == 'allartistsstations':      # (all artists) stations
-            items = param['categories'].get('artistsAZ')['stationMapIds']
+            # items = param['categories'].get('artistsAZ')['stationMapIds']
+            #for item in items:
+            #    inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
+            #    url, li  = self.setItem(inf,met)
+            #    itemlist.append((url, li, True))
+            items = param['stations']
             for item in items:
-                inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
+                i = param['stations'].get(item)
+                if not i['seedType'] == 'ARTIST':
+                    continue
+                inf, met = self.setData(i,{'mode':'createQueue'})
                 url, li  = self.setItem(inf,met)
                 itemlist.append((url, li, True))
         elif mode == 'genres':                  # genre 1st level
@@ -2387,7 +2395,9 @@ class AmazonMedia():
                     img = item['image3']['IMAGE_PROGRAM_COVER']
                 else:
                     img = item['image']
-                if streamStatus == 'FUTURE' or streamStatus == 'PAST': # future matches are not playable
+                if streamStatus == 'PAST': # ignore outdated conferences
+                    continue
+                elif streamStatus == 'FUTURE': # future matches are not playable
                     playable = False
                     fct = None
                 elif streamStatus == 'AVAILABLE':
