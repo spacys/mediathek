@@ -1,3 +1,6 @@
+0.2.0
+- code improved: soccer - outdated conferences removed
+- bug fixing: stations - all artists playback fixed
 0.1.9
 - bug fixing: due to Amazon changes in the data structure of recommendations
 0.1.8
