@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<addons><addon id="plugin.audio.amazonmedia" name="Amazon Media" provider-name="spacy" version="0.1.2">
+<addons><addon id="plugin.audio.amazonmedia" name="Amazon Media" provider-name="spacy" version="1.0.0">
     <requires>
-        <import addon="script.module.mechanize" version="0.2.6" /> 
-        <import addon="script.module.beautifulsoup4" version="4.6.2" /> 
+        <import addon="script.module.mechanize" version="0.4.3" />
+        <import addon="script.module.beautifulsoup4" version="4.8.2" />
         <import addon="script.module.requests" version="2.22.0" />
     </requires>
     <extension library="amazonmedia.py" point="xbmc.python.pluginsource">

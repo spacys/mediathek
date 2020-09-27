@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # Kodi Media Center language file
 # Addon Name: AmazonMedia
 # Addon id: plugin.audio.amazonmedia
@@ -215,4 +216,16 @@ msgstr ""
 
 msgctxt "#30107"
 msgid "Show unplayable Songs"
+msgstr ""
+
+msgctxt "#30108"
+msgid "Save Username?"
+msgstr ""
+
+msgctxt "#30109"
+msgid "Save Password?"
+msgstr ""
+
+msgctxt "#30200"
+msgid "User Credentials"
 msgstr ""

@@ -23,14 +23,13 @@ from bs4 import BeautifulSoup
 import datetime
 import math
 import random
-
 import base64
 
 NODEBUG = False
 
 class AmazonMedia():
     __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
-        'musicURL','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
+        'musicURL','saveUsername','savePassword','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
         'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content',
         'API_getBrowseRecommendations','API_lookup','API_getAddToLibraryRecommendations','API_getSimilarityRecommendations','API_getMusicStoreRecommendations',
@@ -40,7 +39,7 @@ class AmazonMedia():
         'API_V3getTracksByAsin','API_V3getTracks','API_V3getTracksById',
         'API_getPlaylistsByIdV2','API_getPubliclyAvailablePlaylistsById','API_sociallySharePlaylist','API_getConfigurationV2','API_getFollowedPlaylistsInLibrary','API_getOwnedPlaylistsInLibrary',
         'API_GetRecentTrackActivity','API_GetRecentActivity',
-        'API_GetSoccerMain','API_GetSoccerProgramDetails','API_GetSoccerStreamingURLs',
+        'API_GetSoccerMain','API_GetSoccerProgramDetails','API_GetSoccerLiveURLs','API_GetSoccerOnDemandURLs',
         'Q_getServerSongs','Q_getAllDataCountByMetaType','Q_getAllDataByMetaType','Q_getAlbumsCountForMetatype','Q_getAlbumsForMetatype','Q_getSongForPlayerBySearchLibrary',
         'Q_getTracks','Q_getTracksByAlbum','Q_getServerListSongs']
     def __init__(self):
@@ -70,10 +69,17 @@ class AmazonMedia():
         self.siteVersion  = self.getSetting("siteVersion")
         self.logonURL     = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])
         self.musicURL     = 'https://music.amazon.{}'.format(self.siteVerList[int(self.siteVersion)])
-        self.userEmail    = ''
-        self.userPassword = ''
+        self.saveUsername = self.toBool(self.getSetting("saveUsername"))
+        if not self.saveUsername:
+            self.setSetting('savePassword', "false")
+            self.setSetting('userEmail', "")
+            self.setSetting('userPassword', "")
+        self.savePassword = self.toBool(self.getSetting("savePassword"))
+        if not self.savePassword:
+            self.setSetting('userPassword', "")
+        self.userEmail    = self.getSetting("userEmail")
+        self.userPassword = base64.urlsafe_b64decode(self.getSetting("userPassword"))
         self.userAgent    = self.getSetting("userAgent")
-
         self.deviceId     = self.getSetting("deviceId")
         self.csrf_token   = self.getSetting("csrf_token")
         self.csrf_ts      = self.getSetting("csrf_ts")
@@ -187,7 +193,8 @@ class AmazonMedia():
             self.getNewRecommendations()
         elif mode == 'getNewRecomDetails':
             asin = self.addonArgs.get('target', [None])
-            self.getNewRecomDetails(asin[0])
+            #self.getNewRecomDetails(asin[0])
+            self.getNewRecomDetails(unicode(asin[0], "utf-8"))
         # get own music, differentiate betwenn purchased and own lib
         # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
         elif mode in ['getPurAlbums','getAllAlbums']:
@@ -214,11 +221,15 @@ class AmazonMedia():
             self.menuSoccer()
         elif mode in ['soccerBUND','soccerBUND2','soccerCHAMP','soccerDFBPOKAL','soccerSUPR']:
             self.getSoccerFilter(mode.replace('soccer',''))
-        elif mode == 'getSoccerDetail':
+        elif mode == 'getSoccerLive':
             objectId = self.addonArgs.get('objectId', [None])[0]
-            self.getSoccerDetail(objectId)
+            self.getSoccer(objectId,'LIVE')
+        elif mode == 'getSoccerOnDemand':
+            objectId = self.addonArgs.get('objectId', [None])[0]
+            self.getSoccer(objectId,'ONDEMAND')
     def translation(self,oId):
-        return self.addon.getLocalizedString(oId)
+        #return self.addon.getLocalizedString(oId)
+        return self.addon.getLocalizedString(oId).encode('utf-8')
     def getInfo(self,oProp):
         return self.addon.getAddonInfo(oProp)
     def getSetting(self,oProp):
@@ -256,7 +267,8 @@ class AmazonMedia():
             self.setSetting(q[1],self.getSetting(q[0]))
             self.setSetting(q[0],query)
     def getFolder(self,oPath):
-        return xbmc.translatePath(oPath)
+        return xbmcvfs.translatePath(oPath)
+        #return xbmc.translatePath(oPath).decode('utf-8') # xbmcvfs
     def getUserInput(self,title,txt,hidden=False,uni=False):
         kb = xbmc.Keyboard()
         kb.setHeading(title)
@@ -274,7 +286,9 @@ class AmazonMedia():
         else:
             return False
     def log(self, msg, level=xbmc.LOGINFO):
+    #def log(self, msg, level=xbmc.LOGNOTICE):
         log_message = '[{}] {}'.format(self.addonName, msg)
+        #log_message = '[{}] {}'.format(self.addonName, msg).encode("utf-8")
         xbmc.log(log_message, level)
     def checkSiteVersion(self,siteVersion):
         if siteVersion in self.siteVerList:
@@ -331,6 +345,10 @@ class AmazonMedia():
         self.setSetting('customerLang', "")
         self.setSetting('region', "")
         self.setSetting('url', "")
+        self.setSetting('saveUsername', "false")
+        self.setSetting('savePassword', "false")
+        self.setSetting('userEmail', "")
+        self.setSetting('userPassword', "")
         self.setSetting('access', "false")
         self.setSetting('logging', "false")
         self.setSetting('showimages', "false")
@@ -353,18 +371,27 @@ class AmazonMedia():
         self.setSetting('search2Artists', "")
         self.setSetting('search3Artists', "")
         self.access = False
-        xbmc.executebuiltin('Notification("Information:", %s, 5000, )'%(self.translation(30071)))
+        #xbmc.executebuiltin('Notification("Information:", %s, 5000, )'%(self.translation(30071)))
+        xbmc.executebuiltin('Notification("Information:", {}, 5000, )'.format(self.translation(30071)))
     def delCredentials(self):
         self.userEmail = ''
         self.userPassword = ''
     def getCredentials(self):
         if not self.userEmail or not self.userPassword:
-            user = self.getUserInput(self.translation(30030),'', hidden=False, uni=False) # get Email
-            if user:
+            if not self.userEmail:
+                user = self.getUserInput(self.translation(30030),'', hidden=False, uni=False) # get Email
+                if user:
+                    self.userEmail = user
+                    if self.saveUsername:
+                        self.setSetting('userEmail', user)
+            else:
+                user = True
+            if user and not self.userPassword:
                 pw = self.getUserInput(self.translation(30031),'', hidden=True, uni=False) # get Password
                 if pw:
-                    self.userEmail = user
                     self.userPassword = pw
+                    if self.savePassword and self.saveUsername:
+                        self.setSetting('userPassword', base64.urlsafe_b64encode(pw.encode("utf-8")))
                     return True
                 else:
                     return False
@@ -547,7 +574,11 @@ class AmazonMedia():
             'path':   'eve/getProgramDetails',
             'target': base
         }
-        self.API_GetSoccerStreamingURLs = {
+        self.API_GetSoccerLiveURLs = {
+            'path':   'amals/getLiveStreamingUrls',
+            'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetLiveStreamingURLs'
+        }
+        self.API_GetSoccerOnDemandURLs = {
             'path':   'amals/getOnDemandStreamingURLs',
             'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetOnDemandStreamingURLs'
         }
@@ -651,8 +682,10 @@ class AmazonMedia():
     def amazonLogon(self):
         app_config = None
         self.delCookies()
-        xbmcaddon.Addon(id=self.addonId).openSettings()
+        #xbmcaddon.Addon(id=self.addonId).openSettings()
         self.doReInit()
+        self.addonMode = None
+        self.access = False
         x = 1
         while not self.access:
             if not self.getCredentials():
@@ -797,7 +830,8 @@ class AmazonMedia():
         resp = requests.post(url=url, data=data, headers=head, cookies=self.cj)
         self.setCookie()
         if resp.status_code == 401 :
-            self.amazonLogon()
+            if self.amazonLogon():
+                return self.amzCall(amzUrl,mode,referer,asin,mediatype)
         if self.logging:
             self.log(resp.text)
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
@@ -1427,7 +1461,28 @@ class AmazonMedia():
                 'lang':             self.locale
             }
             data = json.dumps(data)
-        elif mode == 'getSoccerStreamingURL':
+        elif mode == 'getSoccerLiveURL':
+            data = {
+                'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getlivestreamingurls#GetLiveStreamingURLs',
+                'Service':'com.amazon.amazonmusicaudiolocatorservice.model#AmazonMusicAudioLocatorServiceExternal',
+                'Input':{
+                    'customerId':self.customerId,
+                    'deviceToken':{
+                        'deviceTypeId':self.deviceType,
+                        'deviceId':self.deviceId
+                    },
+                    'appMetadata':{'appId':'WebCP'},
+                    'clientMetadata':{
+                        'clientId':self.deviceType,
+                        'clientIpAddress':''},
+                    'contentIdList':[{
+                        'identifier':mediatype,
+                        'identifierType':'MCID'}],
+                    'protocol':'DASH'
+                }
+            }
+            data = json.dumps(data)
+        elif mode == 'getSoccerOnDemandURL':
             data = {
                 'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getondemandstreamingurls#GetOnDemandStreamingURLs',
                 'Service':'com.amazon.amazonmusicaudiolocatorservice.model#AmazonMusicAudioLocatorServiceExternal',
@@ -1537,7 +1592,11 @@ class AmazonMedia():
             url = '{}?mode={}'.format(self.addonBaseUrl,str(item['fct']))
             if soccer:
                 url+="&objectId={}".format(str(item['target']))
-                li.setProperty('IsPlayable', 'true')
+                if item['playable']:
+                    pl = 'true'
+                else:
+                    pl = 'false'
+                li.setProperty('IsPlayable', pl)
                 isFolder = False
             if 'special' in item and item['special'] == 'newrecom' and 'target' in item:
                 url+='&target={}'.format(str(item['target']))
@@ -1599,7 +1658,7 @@ class AmazonMedia():
         menuEntries = []
         resp = self.amzCall(self.API_getHome,'new_recommendations')
         for item in resp['blocks']:
-            if 'ButtonGrid' in item['__type']:
+            if (('ButtonGrid' in item['__type']) or ('Barker' in item['__type'])):
                 continue
             menuEntries.append({
                 'txt':      item['title'],
@@ -1614,7 +1673,7 @@ class AmazonMedia():
         items = None
         resp = self.amzCall(self.API_getHome,'new_recommendations')
         for item in resp['blocks']:
-            if 'ButtonGrid' in item['__type']: # ignore button fields
+            if (('ButtonGrid' in item['__type']) or ('Barker' in item['__type'])): # ignore button fields
                 continue
             if target in item['title']: # find the category
                 items = item['blocks']
@@ -2077,9 +2136,17 @@ class AmazonMedia():
                 url, li  = self.setItem(inf,met)
                 itemlist.append((url, li, True))
         elif mode == 'allartistsstations':      # (all artists) stations
-            items = param['categories'].get('artistsAZ')['stationMapIds']
+            # items = param['categories'].get('artistsAZ')['stationMapIds']
+            #for item in items:
+            #    inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
+            #    url, li  = self.setItem(inf,met)
+            #    itemlist.append((url, li, True))
+            items = param['stations']
             for item in items:
-                inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
+                i = param['stations'].get(item)
+                if not i['seedType'] == 'ARTIST':
+                    continue
+                inf, met = self.setData(i,{'mode':'createQueue'})
                 url, li  = self.setItem(inf,met)
                 itemlist.append((url, li, True))
         elif mode == 'genres':                  # genre 1st level
@@ -2248,6 +2315,7 @@ class AmazonMedia():
             song = self.writeSongFile(manifest,'mpd')
             li = xbmcgui.ListItem(path=song)
             li.setProperty('inputstream', 'inputstream.adaptive')
+            #li.setProperty('inputstreamaddon', 'inputstream.adaptive')
             li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
@@ -2272,12 +2340,17 @@ class AmazonMedia():
             song = song.replace("\\","/") # windows fix that inputstream can work properly
         m3u_string = str(m3u_string.replace("\\n", os.linesep))
         temp_file.write(m3u_string)
+        #temp_file.write(m3u_string.encode("ascii"))
         temp_file.close()
         return song
     def getSoccerFilter(self,target=None): # 'BUND', 'BUND2', 'CHAMP', 'DFBPOKAL', 'SUPR'
         menuEntries = []
         resp = self.amzCall(self.API_GetSoccerMain,'getSoccerMain',None,None,target)
         idx = resp['blocks'][0]['positionSelector']['currentPosition']['blockIndex'] # current matchday
+        if idx == -1: # if no entries are available
+            menuEntries.append({'txt':'Empty List','fct':None,'target':None,'img':self.getSetting('img_soccer'),'playable':False})
+            self.createList(menuEntries,False,True)
+            return
         param = resp['blocks'][0]['positionSelector']['positionOptions']
         idx1 = 0
         for item in param: # find last matchday based on current matchday
@@ -2285,18 +2358,22 @@ class AmazonMedia():
                 idx1+=1
                 continue
             break
-        idx1-= 1 # todo can be set as user input variable / currently last matchday
+        idx1-= 1
         if idx1 < 0:
             idx1 = 0
         idx1 = resp['blocks'][0]['positionSelector']['positionOptions'][idx1]['blockIndex'] # last matchday index
-        while idx1 <= idx:
+        playable = True
+        fct = None
+        while idx1 <= idx: # + 1: # next match day is now visible
             dat = resp['blocks'][0]['blocks'][idx1]['title'] # day of matchday
             for item in resp['blocks'][0]['blocks'][idx1]['blocks']:
                 img = None
                 if 'programHint' in item: # show matches only
                     target = item['programHint']['programId']
+                    streamStatus = item['programHint']['streamStatus']
                 else:
                     target = None
+                    streamStatus = None
                     continue
                 title = '{}  {}'.format(dat,item['title'])
                 if 'decorator1' in item and item['decorator1'] is not None:
@@ -2310,24 +2387,57 @@ class AmazonMedia():
                     img = item['image3']['IMAGE_PROGRAM_COVER']
                 else:
                     img = item['image']
-                menuEntries.append({'txt':title,'fct':'getSoccerDetail','target':target,'img':img})
+                if streamStatus == 'PAST': # ignore outdated conferences
+                    continue
+                elif streamStatus == 'FUTURE': # future matches are not playable
+                    playable = False
+                    fct = None
+                elif streamStatus == 'AVAILABLE':
+                    playable = True
+                    fct = 'getSoccerOnDemand'
+                elif streamStatus == 'LIVE':
+                    playable = True
+                    fct = 'getSoccerLive'
+                else: # unknown status
+                    playable = False
+                    fct = None
+                menuEntries.append({'txt':title,'fct':fct,'target':target,'img':img,'playable':playable})
             idx1 += 1
         self.createList(menuEntries,False,True)
-    def getSoccerDetail(self,target=None):
+    def getSoccer(self,target,status):
+        if status == 'LIVE':
+            amz = {
+                'path': self.API_GetSoccerLiveURLs,
+                'target': 'getSoccerLiveURL'
+            }
+        elif status == 'ONDEMAND':
+            amz = {
+                'path': self.API_GetSoccerOnDemandURLs,
+                'target': 'getSoccerOnDemandURL'
+            }
+        else:
+            return False
         resp = self.amzCall(self.API_GetSoccerProgramDetails,'getSoccerProgramDetails',None,None,target)
         try:
             target = resp['program']['mediaContentList'][0]['mediaContentId']
         except:
             return False
         # target for xml source
-        resp = self.amzCall(self.API_GetSoccerStreamingURLs,'getSoccerStreamingURL','soccer',None,target)
+        resp = self.amzCall(amz['path'],amz['target'],'soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
+        r = requests.get(target)
+        song = self.writeSongFile(r.content,'mpd')
         # get the xml file and extract the source
-        li = xbmcgui.ListItem(path=target)
+        li = xbmcgui.ListItem(path=song)
         li.setProperty('inputstream', 'inputstream.adaptive')
+        #li.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
         li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
         li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
-        li.setInfo('video', '')
+        #li.setProperty('inputstream.adaptive.license_key', lic)
+        li.setProperty('isFolder', 'false')
+        li.setProperty('IsPlayable', 'true')
+        li.setInfo('video', {})
         li.setMimeType('application/dash+xml')
         li.setContentLookup(False)
         xbmcplugin.setResolvedUrl(self.addonHandle, True, listitem=li)
@@ -2351,9 +2461,11 @@ class AmazonMedia():
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
         a = str(float.hex(float(math.floor(16 * (1 + random.random())))))[4:5]
+        #a = str(float.hex(math.floor(16 * (1 + random.random()))))[4:5]
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
+        #return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8]
 
 if __name__ == '__main__':
     amz = AmazonMedia()
