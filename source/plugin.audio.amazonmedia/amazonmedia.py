@@ -286,7 +286,6 @@ class AmazonMedia():
         else:
             return False
     def log(self, msg, level=xbmc.LOGINFO):
-    #def log(self, msg, level=xbmc.LOGNOTICE):
         log_message = '[{}] {}'.format(self.addonName, msg)
         #log_message = '[{}] {}'.format(self.addonName, msg).encode("utf-8")
         xbmc.log(log_message, level)
@@ -2338,9 +2337,8 @@ class AmazonMedia():
         if ftype == 'mpd':
             m3u_string = manifest
             song = song.replace("\\","/") # windows fix that inputstream can work properly
-        m3u_string = str(m3u_string.replace("\\n", os.linesep))
+        m3u_string = m3u_string.replace("\\n", os.linesep)
         temp_file.write(m3u_string)
-        #temp_file.write(m3u_string.encode("ascii"))
         temp_file.close()
         return song
     def getSoccerFilter(self,target=None): # 'BUND', 'BUND2', 'CHAMP', 'DFBPOKAL', 'SUPR'
@@ -2426,7 +2424,7 @@ class AmazonMedia():
         resp = self.amzCall(amz['path'],amz['target'],'soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
         r = requests.get(target)
-        song = self.writeSongFile(r.content,'mpd')
+        song = self.writeSongFile(r.content.decode('utf-8'),'mpd')
         # get the xml file and extract the source
         li = xbmcgui.ListItem(path=song)
         li.setProperty('inputstream', 'inputstream.adaptive')
