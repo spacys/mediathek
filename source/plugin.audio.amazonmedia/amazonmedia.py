@@ -193,8 +193,7 @@ class AmazonMedia():
             self.getNewRecommendations()
         elif mode == 'getNewRecomDetails':
             asin = self.addonArgs.get('target', [None])
-            #self.getNewRecomDetails(asin[0])
-            self.getNewRecomDetails(unicode(asin[0], "utf-8"))
+            self.getNewRecomDetails(asin[0])
         # get own music, differentiate betwenn purchased and own lib
         # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
         elif mode in ['getPurAlbums','getAllAlbums']:
@@ -268,7 +267,6 @@ class AmazonMedia():
             self.setSetting(q[0],query)
     def getFolder(self,oPath):
         return xbmcvfs.translatePath(oPath)
-        #return xbmc.translatePath(oPath).decode('utf-8') # xbmcvfs
     def getUserInput(self,title,txt,hidden=False,uni=False):
         kb = xbmc.Keyboard()
         kb.setHeading(title)
@@ -287,7 +285,6 @@ class AmazonMedia():
             return False
     def log(self, msg, level=xbmc.LOGINFO):
         log_message = '[{}] {}'.format(self.addonName, msg)
-        #log_message = '[{}] {}'.format(self.addonName, msg).encode("utf-8")
         xbmc.log(log_message, level)
     def checkSiteVersion(self,siteVersion):
         if siteVersion in self.siteVerList:
@@ -370,7 +367,6 @@ class AmazonMedia():
         self.setSetting('search2Artists', "")
         self.setSetting('search3Artists', "")
         self.access = False
-        #xbmc.executebuiltin('Notification("Information:", %s, 5000, )'%(self.translation(30071)))
         xbmc.executebuiltin('Notification("Information:", {}, 5000, )'.format(self.translation(30071)))
     def delCredentials(self):
         self.userEmail = ''
@@ -743,10 +739,11 @@ class AmazonMedia():
     def getLogonResponse(self):
         self.br.submit()
         resp = self.br.response()
-        try:
-            return unicode(resp.read(), "utf-8") # for kodi 18
-        except:
-            return str(resp.read(), encoding = 'utf-8') # for kodi 19
+        #try:
+        #    return unicode(resp.read(), "utf-8") # for kodi 18
+        #except:
+        #    return str(resp.read(), encoding = 'utf-8') # for kodi 19
+        return str(resp.read(), encoding = 'utf-8')
     def checkMFA(self):
         while 'action="verify"' in self.content or 'id="auth-mfa-remember-device' in self.content:
             soup = self.parseHTML(self.content)
@@ -1579,7 +1576,7 @@ class AmazonMedia():
             else:
                 title = self.translation(item['txt'])
             if dynentry and 'search' in item:
-                title += str(item['search'])
+                title += item['search'].encode("UTF-8")
             li = xbmcgui.ListItem(label=title)
             li.setInfo(type="music", infoLabels={"title": title})
             if 'img' in item:
@@ -2314,12 +2311,10 @@ class AmazonMedia():
             song = self.writeSongFile(manifest,'mpd')
             li = xbmcgui.ListItem(path=song)
             li.setProperty('inputstream', 'inputstream.adaptive')
-            #li.setProperty('inputstreamaddon', 'inputstream.adaptive')
             li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
             li.setProperty('inputstream.adaptive.license_key', lic)
-            #li.setProperty('inputstream.adaptive.server_certificate', scert)
             li.setProperty('isFolder', 'false')
             li.setProperty('IsPlayable', 'true')
             li.setInfo('video', {})
@@ -2428,7 +2423,6 @@ class AmazonMedia():
         # get the xml file and extract the source
         li = xbmcgui.ListItem(path=song)
         li.setProperty('inputstream', 'inputstream.adaptive')
-        #li.setProperty('inputstreamaddon', 'inputstream.adaptive')
         li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
         li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
         li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
@@ -2459,11 +2453,9 @@ class AmazonMedia():
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
         a = str(float.hex(float(math.floor(16 * (1 + random.random())))))[4:5]
-        #a = str(float.hex(math.floor(16 * (1 + random.random()))))[4:5]
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
-        #return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8]
 
 if __name__ == '__main__':
     amz = AmazonMedia()
