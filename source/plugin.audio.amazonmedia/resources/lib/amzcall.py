@@ -4,6 +4,8 @@
 from __future__ import unicode_literals
 import json
 import requests
+import math
+import random
 from .singleton import Singleton
 
 class AMZCall(Singleton):
@@ -11,6 +13,15 @@ class AMZCall(Singleton):
     def __init__(self,Settings,Logon):
         self.s = Settings # settings
         self.l = Logon
+
+    def getMaestroID(self):
+        return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
+    def generatePlayerUID(self):
+        a = str(float.hex(float(math.floor(16 * (1 + random.random())))))[4:5]
+        return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
+    def doCalc(self):
+        return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
+
     # default communication
     def amzCall(self,amzUrl,mode,referer=None,asin=None,mediatype=None):
         url = '{}/{}/api/{}'.format(self.s.url, self.s.region, amzUrl['path'])
@@ -19,6 +30,8 @@ class AMZCall(Singleton):
         resp = requests.post(url=url, data=data, headers=head, cookies=self.s.cj)
         self.s.setCookie()
         if resp.status_code == 401 :
+            self.s.access = False
+            self.s.setSetting('access',False)
             if self.l.amazonLogon():
                 return self.amzCall(amzUrl,mode,referer,asin,mediatype)
         if self.s.logging:

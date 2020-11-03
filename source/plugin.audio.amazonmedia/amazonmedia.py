@@ -1,29 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import urllib.parse as urlparse
+# import urllib.parse as urlparse
 from urllib.parse import quote as urlquote
 from urllib.parse import quote_plus as urlquoteplus
 from urllib.parse import urlencode as urlencode
 
 import requests
 # import mechanize
-import http.cookiejar as cookielib
-import sys
+# import http.cookiejar as cookielib
+# import sys
 import re
 import os
 import json
-import shutil
+# import shutil
 import xbmc
 import xbmcplugin
 import xbmcgui
-import xbmcaddon
+# import xbmcaddon
 import xbmcvfs
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 import datetime
-import math
-import random
-import base64
+#import base64
 
 from resources.lib.settings import Settings
 from resources.lib.menu import MainMenu
@@ -38,7 +36,7 @@ class AmazonMedia():
     __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
         'musicURL','saveUsername','savePassword','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
-        'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content','AMs','AMm','AMl','AMapi']
+        'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content','AMs','AMm','AMl','AMapi','AMc']
     def __init__(self):
         self.setVariables()
         if self.AMs.logging:
@@ -53,18 +51,22 @@ class AmazonMedia():
         self.AMm    = MainMenu(self.AMs)
         self.AMl    = Logon(self.AMs)
         self.AMapi  = API()
-        self.AMcall = AMZCall(self.AMs,self.AMl)
+        self.AMc    = AMZCall(self.AMs,self.AMl)
 
     def reqDispatch(self):
-        Captcha().doModal()
+#        Captcha().doModal()
         # reset addon
         if self.AMs.addonMode is not None and self.AMs.addonMode[0] == 'resetAddon':
             self.AMs.resetAddon()
             return
         # logon
-        if not self.AMs.access and not self.AMl.amazonLogon():
-            xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.AMs.translation(30070)))
-            return
+        # if not self.AMs.access and not self.AMl.amazonLogon():
+        #     xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.AMs.translation(30070)))
+        #     return
+        if not self.AMs.access:
+            if not self.AMl.amazonLogon():
+                xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.AMs.translation(30070)))
+                return
 
         if self.AMs.addonMode is None:
             mode = None
@@ -215,7 +217,7 @@ class AmazonMedia():
     # get music information
     def lookup(self,asin):
         mediatype = ['playlistLibraryAvailability','expandTracklist','trackLibraryAvailability','collectionLibraryAvailability']
-        data = self.AMcall( self.AMapi.lookup,'itemLookup',None,asin,mediatype)
+        data = self.AMc.amzCall( self.AMapi.lookup,'itemLookup',None,asin,mediatype)
         sel = ''
         if   len(data['albumList']) > 0:
             sel = 'albumList'
@@ -226,36 +228,36 @@ class AmazonMedia():
         elif len(data['trackList']) > 0:
             sel = 'trackList'
         else:
-            data = self.AMcall(self.AMapi.cirrus, 'itemLookup2ndRound', '/my/albums', [asin], None)['selectTrackMetadataResponse']['selectTrackMetadataResult']
+            data = self.AMc.amzCall(self.AMapi.cirrus, 'itemLookup2ndRound', '/my/albums', [asin], None)['selectTrackMetadataResponse']['selectTrackMetadataResult']
             sel = 'trackInfoList'
         self.setAddonContent(sel,data[sel],'songs')
     def getRecentlyPlayed(self,mediatype):
-        items = self.AMcall(self.AMapi.GetRecentTrackActivity,'recentlyplayed',None,None,mediatype)['recentActivityMap']['PLAYED']
+        items = self.AMc.amzCall(self.AMapi.GetRecentTrackActivity,'recentlyplayed',None,None,mediatype)['recentActivityMap']['PLAYED']
         self.setAddonContent('recentlyplayed',items,'songs')
     def getRecentlyAddedSongs(self):
-        items = self.AMcall(self.AMapi.cirrus,'recentlyaddedsongs',None,None,None)['selectTrackMetadataResponse']['selectTrackMetadataResult']
+        items = self.AMc.amzCall(self.AMapi.cirrus,'recentlyaddedsongs',None,None,None)['selectTrackMetadataResponse']['selectTrackMetadataResult']
         self.setAddonContent('recentlyaddedsongs',items,'songs')
     def getPlayLists(self,mediatype):
-        items = self.AMcall(self.AMapi.getTopMusicEntities,'playlist',None,None,mediatype)
+        items = self.AMc.amzCall(self.AMapi.getTopMusicEntities,'playlist',None,None,mediatype)
         # data structure is similar to lookup
         self.setAddonContent('playlists',items,'albums')
     def getFollowedPlayLists(self):
-        items = self.AMcall(self.AMapi.getFollowedPlaylistsInLibrary,'followedplaylists',None,None,None)
+        items = self.AMc.amzCall(self.AMapi.getFollowedPlaylistsInLibrary,'followedplaylists',None,None,None)
         self.setAddonContent('followedplaylists',items,'albums')
     def getOwnedPlaylists(self):
-        items = self.AMcall(self.AMapi.getOwnedPlaylistsInLibrary,'getownedplaylists',None,None,None)
+        items = self.AMc.amzCall(self.AMapi.getOwnedPlaylistsInLibrary,'getownedplaylists',None,None,None)
         self.setAddonContent('ownedplaylists',items,'albums')
     def getPlaylistsByIdV2(self,asin):
-        items = self.AMcall(self.AMapi.getPlaylistsByIdV2,'getplaylistsbyid',None,asin,None)
+        items = self.AMc.amzCall(self.AMapi.getPlaylistsByIdV2,'getplaylistsbyid',None,asin,None)
         self.setAddonContent('getplaylistsbyid',items,'songs')
     def getStations(self,mediatype):
-        items = self.AMcall(self.AMapi.getStationSections,'getStations','/stations')
+        items = self.AMc.amzCall(self.AMapi.getStationSections,'getStations','/stations')
         self.setAddonContent(mediatype,items,'albums')
     def getGenrePlaylist(self,asin):
-        items = self.AMcall(self.AMapi.createQueue,'getGenrePlaylist',None,asin)
+        items = self.AMc.amzCall(self.AMapi.createQueue,'getGenrePlaylist',None,asin)
         self.setAddonContent('genreplaylist',items,'albums')
     def getRecommendations(self,mode,mediatype):
-        resp = self.AMcall(self.AMapi.getBrowseRecommendations,'recommendations',None,None,mediatype)
+        resp = self.AMc.amzCall(self.AMapi.getBrowseRecommendations,'recommendations',None,None,mediatype)
         sel = ''
         if   resp['recommendations'][0]['recommendationType'] == 'PLAYLIST':
             sel = 'recplaylists'
@@ -266,7 +268,7 @@ class AmazonMedia():
         self.setAddonContent(sel,resp['recommendations'][0],'albums')
     def getNewRecommendations(self):
         menuEntries = []
-        resp = self.AMcall(self.AMapi.getHome,'new_recommendations')
+        resp = self.AMc.amzCall(self.AMapi.getHome,'new_recommendations')
         for item in resp['blocks']:
             if (('ButtonGrid' in item['__type']) or ('Barker' in item['__type'])):
                 continue
@@ -281,7 +283,7 @@ class AmazonMedia():
     def getNewRecomDetails(self,target):
         menuEntries = []
         items = None
-        resp = self.AMcall(self.AMapi.getHome,'new_recommendations')
+        resp = self.AMc.amzCall(self.AMapi.getHome,'new_recommendations')
         for item in resp['blocks']:
             if (('ButtonGrid' in item['__type']) or ('Barker' in item['__type'])): # ignore button fields
                 continue
@@ -292,7 +294,7 @@ class AmazonMedia():
             return
         self.setAddonContent('newrecom',items,'albums')
     def getPurchased(self,mode,ctype):
-        resp = self.AMcall(self.AMapi.cirrus,'getPurchased',None,None,mode)
+        resp = self.AMc.amzCall(self.AMapi.cirrus,'getPurchased',None,None,mode)
         items = resp['searchLibraryResponse']['searchLibraryResult']
         if ctype == 'songs':
             mode = 'purchasedsongs'
@@ -307,7 +309,7 @@ class AmazonMedia():
                 query = self.AMl.getUserInput(self.AMs.translation(txt), '')
                 if not query:
                     return
-        resp = self.AMcall( self.AMapi.search , 'searchItems' , '/search' , query,mode )
+        resp = self.AMc.amzCall( self.AMapi.search , 'searchItems' , '/search' , query,mode )
         items = resp['results'][0]
         if   mode[0] == 'albums':
             if not txt == None:
@@ -330,16 +332,16 @@ class AmazonMedia():
                 self.AMs.setSearch('stations',query)
             self.setAddonContent('searchstations',items,'albums',None,query)
     def getArtistDetails(self,asin):
-        resp = self.AMcall(self.AMapi.artistDetailsMetadata,'getArtistDetails',None,asin,None)
+        resp = self.AMc.amzCall(self.AMapi.artistDetailsMetadata,'getArtistDetails',None,asin,None)
         items = resp
         self.setAddonContent('artistdetails',items,'albums',None,asin)
     def createQueue(self,asin):
-        resp = self.AMcall(self.AMapi.createQueue,'createQueue',None,asin,None)
+        resp = self.AMc.amzCall(self.AMapi.createQueue,'createQueue',None,asin,None)
         token = resp['queue']['pageToken']
         tracklist = resp['trackMetadataList']
         i = 1
         while token: # 5 songs per loop
-            resp = self.AMcall(self.AMapi.QueueGetNextTracks,'getNextTracks',None,asin,token)
+            resp = self.AMc.amzCall(self.AMapi.QueueGetNextTracks,'getNextTracks',None,asin,token)
             token = resp['nextPageToken']
             for item in resp['trackMetadataList']:
                 tracklist.append(item)
@@ -357,9 +359,9 @@ class AmazonMedia():
                 meta.append(item[filter['array1']][filter['array2']])
         seen = set()
         uniq = [x for x in meta if x not in seen and not seen.add(x)] # make it unique
-        return self.AMcall(self.AMapi.lookup,'itemLookup',None,uniq,['fullAlbumDetails'])#['albumList']
+        return self.AMc.amzCall(self.AMapi.lookup,'itemLookup',None,uniq,['fullAlbumDetails'])#['albumList']
     def getMetaTracks(self,filter):
-        return self.AMcall(self.AMapi.V3getTracks,'getMetaTracks',None,filter,None)
+        return self.AMc.amzCall(self.AMapi.V3getTracks,'getMetaTracks',None,filter,None)
     def setData(self,item,filter):
         if 'update' in filter and filter['update']:
             info = filter['info']
@@ -633,7 +635,7 @@ class AmazonMedia():
         elif mode == 'trackInfoList':           # track info list
             for item in param:
                 meta.append(item['metadata']['asin'])
-            meta = self.AMcall(self.AMapi.lookup,'itemLookup',None,meta,mediatype)['trackList']
+            meta = self.AMc.amzCall(self.AMapi.lookup,'itemLookup',None,meta,mediatype)['trackList']
             for item in param:
                 inf, met = self.setData(item['metadata'],{'mode':'getTrack'})
                 for i in meta:
@@ -648,7 +650,7 @@ class AmazonMedia():
         elif mode == 'stationList':             # station playlist
             for item in param:
                 meta.append(item['identifier'])
-            meta = self.AMcall(self.AMapi.lookup,'itemLookup',None,meta,mediatype)['trackList']
+            meta = self.AMc.amzCall(self.AMapi.lookup,'itemLookup',None,meta,mediatype)['trackList']
             for item in param:
                 inf, met = self.setData(item,{'mode':'getTrack'})
                 for i in meta:
@@ -676,7 +678,7 @@ class AmazonMedia():
             for item in param['playlists']:
                 for track in item['tracks']:
                     meta.append(track['metadata']['requestedMetadata']['asin'])
-            meta = self.AMcall(self.AMapi.lookup,'itemLookup',None,meta,mediatype)['trackList']
+            meta = self.AMc.amzCall(self.AMapi.lookup,'itemLookup',None,meta,mediatype)['trackList']
             for item in param['playlists']:
                 for track in item['tracks']:
                     inf, met = self.setData(track['metadata']['requestedMetadata'],{'mode':'getTrack'})
@@ -735,7 +737,7 @@ class AmazonMedia():
         elif mode == 'recentlyaddedsongs':      # recently added songs
             for item in param['trackInfoList']:
                 meta.append(item['metadata']['asin'])
-            meta = self.AMcall(self.AMapi.lookup,'itemLookup',None,meta,mediatype)['trackList']
+            meta = self.AMc.amzCall(self.AMapi.lookup,'itemLookup',None,meta,mediatype)['trackList']
             for item in param['trackInfoList']:
                 inf, met = self.setData(item['metadata'],{'mode':'getTrack'})
                 for i in meta:
@@ -774,7 +776,7 @@ class AmazonMedia():
         elif mode == 'purchasedalbums':         # purchased and owned albums
             for item in param['searchReturnItemList']:
                 meta.append(item['metadata']['asin'])
-            meta = self.AMcall(self.AMapi.lookup,'itemLookup',None,meta,['fullAlbumDetails'])['albumList']
+            meta = self.AMc.amzCall(self.AMapi.lookup,'itemLookup',None,meta,['fullAlbumDetails'])['albumList']
             for item in param['searchReturnItemList']:
                 inf, met = self.setData(item['metadata'],{'mode':'lookup','isAlbum':True})
                 for i in meta:
@@ -870,7 +872,7 @@ class AmazonMedia():
         xbmcplugin.setResolvedUrl(self.AMs.addonHandle, True, listitem=li)
     def tryGetStream(self,asin,objectId):
         if objectId == None:
-            resp = self.AMcall(self.AMapi.stream,'getTrack',None,asin,'ASIN')
+            resp = self.AMc.amzCall(self.AMapi.stream,'getTrack',None,asin,'ASIN')
             obj = json.loads(resp.text)
             if 'statusCode' in obj and obj['statusCode'] == 'MAX_CONCURRENCY_REACHED':
                 xbmc.PlayList(0).clear()
@@ -882,7 +884,7 @@ class AmazonMedia():
             except:
                 return None
         else:
-            resp = self.AMcall(self.AMapi.stream,'getTrack',None,objectId,'COID')
+            resp = self.AMc.amzCall(self.AMapi.stream,'getTrack',None,objectId,'COID')
             obj = json.loads(resp.text)
             if 'statusCode' in obj and obj['contentResponse']['statusCode'] == 'CONTENT_NOT_ELIGIBLE' or obj['contentResponse']['statusCode'] == 'BAD_REQUEST':
                 return None
@@ -892,14 +894,14 @@ class AmazonMedia():
                 return None
         return song
     def tryGetStreamHLS(self,asin,objectId):
-        resp = self.AMcall(self.AMapi.streamHLS,'getTrackHLS',None,asin,'ASIN')
+        resp = self.AMc.amzCall(self.AMapi.streamHLS,'getTrackHLS',None,asin,'ASIN')
         manifest = re.compile('manifest":"(.+?)"',re.DOTALL).findall(resp.text)
         if manifest:
             return self.writeSongFile(manifest,'m3u8')
         else:
             return None
     def tryGetStreamDash(self,asin,objectId):
-        resp = self.AMcall(self.AMapi.streamDash,'getTrackDash',None,asin,'ASIN')
+        resp = self.AMc.amzCall(self.AMapi.streamDash,'getTrackDash',None,asin,'ASIN')
         manifest = json.loads(resp.text)['contentResponseList'][0]['manifest']
         if manifest:
             lic = self.getLicenseKey()
@@ -933,7 +935,7 @@ class AmazonMedia():
         return song
     def getSoccerFilter(self,target=None): # 'BUND', 'BUND2', 'CHAMP', 'DFBPOKAL', 'SUPR'
         menuEntries = []
-        resp = self.AMcall(self.AMapi.GetSoccerMain,'getSoccerMain',None,None,target)
+        resp = self.AMc.amzCall(self.AMapi.GetSoccerMain,'getSoccerMain',None,None,target)
         idx = resp['blocks'][0]['positionSelector']['currentPosition']['blockIndex'] # current matchday
         if idx == -1: # if no entries are available
             menuEntries.append({'txt':'Empty List','fct':None,'target':None,'img':self.AMs.getSetting('img_soccer'),'playable':False})
@@ -1005,13 +1007,13 @@ class AmazonMedia():
             }
         else:
             return False
-        resp = self.AMcall(self.AMapi.GetSoccerProgramDetails,'getSoccerProgramDetails',None,None,target)
+        resp = self.AMc.amzCall(self.AMapi.GetSoccerProgramDetails,'getSoccerProgramDetails',None,None,target)
         try:
             target = resp['program']['mediaContentList'][0]['mediaContentId']
         except:
             return False
         # target for xml source
-        resp = self.AMcall(amz['path'],amz['target'],'soccer',None,target)
+        resp = self.AMc.amzCall(amz['path'],amz['target'],'soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
         r = requests.get(target)
         song = self.writeSongFile(r.content.decode('utf-8'),'mpd')
@@ -1041,16 +1043,9 @@ class AmazonMedia():
 
         head['Cookie'] = cj_str
         licHeader = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
-        licBody = self.AMcall.prepReqData('getLicenseForPlaybackV2')
+        licBody = self.AMc.prepReqData('getLicenseForPlaybackV2')
         # licURL expected (req / header / body / response)
         return '{}|{}|{}|JBlicense'.format(url,licHeader,licBody)
-    def getMaestroID(self):
-        return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
-    def generatePlayerUID(self):
-        a = str(float.hex(float(math.floor(16 * (1 + random.random())))))[4:5]
-        return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
-    def doCalc(self):
-        return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
 
 if __name__ == '__main__':
     AmazonMedia().reqDispatch()

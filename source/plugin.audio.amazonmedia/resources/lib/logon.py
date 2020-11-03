@@ -76,7 +76,6 @@ class Logon(Singleton):
              ('csrf-rnd',   self.s.csrf_rnd),
              ('csrf-ts',    self.s.csrf_ts),
              ('Upgrade-Insecure-Requests', '1')]
-
     def amazonLogon(self):
         app_config = None
         self.s.delCookies()
