@@ -8,6 +8,7 @@
     <extension point="xbmc.python.pluginsource" library="amazonmedia.py">
         <provides>audio</provides>
     </extension>
+    <extension point="xbmc.service" library="service.py" start="startup" />
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
         <summary lang="en">Amazon Add-on</summary>
