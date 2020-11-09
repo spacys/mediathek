@@ -16,6 +16,7 @@ import json
 # import shutil
 import xbmc
 import xbmcplugin
+import xbmcaddon
 import xbmcgui
 # import xbmcaddon
 import xbmcvfs
@@ -27,7 +28,6 @@ from resources.lib.settings import Settings
 from resources.lib.menu import MainMenu
 from resources.lib.api import API
 from resources.lib.logon import Logon
-from resources.lib.logon import Captcha
 from resources.lib.amzcall import AMZCall
 
 NODEBUG = False
@@ -54,10 +54,10 @@ class AmazonMedia():
         self.AMc    = AMZCall(self.AMs,self.AMl)
 
     def reqDispatch(self):
-#        Captcha().doModal()
         # reset addon
         if self.AMs.addonMode is not None and self.AMs.addonMode[0] == 'resetAddon':
             self.AMs.resetAddon()
+            xbmc.executebuiltin('Notification("Information:", {}, 5000, )'.format(self.AMs.translation(30071)))
             return
         # logon
         # if not self.AMs.access and not self.AMl.amazonLogon():
@@ -65,7 +65,7 @@ class AmazonMedia():
         #     return
         if not self.AMs.access:
             if not self.AMl.amazonLogon():
-                xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.AMs.translation(30070)))
+                xbmc.executebuiltin('Notification("Error:", {}, 5000, )'.format(self.AMs.translation(30070)))
                 return
 
         if self.AMs.addonMode is None:
@@ -855,21 +855,27 @@ class AmazonMedia():
         xbmcplugin.endOfDirectory(self.AMs.addonHandle)
     # play music
     def getTrack(self,asin,objectId):
-        song = self.tryGetStream(asin,objectId)
+        song    = self.tryGetStream(asin,objectId)
+        stream  = {'ia':False, 'lic':False}
         if song == None:
-            song = self.tryGetStreamHLS(asin,objectId)
+            manifest = self.tryGetStreamHLS(asin,objectId)
+            if manifest:
+                song = self.writeSongFile(manifest,'m3u8')
         if song == None:
-            self.tryGetStreamDash(asin,objectId)
-            return
+            manifest = self.tryGetStreamDash(asin,objectId)
+            if manifest:
+                song = self.writeSongFile(manifest,'mpd')
+                ''' proxy try - START '''
+                song = 'http://{}/mpd/{}'.format(xbmcaddon.Addon().getSetting('proxy'),'song.mpd')
+                ''' proxy try - END '''
+                stream['ia']  = True
+                stream['lic'] = True
         if song == None:
             xbmc.PlayList(0).clear()
             xbmc.Player().stop()
             xbmc.executebuiltin('Notification("Information:", %s %s %s, 10000, )'%(self.AMs.translation(30073),' ',self.AMs.translation(30074)))
             return False
-        li = xbmcgui.ListItem(path=song)
-        li.setContentLookup(False)
-        li.setInfo('video', {})
-        xbmcplugin.setResolvedUrl(self.AMs.addonHandle, True, listitem=li)
+        self.finalizeItem(song,stream['ia'],stream['lic'])        
     def tryGetStream(self,asin,objectId):
         if objectId == None:
             resp = self.AMc.amzCall(self.AMapi.stream,'getTrack',None,asin,'ASIN')
@@ -895,31 +901,27 @@ class AmazonMedia():
         return song
     def tryGetStreamHLS(self,asin,objectId):
         resp = self.AMc.amzCall(self.AMapi.streamHLS,'getTrackHLS',None,asin,'ASIN')
-        manifest = re.compile('manifest":"(.+?)"',re.DOTALL).findall(resp.text)
-        if manifest:
-            return self.writeSongFile(manifest,'m3u8')
-        else:
-            return None
+        return re.compile('manifest":"(.+?)"',re.DOTALL).findall(resp.text)
     def tryGetStreamDash(self,asin,objectId):
         resp = self.AMc.amzCall(self.AMapi.streamDash,'getTrackDash',None,asin,'ASIN')
-        manifest = json.loads(resp.text)['contentResponseList'][0]['manifest']
-        if manifest:
-            lic = self.getLicenseKey()
-            song = self.writeSongFile(manifest,'mpd')
-            li = xbmcgui.ListItem(path=song)
+        return json.loads(resp.text)['contentResponseList'][0]['manifest']
+    def finalizeItem(self,song,ia=False,lic=False):
+        li = xbmcgui.ListItem(path=song)
+        if ia:
             li.setProperty('inputstream', 'inputstream.adaptive')
             li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.AMs.userAgent))
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
-            li.setProperty('inputstream.adaptive.license_key', lic)
+            if lic:
+                li.setProperty('inputstream.adaptive.license_key', self.getLicenseKey() )
             li.setProperty('isFolder', 'false')
             li.setProperty('IsPlayable', 'true')
-            li.setInfo('video', {})
+            # li.setInfo('video', {})
             li.setMimeType('application/dash+xml')
-            li.setContentLookup(False)
-            xbmcplugin.setResolvedUrl(self.AMs.addonHandle, True, listitem=li)
-        else:
-            return
+        li.setInfo('audio', {'codec': 'aac'})
+        li.addStreamInfo('audio', {'codec': 'aac'})
+        li.setContentLookup(False)
+        xbmcplugin.setResolvedUrl(self.AMs.addonHandle, True, listitem=li)
     def writeSongFile(self,manifest,ftype='m3u8'):
         song = '{}{}song.{}'.format(self.AMs.addonUDatFo,os.sep,ftype)
         m3u_string = ''
@@ -933,6 +935,22 @@ class AmazonMedia():
         temp_file.write(m3u_string)
         temp_file.close()
         return song
+    def getLicenseKey(self):
+        amzUrl = self.AMapi.LicenseForPlaybackV2
+        url = '{}/{}/api/{}'.format(self.AMs.url, self.AMs.region, amzUrl['path'])
+        head = self.AMs.prepReqHeader(amzUrl['target'])
+
+        cookiedict = {}
+        for cookie in self.AMs.cj:
+            cookiedict[cookie.name] = cookie.value
+
+        cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookiedict.items()])
+
+        head['Cookie'] = cj_str
+        licHeader = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
+        licBody = self.AMc.prepReqData('getLicenseForPlaybackV2')
+        # licURL expected (req / header / body / response)
+        return '{}|{}|{}|JBlicense'.format(url,licHeader,licBody)
     def getSoccerFilter(self,target=None): # 'BUND', 'BUND2', 'CHAMP', 'DFBPOKAL', 'SUPR'
         menuEntries = []
         resp = self.AMc.amzCall(self.AMapi.GetSoccerMain,'getSoccerMain',None,None,target)
@@ -996,15 +1014,11 @@ class AmazonMedia():
         self.createList(menuEntries,False,True)
     def getSoccer(self,target,status):
         if status == 'LIVE':
-            amz = {
-                'path': self.AMapi.GetSoccerLiveURLs,
-                'target': 'getSoccerLiveURL'
-            }
+            amz = { 'path': self.AMapi.GetSoccerLiveURLs,
+                    'target': 'getSoccerLiveURL' }
         elif status == 'ONDEMAND':
-            amz = {
-                'path': self.AMapi.GetSoccerOnDemandURLs,
-                'target': 'getSoccerOnDemandURL'
-            }
+            amz = { 'path': self.AMapi.GetSoccerOnDemandURLs,
+                    'target': 'getSoccerOnDemandURL' }
         else:
             return False
         resp = self.AMc.amzCall(self.AMapi.GetSoccerProgramDetails,'getSoccerProgramDetails',None,None,target)
@@ -1017,35 +1031,11 @@ class AmazonMedia():
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
         r = requests.get(target)
         song = self.writeSongFile(r.content.decode('utf-8'),'mpd')
-        # get the xml file and extract the source
-        li = xbmcgui.ListItem(path=song)
-        li.setProperty('inputstream', 'inputstream.adaptive')
-        li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.AMs.userAgent))
-        li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
-        li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
-        #li.setProperty('inputstream.adaptive.license_key', lic)
-        li.setProperty('isFolder', 'false')
-        li.setProperty('IsPlayable', 'true')
-        li.setInfo('video', {})
-        li.setMimeType('application/dash+xml')
-        li.setContentLookup(False)
-        xbmcplugin.setResolvedUrl(self.AMs.addonHandle, True, listitem=li)
-    def getLicenseKey(self):
-        amzUrl = self.AMapi.LicenseForPlaybackV2
-        url = '{}/{}/api/{}'.format(self.AMs.url, self.AMs.region, amzUrl['path'])
-        head = self.AMs.prepReqHeader(amzUrl['target'])
 
-        cookiedict = {}
-        for cookie in self.AMs.cj:
-            cookiedict[cookie.name] = cookie.value
-
-        cj_str = ';'.join(['%s=%s' % (k, v) for k, v in cookiedict.items()])
-
-        head['Cookie'] = cj_str
-        licHeader = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
-        licBody = self.AMc.prepReqData('getLicenseForPlaybackV2')
-        # licURL expected (req / header / body / response)
-        return '{}|{}|{}|JBlicense'.format(url,licHeader,licBody)
+        ''' proxy try - START '''
+        song = 'http://{}/mpd/{}'.format(xbmcaddon.Addon().getSetting('proxy'),'song.mpd')
+        ''' proxy try - END '''
+        self.finalizeItem(song,True)
 
 if __name__ == '__main__':
     AmazonMedia().reqDispatch()

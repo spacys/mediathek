@@ -17,6 +17,8 @@ from .singleton import Singleton
 class Settings(Singleton):
     """ Amazon Media Addon Settings """
     def __init__(self):
+        self.setVariables()
+    def setVariables(self):
         self.addon          = xbmcaddon.Addon()
         self.addonId        = self.getInfo('id')
         self.addonName      = self.getInfo('name')
@@ -40,6 +42,7 @@ class Settings(Singleton):
             self.setSetting('userPassword', "")
         self.userEmail      = self.getSetting("userEmail")
         self.userPassword   = base64.urlsafe_b64decode(self.getSetting("userPassword"))
+        self.captcha        = ""
         self.userAgent      = self.getSetting("userAgent")
         self.deviceId       = self.getSetting("deviceId")
         self.csrf_token     = self.getSetting("csrf_token")
@@ -133,7 +136,6 @@ class Settings(Singleton):
         self.setSetting('search2Artists', "")
         self.setSetting('search3Artists', "")
         self.access = False
-        xbmc.executebuiltin('Notification("Information:", {}, 5000, )'.format(self.translation(30071)))
     def appConfig(self,app_config):
         if app_config is None:
             return False
@@ -154,6 +156,27 @@ class Settings(Singleton):
                 self.setSetting('accessType', 'UNLIMITED')
         else:
             self.setSetting('accessType',   app_config['customerBenefits']['tier'])
+        self.checkSiteVersion(app_config['musicTerritory'].lower())
+    def appConfig2(self,app_config):
+        if app_config is None:
+            return False
+        self.setSetting('deviceId',         app_config['deviceId'])
+        self.setSetting('csrf_token',       app_config['csrf']['token'])
+        self.setSetting('csrf_ts',          app_config['csrf']['ts'])
+        self.setSetting('csrf_rnd',         app_config['csrf']['rnd'])
+        self.setSetting('customerId',       app_config['customerId'])
+        self.setSetting('marketplaceId',    app_config['marketplaceId'])
+        self.setSetting('deviceType',       app_config['deviceType'])
+        self.setSetting('musicTerritory',   app_config['musicTerritory'])
+        self.setSetting('locale',           app_config['displayLanguage'])
+        self.setSetting('customerLang',     app_config['musicTerritory'].lower())
+        self.setSetting('region',           app_config['siteRegion'])
+        self.setSetting('url',              self.musicURL)
+        self.setSetting('access',           'true')
+        if app_config['tier'] == 'UNLIMITED_HD':
+                self.setSetting('accessType', 'UNLIMITED')
+        else:
+            self.setSetting('accessType',   app_config['tier'])
         self.checkSiteVersion(app_config['musicTerritory'].lower())
     def checkSiteVersion(self,siteVersion):
         if siteVersion in self.siteVerList:

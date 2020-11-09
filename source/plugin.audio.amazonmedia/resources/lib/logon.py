@@ -16,6 +16,7 @@ from .singleton import Singleton
 class Logon(Singleton):
     def __init__(self,Settings):
         self.s = Settings
+        self.prepBrowser()
     def parseHTML(self,resp):
         resp = re.sub(r'(?i)(<!doctype \w+).*>', r'\1>', resp)
         return BeautifulSoup(resp, 'html.parser')
@@ -52,11 +53,14 @@ class Logon(Singleton):
         kb.doModal()
         if kb.isConfirmed() and kb.getText():
             if uni:
-                return str(kb.getText(), encoding = 'utf-8')
+                ret = str(kb.getText(), encoding = 'utf-8')
             else:
-                return kb.getText() # for password needed, due to encryption
+                ret = kb.getText() # for password needed, due to encryption
         else:
-            return False
+            ret = False
+        xbmc.sleep(500)
+        del kb
+        return ret
     def prepBrowser(self):
         self.br = mechanize.Browser()
         self.br.set_handle_robots(False)
@@ -96,13 +100,13 @@ class Logon(Singleton):
                 self.doLogonForm()
             except:
                 self.checkCaptcha()
-                continue
-
             self.content = self.getLogonResponse()
-
-            if 'message error' in self.content or x == 3:
-                xbmcgui.Dialog().ok(self.s.addonName, 'Logon issue')
+            #self.s.log(self.content)
+            if x == 3:
                 return False
+            # if 'message error' in self.content or x == 3:
+            #     xbmcgui.Dialog().ok(self.s.addonName, 'Logon issue')
+            #     return False
             if not self.checkMFA():
                 return False
 
@@ -113,21 +117,46 @@ class Logon(Singleton):
             self.s.cj.load(self.s.cookieFile)
             head = self.s.prepReqHeader('')
             resp = requests.post(self.s.musicURL, data=None, headers=head, cookies=self.s.cj)
-
+            # self.s.log(resp.text)
+            alt = False
             for line in resp.iter_lines(decode_unicode=True):
-                if 'applicationContextConfiguration =' in line or 'amznMusic.appConfig =' in line:
+                if ('applicationContextConfiguration =' in line
+                    or 'amznMusic.appConfig =' in line):
                     app_config = json.loads(re.sub(r'^[^{]*', '', re.sub(r';$', '', line)))
                     break
+                elif 'appConfig:' in line:
+                    soup = self.parseHTML(resp.text)
+                    script = soup.find('script').getText().strip()
+                    script = script.replace("window.amznMusic = ","")
+                    script = script.replace("appConfig:","\"appConfig\":")
+                    script = script.replace(" false","\"false\"")
+                    script = script.replace(" true","\"true\"")
+                    script = script.replace(" null","\"null\"")
+                    script = script.replace(os.linesep,"")
+                    script = script.replace(" ","")
+                    script = script.replace("/","_")
+                    script = script.replace("},};","}}")
+                    app_config = json.loads(script)
+                    alt = True
+                    break
 
-            if app_config is None or app_config['isRecognizedCustomer'] == 0:
-                if app_config is not None and app_config['isTravelingCustomer']:
-                    self.s.checkSiteVersion(app_config['stratusMusicTerritory'].lower())
+            # self.s.log(app_config)
+            if not alt:
+                if app_config is None or app_config['isRecognizedCustomer'] == 0:
+                    if app_config is not None and app_config['isTravelingCustomer']:
+                        self.s.checkSiteVersion(app_config['stratusMusicTerritory'].lower())
+                        self.doReInit()
+                    self.s.delCookies()
+                    app_config = None
+                    self.s.access = False
+                else:
+                    self.s.appConfig(app_config)
+                    self.s.setCookie()
                     self.doReInit()
-                self.s.delCookies()
-                app_config = None
-                self.s.access = False
+                    self.delCredentials()
+                    self.s.access = True
             else:
-                self.s.appConfig(app_config)
+                self.s.appConfig2(app_config['appConfig'])
                 self.s.setCookie()
                 self.doReInit()
                 self.delCredentials()
@@ -135,10 +164,8 @@ class Logon(Singleton):
             x+=1
         return True
     def doReInit(self): ##### -->  TODO
-        #self.setVariables()
-        # self.prepFolder() --> reinit of AMs
+        self.s.setVariables()
         self.prepBrowser()
-        pass
     def doLogonForm(self):
         self.br.select_form(name="signIn")
         if not self.br.find_control("email").readonly:
@@ -147,10 +174,6 @@ class Logon(Singleton):
     def getLogonResponse(self):
         self.br.submit()
         resp = self.br.response()
-        #try:
-        #    return unicode(resp.read(), "utf-8") # for kodi 18
-        #except:
-        #    return str(resp.read(), encoding = 'utf-8') # for kodi 19
         return str(resp.read(), encoding = 'utf-8')
     def checkMFA(self):
         while 'action="verify"' in self.content or 'id="auth-mfa-remember-device' in self.content:
@@ -209,107 +232,54 @@ class Logon(Singleton):
         self.br.select_form(action="/errors/validateCaptcha")
         self.content = str(self.br.response().read(), encoding = 'utf-8')
         soup = self.parseHTML(self.content)
-        #self.s.log(soup)
+        # self.s.log(soup)
         form = soup.find_all('form')
-        msgheading = form[0].find('h4').renderContents().strip()
+        msgheading = str(form[0].find('h4').renderContents().strip(), encoding = 'utf-8')
         img = form[0].find('img') #.renderContents().strip()
-        self.s.log(msgheading)
-        self.s.log(img)
-        self.dia = Captcha(msgheading,img)
-        xbmc.sleep(5000)
-        # """
-        # """ create popup window for captcha """
-        # """
-        # #window = PopupWindow(msgheading,img)
-        # #window.show()
-        # #xbmc.sleep(5000)
-        # #window.close()
-        # #del window
-        # """
-        # #return
-
-# from .l10n import getString
-
-class Captcha(xbmcgui.WindowDialog):
-    """ Captcha dialog """
-    def __init__(self): #,header,img):
-        self.vcode_path = 'https://images-na.ssl-images-amazon.com/captcha/fmvtfjch/Captcha_ntfzkqsebj.jpg'
- 
-        # windowItems
-        self.image          = xbmcgui.ControlImage(80, 100, 200, 70, self.vcode_path) # x, y , width, hight
-        self.buttonInput    = xbmcgui.ControlButton(100, 160, 140, 50, label='Input', font='font20')
-        self.buttonRefresh  = xbmcgui.ControlButton(250, 160, 140, 50, label='Refresh', font='font20')
-        self.addControls([self.image, self.buttonInput, self.buttonRefresh])
-        self.setFocus(self.buttonInput)
- 
-    def onControl(self, event):
-        if event == self.buttonInput:
-            self.close()
-        # elif event == self.buttonRefresh:
-        #     (self.codeString, self.vcode_path) = auth.refresh_vcode(self.cookie, self.tokens, self.vcodetype)
-        #     if self.codeString and self.vcode_path:
-        #         self.removeControl(self.image)
-        #         self.image = xbmcgui.ControlImage(80, 100, 500, 200, self.vcode_path)
-        #         self.addControl(self.image)
-        #     else:
-        #         dialog.ok('Error', u'无法刷新验证码，请重试')
-
-    # def get_response(img):
-    #     try:
-    #         img = xbmcgui.ControlImage(450, 0, 400, 130, img)
-    #         wdlg = xbmcgui.WindowDialog()
-    #         wdlg.addControl(img)
-    #         wdlg.show()
-    #         common.kodi.sleep(3000)
-    #         solution = common.kodi.get_keyboard(common.i18n('letters_image'))
-    #         if not solution:
-    #             raise Exception('captcha_error')
-    #     finally:
-    #         wdlg.close()
-    #         return solution
-
-    # value = 0  # Contains the selected options bitmask
-
-    # # def __init__(self, title=getString(30087), label=getString(30088)):
-    # def __init__(self, title='TestTitle', label='TestLabel'):
-    #     """Class constructor"""
-    #     # Call the base class' constructor.
-    #     self._label = label
-    #     super(Captcha, self).__init__(title)
-    #     self.setGeometry(460, 280, 3, 2)
-    #     self.set_controls()
-    #     # self.set_navigation()
-    #     # self.connect(pyxbmct.ACTION_NAV_BACK, self.close)
-    #     self.doModal()
-
-    # def set_controls(self):
-    #     """Set up UI controls"""
-    #     # Text label
-    #     label = pyxbmct.Label(self._label)
-    #     self.placeControl(label, 0, 0, rowspan=1, columnspan=2)
-    #     # None
-    #     self.btnNone = pyxbmct.Button('Button 1')
-    #     self.placeControl(self.btnNone, 1, 0)
-    #     self.connect(self.btnNone, self.close)
-    #     # Catalog
-    #     self.btnCatalog = pyxbmct.Button('Button 2')
-    #     self.placeControl(self.btnCatalog, 1, 1)
-    #     self.connect(self.btnCatalog, lambda: self.clear(1))
-
-    # # def set_navigation(self):
-    # #     """Set up keyboard/remote navigation between controls."""
-    # #     # None Catalog
-    # #     # Video   Both
-    # #     self.btnNone.controlRight(self.btnCatalog)
-    # #     self.btnNone.controlDown(self.btnVideo)
-    # #     self.btnCatalog.controlLeft(self.btnNone)
-    # #     self.btnCatalog.controlDown(self.btnBoth)
-    # #     self.btnVideo.controlUp(self.btnNone)
-    # #     self.btnVideo.controlRight(self.btnBoth)
-    # #     self.btnBoth.controlLeft(self.btnVideo)
-    # #     self.btnBoth.controlUp(self.btnCatalog)
-    # #     self.setFocus(self.btnNone)
-
-    # def clear(self, what):
-    #     self.value = what
-    #     self.close()
+        # self.s.log(msgheading)
+        # self.s.log(img['src'])
+        self.showCaptcha('captcha.xml',img['src'],msgheading)
+        self.s.captcha = self.s.getSetting('captcha')
+        if self.s.captcha == "":
+            return False
+        self.br["field-keywords"] = self.s.captcha
+        self.s.setSetting('captcha',"")
+    def showCaptcha(self,layout, imagefile, message):
+        class Captcha(xbmcgui.WindowXMLDialog):
+            def __init__(self, *args, **kwargs):
+                self.image = kwargs["image"]
+                self.text  = kwargs["text"]
+                self.s     = kwargs["settings"]
+                self.inp   = ""
+            def onInit(self):
+                self.title          = 501
+                self.imagecontrol   = 502
+                self.textbox        = 503
+                self.inptxt         = 504
+                self.btn_input      = 505
+                self.btn_cancel     = 506
+                self.btn_ok         = 507
+                self.show_dialog()
+            def show_dialog(self):
+                self.getControl(self.title).setLabel('Captcha Entry')
+                self.getControl(self.imagecontrol).setImage(self.image)
+                self.getControl(self.textbox).setText(self.text)
+                self.getControl(self.inptxt).setText('Your entry: ' + self.inp)
+                self.setFocus(self.getControl(self.btn_ok))
+            def getUserInput(self,title,txt=''):
+                dialog = xbmcgui.Dialog()
+                self.inp = dialog.input('Captcha Entry', defaultt=self.inp, type=xbmcgui.INPUT_ALPHANUM, option=0)
+                del dialog
+                self.s.setSetting('captcha',self.inp)
+                self.show_dialog()
+            def onClick(self, controlid):
+                if controlid == self.btn_ok:
+                    self.close()
+                elif controlid == self.btn_cancel:
+                    self.s.captcha = ""
+                    self.close()
+                elif controlid == self.btn_input:
+                    self.getUserInput('Captcha Entry')
+        cp = Captcha(layout, self.s.addonFolder, 'Default', image=imagefile, text=message, settings=self.s)
+        cp.doModal()
+        del cp

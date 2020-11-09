@@ -12,7 +12,7 @@ class MainMenu(Singleton):
         'search' - last searched items
     """
     def __init__(self,Settings):
-        self.s = Settings # settings
+        self.s = Settings
     def menuHome(self):
         return [{'txt':30023,'fct':'menuPlaylists',         'img':'img_playlists'},
                 {'txt':30024,'fct':'menuAlbums',            'img':'img_albums'},

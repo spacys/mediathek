@@ -4,16 +4,20 @@
 from __future__ import unicode_literals
 #from kodi_six.utils import py2_decode
 from contextlib import contextmanager
-from http.server import BaseHTTPRequestHandler  # Python3 HTTP Server
+from http.server import BaseHTTPRequestHandler
 from socketserver import ThreadingTCPServer
-import xbmc
 
 from io import BytesIO
 from gzip import GzipFile
 #from resources.lib.network import MechanizeLogin
 import re
+import os
 import requests
 from urllib.parse import unquote, urlparse, parse_qsl
+
+import xbmc
+import xbmcvfs
+import xbmcaddon
 
 class ProxyHTTPD(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'  # Allow keep-alive
@@ -65,9 +69,11 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
 
     def _ParseBaseRequest(self, method):
         """Return path, headers and post data commonly required by all methods"""
-        path = py2_decode(urlparse(self.path).path[1:])  # Get URI without the trailing slash
+        # self.log('_ParseBaseRequest')
+        # path = py2_decode(urlparse(self.path).path[1:])  # Get URI without the trailing slash
+        path = urlparse(self.path).path[1:]  # Get URI without the trailing slash
         path = path.split('/')  # license/<asin>/<ATV endpoint>
-        self.log('[PS] Requested {} path {}'.format(method, path))
+        # self.log('[PS] Requested {} path {}'.format(method, path))
         # Retrieve headers and data
         headers = {k: self.headers[k] for k in self.headers if k not in ['host', 'content-length']}
         data_length = self.headers.get('content-length')
@@ -78,6 +84,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
         """Forwards the request to the proper target"""
         # from resources.lib.network import MechanizeLogin
         # Create sessions for keep-alives and connection pooling
+        self.log('_ForwardRequest')
         host = re.search('://([^/]+)/', endpoint)  # Try to extract the host from the URL
         if None is not host:
             host = host.group(1)
@@ -101,6 +108,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
 
     def _gzip(self, data=None, stream=False):
         """Compress the output data"""
+        self.log('_gzip')
         out = BytesIO()
         f = GzipFile(fileobj=out, mode='w', compresslevel=5)
         if not stream:
@@ -110,6 +118,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
         return (f, out)
 
     def _SendHeaders(self, code, headers):
+        self.log('_SendHeaders')
         self.send_response(code)
         for k in headers:
             self.send_header(k, headers[k])
@@ -117,6 +126,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
 
     def _SendResponse(self, code, headers, data, gzip=False):
         """Send a response to the caller"""
+        self.log('_SendResponse')
         # We don't use chunked or gunzipped transfers locally, so we removed the relative headers and
         # attach the contact length, before returning the response
         headers = {k: headers[k] for k in headers if k not in self._purgeHeaders}
@@ -133,6 +143,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
     @contextmanager
     def _PrepareChunkedResponse(self, code, headers):
         """Prep the stream for gzipped chunked transfers"""
+        self.log('_PrepareChunkedResponse')
         self.log('[PS] Chunked transfer: prepping')
         headers = {k: headers[k] for k in headers if k not in self._purgeHeaders}
         headers['Connection'] = 'Keep-Alive'
@@ -150,6 +161,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
 
     def _SendChunk(self, gzstream, data=None):
         """Send a gzipped chunk"""
+        self.log('_SendChunk')
         # Log('[PS] Chunked transfer: sending chunk', Log.DEBUG)
         if None is not data:
             gzstream[0].write(data.encode('utf-8'))
@@ -166,6 +178,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
 
     def _EndChunkedTransfer(self, gzstream):
         """Terminate the transfer"""
+        self.log('_EndChunkedTransfer')
         self.log('[PS] Chunked transfer: last chunks')
         gzstream[0].flush()
         gzstream[0].close()
@@ -175,6 +188,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
 
     def do_POST(self):
         """Respond to POST requests"""
+        self.log('do post')
         path, headers, data = self._ParseBaseRequest('POST')
         if None is path: return
         if ('gpr' == path[0]) and (2 == len(path)):
@@ -186,12 +200,32 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Respond to GET requests"""
+        # self.log('do get')
+        path, head, data = self._ParseBaseRequest('GET')
+        if path is None:
+            return
+        # self.log(path[0])
+        # self.log(head)
 
-        path, headers, data = self._ParseBaseRequest('GET')
-        if None is path: return
+        if (path[0] == 'mpd') and (2 == len(path)):
+            #self._AlterMPD(unquote(path[1]), head, data)
+            
+            _addonUDatFo = xbmcvfs.translatePath('special://profile/addon_data/{}'.format(xbmcaddon.Addon().getAddonInfo('id')))
+            song = '{}{}song.mpd'.format(_addonUDatFo,os.sep)
+            # song = xbmc.translatePath(song).decode('utf-8')
+            song = xbmcvfs.File(song)
+            size = song.size()
+            # self.log('Song size: ' + str(size))
 
-        if ('mpd' == path[0]) and (2 == len(path)):
-            self._AlterMPD(unquote(path[1]), headers, data)
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.send_header('Content-Length', str(size))
+            self.end_headers()
+
+            self.wfile.write(song.readBytes())
+            song.close()
+            #self._EndChunkedTransfer(gzstream)
+
         else:
             self.log('[PS] Invalid request received')
             self.send_error(501, 'Invalid request')
@@ -264,11 +298,8 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
         #     self._EndChunkedTransfer(gzstream)
 
 class ProxyTCPD(ThreadingTCPServer):
-    #def __init__(self, settings):
     def __init__(self):
         """ Initialisation of the Proxy TCP server """
-        #self._s = settings  # Make settings available to the RequestHandler
-
         from socket import socket, AF_INET, SOCK_STREAM
         sock = socket(AF_INET, SOCK_STREAM)
 
