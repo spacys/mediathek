@@ -216,7 +216,7 @@ class Settings(Singleton):
             self.setSetting(q[1],self.getSetting(q[0]))
             self.setSetting(q[0],query)
     def translation(self,oId):
-        return self.addon.getLocalizedString(oId).encode('utf-8')
+        return self.addon.getLocalizedString(oId)
     def prepReqHeader(self, amzTarget, referer=None):
         head = { 'Accept' : 'application/json, text/javascript, */*; q=0.01',
                 'Accept-Encoding' : 'gzip,deflate,br',
