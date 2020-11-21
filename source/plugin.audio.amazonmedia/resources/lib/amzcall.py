@@ -31,7 +31,7 @@ class AMZCall(Singleton):
         self.s.setCookie()
         if resp.status_code == 401 :
             self.s.access = False
-            self.s.setSetting('access',False)
+            self.s.setSetting('access','false')
             if self.l.amazonLogon():
                 return self.amzCall(amzUrl,mode,referer,asin,mediatype)
         if self.s.logging:
