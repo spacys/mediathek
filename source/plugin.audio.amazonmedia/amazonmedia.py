@@ -47,7 +47,7 @@ class AmazonMedia():
     __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
         'musicURL','saveUsername','savePassword','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
-        'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content',
+        'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content','captcha',
         'API_getBrowseRecommendations','API_lookup','API_getAddToLibraryRecommendations','API_getSimilarityRecommendations','API_getMusicStoreRecommendations',
         'API_artistDetailCatalog','API_getStationSections','API_artistDetailsMetadata','API_getTopMusicEntities','API_browseHierarchyV2','API_seeMore','API_getHome',
         'API_lookupStationsByStationKeys','API_createQueue','API_QueueGetNextTracks',
@@ -95,6 +95,7 @@ class AmazonMedia():
             self.setSetting('userPassword', "")
         self.userEmail    = self.getSetting("userEmail")
         self.userPassword = base64.urlsafe_b64decode(self.getSetting("userPassword"))
+        self.captcha      = ""
         self.userAgent    = self.getSetting("userAgent")
         self.deviceId     = self.getSetting("deviceId")
         self.csrf_token   = self.getSetting("csrf_token")
@@ -333,7 +334,27 @@ class AmazonMedia():
                 self.setSetting('accessType', 'UNLIMITED')
         else:
             self.setSetting('accessType',   app_config['customerBenefits']['tier'])
-
+        self.checkSiteVersion(app_config['musicTerritory'].lower())
+    def appConfig2(self,app_config):
+        if app_config is None:
+            return False
+        self.setSetting('deviceId',         app_config['deviceId'])
+        self.setSetting('csrf_token',       app_config['csrf']['token'])
+        self.setSetting('csrf_ts',          app_config['csrf']['ts'])
+        self.setSetting('csrf_rnd',         app_config['csrf']['rnd'])
+        self.setSetting('customerId',       app_config['customerId'])
+        self.setSetting('marketplaceId',    app_config['marketplaceId'])
+        self.setSetting('deviceType',       app_config['deviceType'])
+        self.setSetting('musicTerritory',   app_config['musicTerritory'])
+        self.setSetting('locale',           app_config['displayLanguage'])
+        self.setSetting('customerLang',     app_config['musicTerritory'].lower())
+        self.setSetting('region',           app_config['siteRegion'])
+        self.setSetting('url',              self.musicURL)
+        self.setSetting('access',           'true')
+        if app_config['tier'] == 'UNLIMITED_HD':
+                self.setSetting('accessType', 'UNLIMITED')
+        else:
+            self.setSetting('accessType',   app_config['tier'])
         self.checkSiteVersion(app_config['musicTerritory'].lower())
     # cleanup
     def delCookies(self):
@@ -705,12 +726,20 @@ class AmazonMedia():
             #self.log(self.br.response().info())
             #self.log(unicode(self.br.response().read(), "utf-8"))
 
-            self.doLogonForm()
+            #self.doLogonForm()
+            #self.content = self.getLogonResponse()
+            try: 
+                self.doLogonForm()
+            except:
+                self.checkCaptcha()
             self.content = self.getLogonResponse()
-
-            if 'message error' in self.content or x == 3:
-                xbmcgui.Dialog().ok(self.addonName, 'Logon issue')
+            
+            if x == 3:
                 return False
+            # if 'message error' in self.content or x == 3:
+            #     xbmcgui.Dialog().ok(self.addonName, 'Logon issue')
+            #     return False
+            
             if not self.checkMFA():
                 return False
 
@@ -722,20 +751,44 @@ class AmazonMedia():
             head = self.prepReqHeader('')
             resp = requests.post(self.musicURL, data=None, headers=head, cookies=self.cj)
 
+            alt = False
             for line in resp.iter_lines(decode_unicode=True):
-                if 'applicationContextConfiguration =' in line or 'amznMusic.appConfig =' in line:
+                if ('applicationContextConfiguration =' in line
+                    or 'amznMusic.appConfig =' in line):
                     app_config = json.loads(re.sub(r'^[^{]*', '', re.sub(r';$', '', line)))
                     break
+                elif 'appConfig:' in line:
+                    soup = self.parseHTML(resp.text)
+                    script = soup.find('script').getText().strip()
+                    script = script.replace("window.amznMusic = ","")
+                    script = script.replace("appConfig:","\"appConfig\":")
+                    script = script.replace(" false","\"false\"")
+                    script = script.replace(" true","\"true\"")
+                    script = script.replace(" null","\"null\"")
+                    script = script.replace(os.linesep,"")
+                    script = script.replace(" ","")
+                    script = script.replace("/","_")
+                    script = script.replace("},};","}}")
+                    app_config = json.loads(script)
+                    alt = True
+                    break
 
-            if app_config is None or app_config['isRecognizedCustomer'] == 0:
-                if app_config is not None and app_config['isTravelingCustomer']:
-                    self.checkSiteVersion(app_config['stratusMusicTerritory'].lower())
+            if not alt:
+                if app_config is None or app_config['isRecognizedCustomer'] == 0:
+                    if app_config is not None and app_config['isTravelingCustomer']:
+                        self.checkSiteVersion(app_config['stratusMusicTerritory'].lower())
+                        self.doReInit()
+                    self.delCookies()
+                    app_config = None
+                    self.access = False
+                else:
+                    self.appConfig(app_config)
+                    self.setCookie()
                     self.doReInit()
-                self.delCookies()
-                app_config = None
-                self.access = False
+                    self.delCredentials()
+                    self.access = True
             else:
-                self.appConfig(app_config)
+                self.appConfig2(app_config['appConfig'])
                 self.setCookie()
                 self.doReInit()
                 self.delCredentials()
@@ -810,28 +863,63 @@ class AmazonMedia():
         else:
             return False
     def checkCaptcha(self):
-        #self.br.select_form(action="/errors/validateCaptcha") --> kodi 19 only?!?
-        """
         self.log('########### captcha ###########')
-        self.br.select_form(name="")
-        self.content = self.br.response().read()
+        #self.br.select_form(name="")
+        self.br.select_form(action="/errors/validateCaptcha")
+        self.content = str(self.br.response().read(), encoding = 'utf-8')
         soup = self.parseHTML(self.content)
-        self.log(soup)
+        # self.log(soup)
         form = soup.find_all('form')
-        msgheading = form[0].find('h4').renderContents().strip()
+        msgheading = str(form[0].find('h4').renderContents().strip(), encoding = 'utf-8')
         img = form[0].find('img') #.renderContents().strip()
-        self.log(msgheading)
-        self.log(img)
-        """
-        """ create popup window for captcha """
-        """
-        window = PopupWindow(msgheading,img)
-        window.show()
-        xbmc.sleep(5000)
-        window.close()
-        del window
-        """
-        return
+        # self.log(msgheading)
+        # self.log(img['src'])
+        self.showCaptcha('captcha.xml',img['src'],msgheading)
+        self.captcha = self.getSetting('captcha')
+        if self.captcha == "":
+            return False
+        self.br["field-keywords"] = self.captcha
+        self.setSetting('captcha',"")
+    def showCaptcha(self,layout, imagefile, message):
+        class Captcha(xbmcgui.WindowXMLDialog):
+            def __init__(self, *args, **kwargs):
+                self.image = kwargs["image"]
+                self.text  = kwargs["text"]
+                self.addon = kwargs["addon"]
+                self.inp   = ""
+            def onInit(self):
+                self.title          = 501
+                self.imagecontrol   = 502
+                self.textbox        = 503
+                self.inptxt         = 504
+                self.btn_input      = 505
+                self.btn_cancel     = 506
+                self.btn_ok         = 507
+                self.show_dialog()
+            def show_dialog(self):
+                self.getControl(self.title).setLabel('Captcha Entry')
+                self.getControl(self.imagecontrol).setImage(self.image)
+                self.getControl(self.textbox).setText(self.text)
+                self.getControl(self.inptxt).setText('Your entry: ' + self.inp)
+                self.setFocus(self.getControl(self.btn_ok))
+            def getUserInput(self,title,txt=''):
+                dialog = xbmcgui.Dialog()
+                self.inp = dialog.input('Captcha Entry', defaultt=self.inp, type=xbmcgui.INPUT_ALPHANUM, option=0)
+                del dialog
+                self.addon.setSetting('captcha',self.inp)
+                self.show_dialog()
+            def onClick(self, controlid):
+                if controlid == self.btn_ok:
+                    self.close()
+                elif controlid == self.btn_cancel:
+                    self.addon.setSetting('captcha',"")
+                    self.close()
+                elif controlid == self.btn_input:
+                    self.getUserInput('Captcha Entry')
+        cp = Captcha(layout, self.addonFolder, 'Default', image=imagefile, text=message, addon=self.addon)
+        cp.doModal()
+        self.captcha = self.getSetting("captcha")
+        del cp
     # default communication
     def amzCall(self,amzUrl,mode,referer=None,asin=None,mediatype=None):
         url = '{}/{}/api/{}'.format(self.url, self.region, amzUrl['path'])
