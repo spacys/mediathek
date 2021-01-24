@@ -732,6 +732,7 @@ class AmazonMedia():
                 self.doLogonForm()
             except:
                 self.checkCaptcha()
+                continue
             self.content = self.getLogonResponse()
             
             if x == 3:
@@ -865,12 +866,22 @@ class AmazonMedia():
     def checkCaptcha(self):
         self.log('########### captcha ###########')
         #self.br.select_form(name="")
-        self.br.select_form(action="/errors/validateCaptcha")
-        self.content = str(self.br.response().read(), encoding = 'utf-8')
+        # self.br.select_form(action="/errors/validateCaptcha")
+        self.br.select_form(nr=0)
+        try:
+            self.content = unicode(str(self.br.response().read()), "utf-8") # for kodi 18
+        except:
+            self.content = str(self.br.response().read(), encoding = 'utf-8') # for kodi 19
+        # self.content = str(self.br.response().read(), encoding = 'utf-8')
         soup = self.parseHTML(self.content)
         # self.log(soup)
         form = soup.find_all('form')
-        msgheading = str(form[0].find('h4').renderContents().strip(), encoding = 'utf-8')
+        try:
+            msgheading = unicode(str(form[0].find('h4').renderContents().strip()), "utf-8") # for kodi 18
+        except:
+            msgheading = str(form[0].find('h4').renderContents().strip(), encoding = 'utf-8') # for kodi 19
+        # msgheading = str(form[0].find('h4').renderContents().strip(), encoding = 'utf-8')
+
         img = form[0].find('img') #.renderContents().strip()
         # self.log(msgheading)
         # self.log(img['src'])
