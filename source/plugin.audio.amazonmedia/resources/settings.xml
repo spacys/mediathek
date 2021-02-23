@@ -12,7 +12,11 @@
         <setting type="sep"/>
         <setting label="30103"          type="action" action="RunPlugin(plugin://plugin.audio.amazonmedia/?mode=resetAddon)"/>
 
+<<<<<<< HEAD
         <setting id="userAgent"         type="text" visible="false" label="userAgent"        default="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36"/>
+=======
+        <setting id="userAgent"         type="text" visible="false" label="userAgent"        default="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"/>
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
         <setting id="deviceId"          type="text" visible="false" label="deviceId"         default=""/>
         <setting id="csrf_token"        type="text" visible="false" label="csrf_token"       default=""/>
         <setting id="csrf_ts"           type="text" visible="false" label="csrf_ts"          default=""/>
