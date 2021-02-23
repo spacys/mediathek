@@ -1,2 +1,2 @@
 1.0.0
-- Kodi Matrix port
+- Kodi Matrix port, can not be used for older Kodi versions

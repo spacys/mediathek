@@ -43,6 +43,7 @@ class Settings(Singleton):
         self.userEmail      = self.getSetting("userEmail")
         self.userPassword   = base64.urlsafe_b64decode(self.getSetting("userPassword"))
         self.captcha        = ""
+        self.btn_cancel     = False
         self.userAgent      = self.getSetting("userAgent")
         self.deviceId       = self.getSetting("deviceId")
         self.csrf_token     = self.getSetting("csrf_token")
@@ -174,9 +175,10 @@ class Settings(Singleton):
         self.setSetting('url',              self.musicURL)
         self.setSetting('access',           'true')
         if app_config['tier'] == 'UNLIMITED_HD':
-                self.setSetting('accessType', 'UNLIMITED')
+            self.setSetting('accessType', 'UNLIMITED')
         else:
             self.setSetting('accessType',   app_config['tier'])
+
         self.checkSiteVersion(app_config['musicTerritory'].lower())
     def checkSiteVersion(self,siteVersion):
         if siteVersion in self.siteVerList:

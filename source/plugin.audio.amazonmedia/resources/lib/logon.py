@@ -100,13 +100,16 @@ class Logon(Singleton):
                 self.doLogonForm()
             except:
                 self.checkCaptcha()
+                if self.s.btn_cancel:
+                    return False
+                else:
+                    continue
             self.content = self.getLogonResponse()
-            #self.s.log(self.content)
+            # self.s.log(self.content)
+
             if x == 3:
                 return False
-            # if 'message error' in self.content or x == 3:
-            #     xbmcgui.Dialog().ok(self.s.addonName, 'Logon issue')
-            #     return False
+
             if not self.checkMFA():
                 return False
 
@@ -117,56 +120,68 @@ class Logon(Singleton):
             self.s.cj.load(self.s.cookieFile)
             head = self.s.prepReqHeader('')
             resp = requests.post(self.s.musicURL, data=None, headers=head, cookies=self.s.cj)
-            # self.s.log(resp.text)
-            alt = False
-            for line in resp.iter_lines(decode_unicode=True):
-                if ('applicationContextConfiguration =' in line
-                    or 'amznMusic.appConfig =' in line):
-                    app_config = json.loads(re.sub(r'^[^{]*', '', re.sub(r';$', '', line)))
+            #self.s.log('########### final page ###########')
+            #self.s.log(resp.text)
+
+            configfound = False
+            soup = self.parseHTML(resp.text)
+            script_list = soup.find_all('script')
+            for scripts in script_list:
+                # self.s.log(scripts.contents)
+                if 'appConfig' in scripts.contents[0]:
+                    #self.s.log('########### scripts found ###########')
+                    #self.s.log(scripts.contents)
+                    sc = scripts.contents[0]
+                    sc = sc.replace("window.amznMusic = ","")
+                    sc = sc.replace("appConfig:","\"appConfig\":")
+                    sc = sc.replace(" false,}","\"false\"}")
+                    sc = sc.replace(" false","\"false\"")
+                    sc = sc.replace(" true","\"true\"")
+                    sc = sc.replace(" null","\"null\"")
+                    sc = sc.replace("ssr","\"ssr\"")
+                    sc = sc.replace(os.linesep,"")
+                    sc = sc.replace(" ","")
+                    sc = sc.replace("/","_")
+                    sc = sc.replace("},};","}}")
+                    sc = sc.replace(",};","}")
+                    # self.s.log(sc)
+                    app_config = json.loads(sc)
+                    configfound = True
                     break
-                elif 'appConfig:' in line:
-                    soup = self.parseHTML(resp.text)
-                    script = soup.find('script').getText().strip()
-                    script = script.replace("window.amznMusic = ","")
-                    script = script.replace("appConfig:","\"appConfig\":")
-                    script = script.replace(" false","\"false\"")
-                    script = script.replace(" true","\"true\"")
-                    script = script.replace(" null","\"null\"")
-                    script = script.replace(os.linesep,"")
-                    script = script.replace(" ","")
-                    script = script.replace("/","_")
-                    script = script.replace("},};","}}")
-                    app_config = json.loads(script)
-                    alt = True
-                    break
+                else:
+                    #self.s.log('########### nothing found ###########')
+                    continue
+            if not configfound:
+                return False
 
             # self.s.log(app_config)
-            if not alt:
-                if app_config is None or app_config['isRecognizedCustomer'] == 0:
-                    if app_config is not None and app_config['isTravelingCustomer']:
-                        self.s.checkSiteVersion(app_config['stratusMusicTerritory'].lower())
-                        self.doReInit()
-                    self.s.delCookies()
-                    app_config = None
-                    self.s.access = False
-                else:
-                    self.s.appConfig(app_config)
-                    self.s.setCookie()
-                    self.doReInit()
-                    self.delCredentials()
-                    self.s.access = True
-            else:
-                self.s.appConfig2(app_config['appConfig'])
-                self.s.setCookie()
-                self.doReInit()
-                self.delCredentials()
-                self.s.access = True
+            # if not alt:
+            #     if app_config is None or app_config['isRecognizedCustomer'] == 0:
+            #         if app_config is not None and app_config['isTravelingCustomer']:
+            #             self.s.checkSiteVersion(app_config['stratusMusicTerritory'].lower())
+            #             self.doReInit()
+            #         self.s.delCookies()
+            #         app_config = None
+            #         self.s.access = False
+            #     else:
+            #         self.s.appConfig(app_config)
+            #         self.s.setCookie()
+            #         self.doReInit()
+            #         self.delCredentials()
+            #         self.s.access = True
+            # else:
+            self.s.appConfig2(app_config['appConfig'])
+            self.s.setCookie()
+            self.doReInit()
+            self.delCredentials()
+            self.s.access = True
             x+=1
         return True
     def doReInit(self): ##### -->  TODO
         self.s.setVariables()
         self.prepBrowser()
     def doLogonForm(self):
+        # self.s.log('########### logon form ###########')
         self.br.select_form(name="signIn")
         if not self.br.find_control("email").readonly:
             self.br["email"] = self.s.userEmail
@@ -176,6 +191,7 @@ class Logon(Singleton):
         resp = self.br.response()
         return str(resp.read(), encoding = 'utf-8')
     def checkMFA(self):
+        # self.s.log('########### check MFA ###########')
         while 'action="verify"' in self.content or 'id="auth-mfa-remember-device' in self.content:
             soup = self.parseHTML(self.content)
             if 'cvf-widget-form cvf-widget-form-dcq fwcim-form a-spacing-none' in self.content:
@@ -227,8 +243,7 @@ class Logon(Singleton):
         else:
             return False
     def checkCaptcha(self):
-        self.s.log('########### captcha ###########')
-        #self.br.select_form(name="")
+        # self.s.log('########### captcha ###########')
         self.br.select_form(action="/errors/validateCaptcha")
         self.content = str(self.br.response().read(), encoding = 'utf-8')
         soup = self.parseHTML(self.content)
@@ -238,6 +253,7 @@ class Logon(Singleton):
         img = form[0].find('img') #.renderContents().strip()
         # self.s.log(msgheading)
         # self.s.log(img['src'])
+        self.s.btn_cancel = False
         self.showCaptcha('captcha.xml',img['src'],msgheading)
         self.s.captcha = self.s.getSetting('captcha')
         if self.s.captcha == "":
@@ -277,6 +293,7 @@ class Logon(Singleton):
                     self.close()
                 elif controlid == self.btn_cancel:
                     self.s.captcha = ""
+                    self.s.btn_cancel = True
                     self.close()
                 elif controlid == self.btn_input:
                     self.getUserInput('Captcha Entry')
