@@ -37,6 +37,7 @@ class AmazonMedia():
         'musicURL','saveUsername','savePassword','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
         'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
 <<<<<<< HEAD
+<<<<<<< HEAD
         'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content','AMs','AMm','AMl','AMapi','AMc']
     def __init__(self):
         self.setVariables()
@@ -54,6 +55,8 @@ class AmazonMedia():
         self.AMapi  = API()
         self.AMc    = AMZCall(self.AMs,self.AMl)
 =======
+=======
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
         'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content','captcha',
         'API_getBrowseRecommendations','API_lookup','API_getAddToLibraryRecommendations','API_getSimilarityRecommendations','API_getMusicStoreRecommendations',
         'API_artistDetailCatalog','API_getStationSections','API_artistDetailsMetadata','API_getTopMusicEntities','API_browseHierarchyV2','API_seeMore','API_getHome',
@@ -249,6 +252,7 @@ class AmazonMedia():
             self.getSoccerFilter(mode.replace('soccer',''))
         elif mode == 'getSoccerLive':
 <<<<<<< HEAD
+<<<<<<< HEAD
             objectId = self.AMs.addonArgs.get('objectId', [None])[0]
             self.getSoccer(objectId,'LIVE')
         elif mode == 'getSoccerOnDemand':
@@ -259,6 +263,12 @@ class AmazonMedia():
             self.getSoccer(objectId,'LIVE')
         elif mode == 'getSoccerOnDemand':
             objectId = self.addonArgs.get('objectId', [None])[0]
+=======
+            objectId = self.addonArgs.get('objectId', [None])[0]
+            self.getSoccer(objectId,'LIVE')
+        elif mode == 'getSoccerOnDemand':
+            objectId = self.addonArgs.get('objectId', [None])[0]
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
             self.getSoccer(objectId,'ONDEMAND')
     def translation(self,oId):
         return self.addon.getLocalizedString(oId).encode('utf-8')
@@ -2272,12 +2282,18 @@ class AmazonMedia():
                 self.setListItem(itemlist,param['stations'].get(item),{'mode':'createQueue'})
         elif mode == 'allartistsstations':      # (all artists) stations
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
             # items = param['categories'].get('artistsAZ')['stationMapIds']
             #for item in items:
             #    inf, met = self.setData(param['stations'].get(item),{'mode':'createQueue'})
             #    url, li  = self.setItem(inf,met)
             #    itemlist.append((url, li, True))
+<<<<<<< HEAD
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
+=======
 >>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
             items = param['stations']
             for item in items:
@@ -2285,8 +2301,11 @@ class AmazonMedia():
                 if not i['seedType'] == 'ARTIST':
                     continue
 <<<<<<< HEAD
+<<<<<<< HEAD
                 self.setListItem(itemlist,i,{'mode':'createQueue'})
 =======
+=======
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
                 inf, met = self.setData(i,{'mode':'createQueue'})
                 url, li  = self.setItem(inf,met)
                 itemlist.append((url, li, True))
@@ -2381,9 +2400,15 @@ class AmazonMedia():
         xbmc.sleep(100)
     def finalizeContent(self,itemlist,ctype):
 <<<<<<< HEAD
+<<<<<<< HEAD
         xbmcplugin.addDirectoryItems(self.AMs.addonHandle, itemlist, len(itemlist))
         xbmcplugin.setContent(self.AMs.addonHandle, ctype)
         xbmcplugin.endOfDirectory(self.AMs.addonHandle)
+=======
+        xbmcplugin.addDirectoryItems(self.addonHandle, itemlist, len(itemlist))
+        xbmcplugin.setContent(self.addonHandle, ctype)
+        xbmcplugin.endOfDirectory(self.addonHandle)
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
 =======
         xbmcplugin.addDirectoryItems(self.addonHandle, itemlist, len(itemlist))
         xbmcplugin.setContent(self.addonHandle, ctype)
@@ -2504,7 +2529,11 @@ class AmazonMedia():
         idx = resp['blocks'][0]['positionSelector']['currentPosition']['blockIndex'] # current matchday
         if idx == -1: # if no entries are available
 <<<<<<< HEAD
+<<<<<<< HEAD
             menuEntries.append({'txt':'Empty List','fct':None,'target':None,'img':self.AMs.getSetting('img_soccer'),'playable':False})
+=======
+            menuEntries.append({'txt':'Empty List','fct':None,'target':None,'img':self.getSetting('img_soccer'),'playable':False})
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
 =======
             menuEntries.append({'txt':'Empty List','fct':None,'target':None,'img':self.getSetting('img_soccer'),'playable':False})
 >>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
@@ -2566,6 +2595,7 @@ class AmazonMedia():
     def getSoccer(self,target,status):
         if status == 'LIVE':
 <<<<<<< HEAD
+<<<<<<< HEAD
             amz = { 'path': self.AMapi.GetSoccerLiveURLs,
                     'target': 'getSoccerLiveURL' }
         elif status == 'ONDEMAND':
@@ -2575,6 +2605,8 @@ class AmazonMedia():
             return False
         resp = self.AMc.amzCall(self.AMapi.GetSoccerProgramDetails,'getSoccerProgramDetails',None,None,target)
 =======
+=======
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
             amz = {
                 'path': self.API_GetSoccerLiveURLs,
                 'target': 'getSoccerLiveURL'
@@ -2594,6 +2626,7 @@ class AmazonMedia():
             return False
         # target for xml source
 <<<<<<< HEAD
+<<<<<<< HEAD
         resp = self.AMc.amzCall(amz['path'],amz['target'],'soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
         r = requests.get(target)
@@ -2607,6 +2640,11 @@ class AmazonMedia():
         resp = self.amzCall(amz['path'],amz['target'],'soccer',None,target)
         target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
         r = requests.get(target)
+=======
+        resp = self.amzCall(amz['path'],amz['target'],'soccer',None,target)
+        target = resp['Output']['contentResponseList'][0]['urlList'][0] # link to mpd file
+        r = requests.get(target)
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
         song = self.writeSongFile(r.content,'mpd')
         # get the xml file and extract the source
         li = xbmcgui.ListItem(path=song)
@@ -2644,6 +2682,9 @@ class AmazonMedia():
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         return str(float.hex(math.floor(65536 * (1 + random.random()))))[4:8]
+<<<<<<< HEAD
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
+=======
 >>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
 
 if __name__ == '__main__':

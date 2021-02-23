@@ -1,7 +1,10 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 1.0.0
 - Kodi Matrix port, can not be used for older Kodi versions
 =======
+=======
+>>>>>>> 8329005b02034e75c21395e0cc7221f09a41b4b7
 0.2.2
 - bug fixing: captcha adjustments
 0.2.1
