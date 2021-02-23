@@ -1,0 +1,231 @@
+# -*- coding: UTF-8 -*-
+# Kodi Media Center language file
+# Addon Name: AmazonMedia
+# Addon id: plugin.audio.amazonmedia
+# Addon Provider: spacy
+msgid ""
+msgstr ""
+
+msgctxt "#30001"
+msgid "Playlists - Popular"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Playlists - Newly Released"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Playlist Recommendations"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Album Recommendations"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Station Recommendations"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Songs - Owned"
+msgstr ""
+
+msgctxt "#30007"
+msgid "Albums - Owned"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Stations"
+msgstr ""
+
+msgctxt "#30009"
+msgid "Songs - Purchased"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Albums - Search"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Songs - Search"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Albums - Purchased"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Playlists - Search"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Artist - Search"
+msgstr ""
+
+msgctxt "#30015"
+msgid "Genres"
+msgstr ""
+
+msgctxt "#30016"
+msgid "Stations - Search"
+msgstr ""
+
+msgctxt "#30017"
+msgid "Songs - Recently Played"
+msgstr ""
+
+msgctxt "#30018"
+msgid "Playlists - Followed"
+msgstr ""
+
+msgctxt "#30019"
+msgid "Playlists - Owned"
+msgstr ""
+
+msgctxt "#30020"
+msgid "Next Page"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Songs - Recently Added"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Songs"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Playlists"
+msgstr ""
+
+msgctxt "#30024"
+msgid "Albums"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Stations - all Artists"
+msgstr ""
+
+msgctxt "#30026"
+msgid "All Stations"
+msgstr ""
+
+msgctxt "#30027"
+msgid "Artists"
+msgstr ""
+
+msgctxt "#30030"
+msgid "Amazon - Enter your Username (Email)"
+msgstr ""
+
+msgctxt "#30031"
+msgid "Amazon - Enter your Password"
+msgstr ""
+
+msgctxt "#30032"
+msgid "Last Search -1 : "
+msgstr ""
+
+msgctxt "#30033"
+msgid "Last Search -2 : "
+msgstr ""
+
+msgctxt "#30034"
+msgid "Last Search -3 : "
+msgstr ""
+
+msgctxt "#30035"
+msgid "Soccer Live"
+msgstr ""
+
+msgctxt "#30036"
+msgid "Bundesliga"
+msgstr ""
+
+msgctxt "#30037"
+msgid "2. Bundesliga"
+msgstr ""
+
+msgctxt "#30038"
+msgid "DFB Pokal"
+msgstr ""
+
+msgctxt "#30039"
+msgid "Champions League"
+msgstr ""
+
+msgctxt "#30040"
+msgid "SuperCup"
+msgstr ""
+
+msgctxt "#30041"
+msgid "Recommendations"
+msgstr ""
+
+msgctxt "#30070"
+msgid "Logon was not possible."
+msgstr ""
+
+msgctxt "#30071"
+msgid "Addon reset successful."
+msgstr ""
+
+msgctxt "#30072"
+msgid "Captcha required!"
+msgstr ""
+
+msgctxt "#30073"
+msgid "Playback not possible!"
+msgstr ""
+
+msgctxt "#30074"
+msgid "Cannot find streaming URL."
+msgstr ""
+
+msgctxt "#30075"
+msgid "Another instance is running."
+msgstr ""
+
+msgctxt "#30100"
+msgid "General"
+msgstr ""
+
+msgctxt "#30101"
+msgid "Domain Identifier (DE / UK ...)"
+msgstr ""
+
+msgctxt "#30102"
+msgid "Audio Quality"
+msgstr ""
+
+msgctxt "#30103"
+msgid "Reset Addon"
+msgstr ""
+
+msgctxt "#30104"
+msgid "Activate Logging"
+msgstr ""
+
+msgctxt "#30105"
+msgid "Show all Images (reduce Metadata)"
+msgstr ""
+
+msgctxt "#30106"
+msgid "Show colored Entries"
+msgstr ""
+
+msgctxt "#30107"
+msgid "Show unplayable Songs"
+msgstr ""
+
+msgctxt "#30108"
+msgid "Save Username?"
+msgstr ""
+
+msgctxt "#30109"
+msgid "Save Password?"
+msgstr ""
+
+msgctxt "#30200"
+msgid "User Credentials"
+msgstr ""
