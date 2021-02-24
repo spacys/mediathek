@@ -100,12 +100,12 @@ class Logon(Singleton):
                 self.doLogonForm()
             except:
                 self.checkCaptcha()
-                if self.s.btn_cancel:
-                    return False
-                else:
-                    continue
             self.content = self.getLogonResponse()
             # self.s.log(self.content)
+            if self.s.btn_cancel:
+                return False
+            else:
+                continue
 
             if x == 3:
                 return False
@@ -144,6 +144,8 @@ class Logon(Singleton):
                     sc = sc.replace("/","_")
                     sc = sc.replace("},};","}}")
                     sc = sc.replace(",};","}")
+                    sc = sc.replace(";","")
+                    sc = sc.replace("\"ssr\":\"false\",","\"ssr\":\"false\"")
                     # self.s.log(sc)
                     app_config = json.loads(sc)
                     configfound = True
