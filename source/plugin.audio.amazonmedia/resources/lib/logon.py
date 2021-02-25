@@ -97,15 +97,23 @@ class Logon(Singleton):
             # self.s.log( str(self.br.response().read(), encoding = 'utf-8') )
 
             try: 
-                self.doLogonForm()
+                # self.doLogonForm()
+                # self.s.log('LogonForm')
+                self.br.select_form(name="signIn")
+                self.br["email"] = self.s.userEmail
+                self.br["password"] = self.s.userPassword
             except:
+                # self.s.log('Captcha')
                 self.checkCaptcha()
+                xbmc.sleep(750)
+                continue
+                
             self.content = self.getLogonResponse()
             # self.s.log(self.content)
-            if self.s.btn_cancel:
-                return False
-            else:
-                continue
+            # if self.s.btn_cancel:
+            #     return False
+            # else:
+            #     continue
 
             if x == 3:
                 return False
@@ -185,8 +193,8 @@ class Logon(Singleton):
     def doLogonForm(self):
         # self.s.log('########### logon form ###########')
         self.br.select_form(name="signIn")
-        if not self.br.find_control("email").readonly:
-            self.br["email"] = self.s.userEmail
+        # if not self.br.find_control("email").readonly:
+        self.br["email"] = self.s.userEmail
         self.br["password"] = self.s.userPassword
     def getLogonResponse(self):
         self.br.submit()
@@ -246,6 +254,7 @@ class Logon(Singleton):
             return False
     def checkCaptcha(self):
         # self.s.log('########### captcha ###########')
+        self.s.setSetting('captcha',"")
         self.br.select_form(action="/errors/validateCaptcha")
         self.content = str(self.br.response().read(), encoding = 'utf-8')
         soup = self.parseHTML(self.content)
@@ -261,7 +270,6 @@ class Logon(Singleton):
         if self.s.captcha == "":
             return False
         self.br["field-keywords"] = self.s.captcha
-        self.s.setSetting('captcha',"")
     def showCaptcha(self,layout, imagefile, message):
         class Captcha(xbmcgui.WindowXMLDialog):
             def __init__(self, *args, **kwargs):
