@@ -212,7 +212,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
             
             _addonUDatFo = xbmcvfs.translatePath('special://profile/addon_data/{}'.format(xbmcaddon.Addon().getAddonInfo('id')))
             song = '{}{}song.mpd'.format(_addonUDatFo,os.sep)
-            # song = xbmc.translatePath(song).decode('utf-8')
+            # song = xbmcvfs.translatePath(song).decode('utf-8')
             song = xbmcvfs.File(song)
             size = song.size()
             # self.log('Song size: ' + str(size))

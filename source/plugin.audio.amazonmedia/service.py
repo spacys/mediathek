@@ -13,8 +13,9 @@ class ServiceManager():
     freqCheck = 60
     freqExport = 86400  # 24 * 60 * 60 seconds
     lastCheck = 0
+
     def __init__(self):
-        self.proxy = ProxyTCPD()
+        self.proxy  = ProxyTCPD()
         self.log('Bound to 127.0.0.1:{}'.format(self.proxy.port))
         self.proxy_thread = threading.Thread(target=self.proxy.serve_forever)
         xbmcaddon.Addon().setSetting('proxy','127.0.0.1:{}'.format(self.proxy.port))

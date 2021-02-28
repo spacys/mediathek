@@ -192,7 +192,7 @@ class AmazonMedia():
             else:
                 title = self.AMs.translation(item['txt'])
             if dynentry and 'search' in item:
-                title += self.AMs.getSetting(item['search']).encode("UTF-8")
+                title += self.AMs.getSetting(item['search'])
             li = xbmcgui.ListItem(label=title)
             li.setInfo(type="music", infoLabels={"title": title})
             if 'img' in item:
