@@ -106,7 +106,11 @@ class Logon(Singleton):
                 # self.s.log('Captcha')
                 self.checkCaptcha()
                 xbmc.sleep(750)
-                continue
+                # self.s.log(self.s.btn_cancel)
+                if self.s.btn_cancel:
+                    return False
+                else:
+                    continue
                 
             self.content = self.getLogonResponse()
             # self.s.log(self.content)
@@ -165,6 +169,7 @@ class Logon(Singleton):
                 return False
 
             # self.s.log(app_config)
+
             # if not alt:
             #     if app_config is None or app_config['isRecognizedCustomer'] == 0:
             #         if app_config is not None and app_config['isTravelingCustomer']:
@@ -190,12 +195,12 @@ class Logon(Singleton):
     def doReInit(self): ##### -->  TODO
         self.s.setVariables()
         self.prepBrowser()
-    def doLogonForm(self):
-        # self.s.log('########### logon form ###########')
-        self.br.select_form(name="signIn")
-        # if not self.br.find_control("email").readonly:
-        self.br["email"] = self.s.userEmail
-        self.br["password"] = self.s.userPassword
+    # def doLogonForm(self):
+    #     # self.s.log('########### logon form ###########')
+    #     self.br.select_form(name="signIn")
+    #     # if not self.br.find_control("email").readonly:
+    #     self.br["email"] = self.s.userEmail
+    #     self.br["password"] = self.s.userPassword
     def getLogonResponse(self):
         self.br.submit()
         resp = self.br.response()
@@ -299,14 +304,19 @@ class Logon(Singleton):
                 self.s.setSetting('captcha',self.inp)
                 self.show_dialog()
             def onClick(self, controlid):
+                # self.s.log(controlid)
                 if controlid == self.btn_ok:
+                    # self.s.log('btn_ok')
                     self.close()
                 elif controlid == self.btn_cancel:
+                    # self.s.log('btn_cancel')
                     self.s.captcha = ""
                     self.s.btn_cancel = True
                     self.close()
                 elif controlid == self.btn_input:
+                    # self.s.log('btn_input')
                     self.getUserInput('Captcha Entry')
         cp = Captcha(layout, self.s.addonFolder, 'Default', image=imagefile, text=message, settings=self.s)
         cp.doModal()
+        xbmc.sleep(750)
         del cp
