@@ -1,3 +1,5 @@
+1.0.3
+- search fix
 1.0.2
 - 2nd Logon fix
 1.0.1
