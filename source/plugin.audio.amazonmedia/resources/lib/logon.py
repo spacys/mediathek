@@ -88,123 +88,108 @@ class Logon(Singleton):
         self.s.access = False
         x = 1
         while not self.s.access:
+            if x == 3:
+                return False
+            x+=1
             if not self.getCredentials():
                 return False
             self.br.open(self.s.logonURL)
-            
+            # self.br.open('https://music.amazon.de')
+            # self.br.open('https://www.amazon.de/gp/aw/si.html')
             # self.s.log(self.br.response().code)
             # self.s.log(self.br.response().info())
             # self.s.log( str(self.br.response().read(), encoding = 'utf-8') )
-
+            # return False
             try: 
-                # self.doLogonForm()
                 # self.s.log('LogonForm')
-                self.br.select_form(name="signIn")
-                self.br["email"] = self.s.userEmail
-                self.br["password"] = self.s.userPassword
+                self.doLogonForm()
             except:
                 # self.s.log('Captcha')
                 self.checkCaptcha()
                 xbmc.sleep(750)
-                # self.s.log(self.s.btn_cancel)
+
                 if self.s.btn_cancel:
                     return False
                 else:
+                    self.content = self.getLogonResponse()
+                    # self.s.log('captcha response content')
+                    # self.s.log(self.content)
+                    self.doReInit()
                     continue
                 
             self.content = self.getLogonResponse()
+            # self.s.log('logon response content')
             # self.s.log(self.content)
-            # if self.s.btn_cancel:
-            #     return False
-            # else:
-            #     continue
-
-            if x == 3:
-                return False
-
             if not self.checkMFA():
                 return False
-
             self.s.setCookie()
             if not os.path.isfile(self.s.cookieFile):
                 break
-
-            self.s.cj.load(self.s.cookieFile)
-            head = self.s.prepReqHeader('')
-            resp = requests.post(self.s.musicURL, data=None, headers=head, cookies=self.s.cj)
-            #self.s.log('########### final page ###########')
-            #self.s.log(resp.text)
-
-            configfound = False
-            soup = self.parseHTML(resp.text)
-            script_list = soup.find_all('script')
-            for scripts in script_list:
-                # self.s.log(scripts.contents)
-                if 'appConfig' in scripts.contents[0]:
-                    #self.s.log('########### scripts found ###########')
-                    #self.s.log(scripts.contents)
-                    sc = scripts.contents[0]
-                    sc = sc.replace("window.amznMusic = ","")
-                    sc = sc.replace("appConfig:","\"appConfig\":")
-                    sc = sc.replace(" false,}","\"false\"}")
-                    sc = sc.replace(" false","\"false\"")
-                    sc = sc.replace(" true","\"true\"")
-                    sc = sc.replace(" null","\"null\"")
-                    sc = sc.replace("ssr","\"ssr\"")
-                    sc = sc.replace(os.linesep,"")
-                    sc = sc.replace(" ","")
-                    sc = sc.replace("/","_")
-                    sc = sc.replace("},};","}}")
-                    sc = sc.replace(",};","}")
-                    sc = sc.replace(";","")
-                    sc = sc.replace("\"ssr\":\"false\",","\"ssr\":\"false\"")
-                    # self.s.log(sc)
-                    app_config = json.loads(sc)
-                    configfound = True
-                    break
-                else:
-                    #self.s.log('########### nothing found ###########')
-                    continue
-            if not configfound:
+            if self.checkConfig():
+                break
+            else:
                 return False
-
-            # self.s.log(app_config)
-
-            # if not alt:
-            #     if app_config is None or app_config['isRecognizedCustomer'] == 0:
-            #         if app_config is not None and app_config['isTravelingCustomer']:
-            #             self.s.checkSiteVersion(app_config['stratusMusicTerritory'].lower())
-            #             self.doReInit()
-            #         self.s.delCookies()
-            #         app_config = None
-            #         self.s.access = False
-            #     else:
-            #         self.s.appConfig(app_config)
-            #         self.s.setCookie()
-            #         self.doReInit()
-            #         self.delCredentials()
-            #         self.s.access = True
-            # else:
-            self.s.appConfig2(app_config['appConfig'])
-            self.s.setCookie()
-            self.doReInit()
-            self.delCredentials()
-            self.s.access = True
-            x+=1
         return True
     def doReInit(self): ##### -->  TODO
         self.s.setVariables()
         self.prepBrowser()
-    # def doLogonForm(self):
-    #     # self.s.log('########### logon form ###########')
-    #     self.br.select_form(name="signIn")
-    #     # if not self.br.find_control("email").readonly:
-    #     self.br["email"] = self.s.userEmail
-    #     self.br["password"] = self.s.userPassword
+    def doLogonForm(self):
+        # self.s.log('########### logon form ###########')
+        self.br.select_form(name="signIn")
+        self.br["email"]    = self.s.userEmail
+        self.br["password"] = self.s.userPassword
     def getLogonResponse(self):
         self.br.submit()
+        self.s.setCookie()
         resp = self.br.response()
         return str(resp.read(), encoding = 'utf-8')
+    def checkConfig(self):
+        self.s.cj.load(self.s.cookieFile)
+        head = self.s.prepReqHeader('')
+        resp = requests.post(self.s.musicURL, data=None, headers=head, cookies=self.s.cj)
+        self.s.log('########### final page ###########')
+        #self.s.log(resp.text)
+        configfound = False
+        soup = self.parseHTML(resp.text)
+        script_list = soup.find_all('script')
+        for scripts in script_list:
+            # self.s.log(scripts.contents)
+            if 'appConfig' in scripts.contents[0]:
+                #self.s.log('########### scripts found ###########')
+                #self.s.log(scripts.contents)
+                sc = scripts.contents[0]
+                sc = sc.replace("window.amznMusic = ","")
+                sc = sc.replace("appConfig:","\"appConfig\":")
+                sc = sc.replace(" false,}","\"false\"}")
+                sc = sc.replace(" false","\"false\"")
+                sc = sc.replace(" true","\"true\"")
+                sc = sc.replace(" null","\"null\"")
+                sc = sc.replace("ssr","\"ssr\"")
+                sc = sc.replace(os.linesep,"")
+                sc = sc.replace(" ","")
+                sc = sc.replace("/","_")
+                sc = sc.replace("},};","}}")
+                sc = sc.replace(",};","}")
+                sc = sc.replace(";","")
+                sc = sc.replace("\"ssr\":\"false\",","\"ssr\":\"false\"")
+                # self.s.log(sc)
+                app_config = json.loads(sc)
+                configfound = True
+                break
+            else:
+                #self.s.log('########### nothing found ###########')
+                continue
+        if not configfound:
+            return False
+        # self.s.log(app_config)
+        self.s.appConfig2(app_config['appConfig'])
+        self.s.setCookie()
+        self.s.access = True
+        self.s.setSetting('access','true')
+        self.delCredentials()
+        self.doReInit()
+        xbmc.sleep(750)
+        return True
     def checkMFA(self):
         # self.s.log('########### check MFA ###########')
         while 'action="verify"' in self.content or 'id="auth-mfa-remember-device' in self.content:

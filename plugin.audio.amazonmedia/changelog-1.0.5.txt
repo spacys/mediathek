@@ -1,3 +1,5 @@
+1.0.5
+- Logon fix
 1.0.4
 - captcha button fix
 1.0.3
