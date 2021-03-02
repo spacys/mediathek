@@ -30,6 +30,8 @@ class AMZCall(Singleton):
         resp = requests.post(url=url, data=data, headers=head, cookies=self.s.cj)
         self.s.setCookie()
         if resp.status_code == 401 :
+            if self.s.logging:
+                self.s.log(resp.text)
             self.s.access = False
             self.s.setSetting('access','false')
             if self.l.amazonLogon():
