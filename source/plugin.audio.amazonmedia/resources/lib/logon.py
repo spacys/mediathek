@@ -16,14 +16,16 @@ from .singleton import Singleton
 class Logon(Singleton):
     def __init__(self,Settings):
         self.s = Settings
-        self.prepBrowser()
     def parseHTML(self,resp):
+        if self.s.logging: self.s.log()
         resp = re.sub(r'(?i)(<!doctype \w+).*>', r'\1>', resp)
         return BeautifulSoup(resp, 'html.parser')
     def delCredentials(self):
+        if self.s.logging: self.s.log()
         self.s.userEmail = ''
         self.s.userPassword = ''
     def getCredentials(self):
+        if self.s.logging: self.s.log()
         if not self.s.userEmail or not self.s.userPassword:
             if not self.s.userEmail:
                 user = self.getUserInput(self.s.translation(30030),'', hidden=False, uni=False) # get Email
@@ -46,6 +48,7 @@ class Logon(Singleton):
                 return False
         return True
     def getUserInput(self,title,txt,hidden=False,uni=False):
+        if self.s.logging: self.s.log()
         kb = xbmc.Keyboard()
         kb.setHeading(title)
         kb.setDefault(txt)
@@ -58,10 +61,11 @@ class Logon(Singleton):
                 ret = kb.getText() # for password needed, due to encryption
         else:
             ret = False
-        xbmc.sleep(500)
         del kb
+        xbmc.sleep(500)
         return ret
     def prepBrowser(self):
+        if self.s.logging: self.s.log()
         self.br = mechanize.Browser()
         self.br.set_handle_robots(False)
         self.br.set_handle_gzip(False)
@@ -80,74 +84,77 @@ class Logon(Singleton):
              ('csrf-rnd',   self.s.csrf_rnd),
              ('csrf-ts',    self.s.csrf_ts),
              ('Upgrade-Insecure-Requests', '1')]
+    def doReInit(self):
+        if self.s.logging: self.s.log()
+        self.s.setVariables()
+        self.prepBrowser()
     def amazonLogon(self):
-        app_config = None
+        if self.s.logging: self.s.log()
+        self.s.logonProcess = True
         self.s.delCookies()
-        self.doReInit()  ### --> TODO
+        self.doReInit()
         self.s.addonMode = None
         self.s.access = False
         x = 1
         while not self.s.access:
-            if x == 3:
-                return False
+            if x == 3: return False
             x+=1
-            if not self.getCredentials():
-                return False
+            if not self.getCredentials(): return False
             self.br.open(self.s.logonURL)
             # self.br.open('https://music.amazon.de')
             # self.br.open('https://www.amazon.de/gp/aw/si.html')
-            # self.s.log(self.br.response().code)
+            # self.s.log(self.br.response().code())
             # self.s.log(self.br.response().info())
             # self.s.log( str(self.br.response().read(), encoding = 'utf-8') )
             # return False
             try: 
-                # self.s.log('LogonForm')
                 self.doLogonForm()
             except:
-                # self.s.log('Captcha')
                 self.checkCaptcha()
-                xbmc.sleep(750)
 
                 if self.s.btn_cancel:
                     return False
                 else:
                     self.content = self.getLogonResponse()
-                    # self.s.log('captcha response content')
                     # self.s.log(self.content)
-                    self.doReInit()
-                    continue
+                    self.s.setVariables()
+                    try:
+                        if self.checkConfig():
+                            break
+                    except:
+                        continue
                 
             self.content = self.getLogonResponse()
-            # self.s.log('logon response content')
             # self.s.log(self.content)
-            if not self.checkMFA():
-                return False
-            self.s.setCookie()
-            if not os.path.isfile(self.s.cookieFile):
-                break
+            if not self.checkMFA(): return False
+            # self.s.setCookie()
+            # if not os.path.isfile(self.s.cookieFile): break
             if self.checkConfig():
                 break
             else:
                 return False
-        return True
-    def doReInit(self): ##### -->  TODO
+        self.s.logonProcess = False
+        # self.delCredentials()
         self.s.setVariables()
-        self.prepBrowser()
+        # self.doReInit()
+        return True
     def doLogonForm(self):
-        # self.s.log('########### logon form ###########')
+        if self.s.logging: self.s.log()
         self.br.select_form(name="signIn")
         self.br["email"]    = self.s.userEmail
         self.br["password"] = self.s.userPassword
     def getLogonResponse(self):
+        if self.s.logging: self.s.log()
         self.br.submit()
         self.s.setCookie()
         resp = self.br.response()
         return str(resp.read(), encoding = 'utf-8')
     def checkConfig(self):
+        if self.s.logging: self.s.log()
+        app_config = None
         self.s.cj.load(self.s.cookieFile)
         head = self.s.prepReqHeader('')
         resp = requests.post(self.s.musicURL, data=None, headers=head, cookies=self.s.cj)
-        self.s.log('########### final page ###########')
         #self.s.log(resp.text)
         configfound = False
         soup = self.parseHTML(resp.text)
@@ -155,7 +162,7 @@ class Logon(Singleton):
         for scripts in script_list:
             # self.s.log(scripts.contents)
             if 'appConfig' in scripts.contents[0]:
-                #self.s.log('########### scripts found ###########')
+                if self.s.logging: self.s.log('Config available')
                 #self.s.log(scripts.contents)
                 sc = scripts.contents[0]
                 sc = sc.replace("window.amznMusic = ","")
@@ -177,7 +184,7 @@ class Logon(Singleton):
                 configfound = True
                 break
             else:
-                #self.s.log('########### nothing found ###########')
+                if self.s.logging: self.s.log('No config available')
                 continue
         if not configfound:
             return False
@@ -186,12 +193,10 @@ class Logon(Singleton):
         self.s.setCookie()
         self.s.access = True
         self.s.setSetting('access','true')
-        self.delCredentials()
-        self.doReInit()
-        xbmc.sleep(750)
+        self.s.setVariables()
         return True
     def checkMFA(self):
-        # self.s.log('########### check MFA ###########')
+        if self.s.logging: self.s.log()
         while 'action="verify"' in self.content or 'id="auth-mfa-remember-device' in self.content:
             soup = self.parseHTML(self.content)
             if 'cvf-widget-form cvf-widget-form-dcq fwcim-form a-spacing-none' in self.content:
@@ -234,6 +239,7 @@ class Logon(Singleton):
                 return False
         return True
     def checkMFAInput(self, inp, target, action=None):
+        if self.s.logging: self.s.log()
         if inp:
             if action:
                 xbmc.executebuiltin(action)
@@ -243,7 +249,7 @@ class Logon(Singleton):
         else:
             return False
     def checkCaptcha(self):
-        # self.s.log('########### captcha ###########')
+        if self.s.logging: self.s.log()
         self.s.setSetting('captcha',"")
         self.br.select_form(action="/errors/validateCaptcha")
         self.content = str(self.br.response().read(), encoding = 'utf-8')
@@ -261,6 +267,7 @@ class Logon(Singleton):
             return False
         self.br["field-keywords"] = self.s.captcha
     def showCaptcha(self,layout, imagefile, message):
+        if self.s.logging: self.s.log()
         class Captcha(xbmcgui.WindowXMLDialog):
             def __init__(self, *args, **kwargs):
                 self.image = kwargs["image"]
@@ -303,5 +310,5 @@ class Logon(Singleton):
                     self.getUserInput('Captcha Entry')
         cp = Captcha(layout, self.s.addonFolder, 'Default', image=imagefile, text=message, settings=self.s)
         cp.doModal()
-        xbmc.sleep(750)
         del cp
+        xbmc.sleep(750)

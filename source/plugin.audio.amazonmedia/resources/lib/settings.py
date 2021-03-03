@@ -17,6 +17,7 @@ from .singleton import Singleton
 class Settings(Singleton):
     """ Amazon Media Addon Settings """
     def __init__(self):
+        self.logonProcess   = False
         self.setVariables()
     def setVariables(self):
         self.addon          = xbmcaddon.Addon()
@@ -33,12 +34,12 @@ class Settings(Singleton):
         self.logonURL       = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])
         self.musicURL       = 'https://music.amazon.{}'.format(self.siteVerList[int(self.siteVersion)])
         self.saveUsername   = self.toBool(self.getSetting("saveUsername"))
-        if not self.saveUsername:
+        if not self.logonProcess and not self.saveUsername:
             self.setSetting('savePassword', "false")
             self.setSetting('userEmail', "")
             self.setSetting('userPassword', "")
         self.savePassword   = self.toBool(self.getSetting("savePassword"))
-        if not self.savePassword:
+        if not self.logonProcess and not self.savePassword:
             self.setSetting('userPassword', "")
         self.userEmail      = self.getSetting("userEmail")
         self.userPassword   = base64.urlsafe_b64decode(self.getSetting("userPassword"))
@@ -238,6 +239,11 @@ class Settings(Singleton):
         if referer == 'soccer':
             head['Content-Encoding'] = None
         return head
-    def log(self, msg, level=xbmc.LOGINFO):
-        log_message = '[{}] {}'.format(self.addonName, msg)
+    def log(self, msg=None, level=xbmc.LOGINFO):
+        # log_message = '[{}] {}'.format(self.addonName, msg)
+        # xbmc.log(log_message, level)
+        this_function_name  = sys._getframe(1).f_code.co_name
+        this_line_number    = sys._getframe(1).f_lineno
+        log_message = '[{}] {} : {}'.format(self.addonName, this_function_name, this_line_number)
+        if msg: log_message = '{}\n{}'.format(log_message,msg)
         xbmc.log(log_message, level)

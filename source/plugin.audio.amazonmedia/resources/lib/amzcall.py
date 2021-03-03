@@ -29,15 +29,15 @@ class AMZCall(Singleton):
         data = self.prepReqData(mode,asin,mediatype)
         resp = requests.post(url=url, data=data, headers=head, cookies=self.s.cj)
         self.s.setCookie()
+
         if resp.status_code == 401 :
-            if self.s.logging:
-                self.s.log(resp.text)
+            if self.s.logging: self.s.log(resp.text)
             self.s.access = False
             self.s.setSetting('access','false')
             if self.l.amazonLogon():
                 return self.amzCall(amzUrl,mode,referer,asin,mediatype)
-        if self.s.logging:
-            self.s.log(resp.text)
+        # if self.s.logging:
+        #     self.s.log(resp.text)
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
             return resp
         else:
