@@ -30,8 +30,6 @@ from resources.lib.api import API
 from resources.lib.logon import Logon
 from resources.lib.amzcall import AMZCall
 
-NODEBUG = False
-
 class AmazonMedia():
     __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
         'musicURL','saveUsername','savePassword','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
@@ -63,6 +61,7 @@ class AmazonMedia():
         # if not self.AMs.access and not self.AMl.amazonLogon():
         #     xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.AMs.translation(30070)))
         #     return
+        if self.AMs.logging: self.AMs.log('Access: {}'.format(self.AMs.access))
         if not self.AMs.access:
             if not self.AMl.amazonLogon():
                 xbmc.executebuiltin('Notification("Error:", {}, 5000, )'.format(self.AMs.translation(30070)))
