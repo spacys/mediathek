@@ -242,8 +242,11 @@ class Settings(Singleton):
     def log(self, msg=None, level=xbmc.LOGINFO):
         # log_message = '[{}] {}'.format(self.addonName, msg)
         # xbmc.log(log_message, level)
-        this_function_name  = sys._getframe(1).f_code.co_name
-        this_line_number    = sys._getframe(1).f_lineno
-        log_message = '[{}] {} : {}'.format(self.addonName, this_function_name, this_line_number)
-        if msg: log_message = '{}\n{}'.format(log_message,msg)
+        fct_name  = sys._getframe(1).f_code.co_name
+        lin_nmbr  = sys._getframe(1).f_lineno
+        if msg:
+            msg = '\n{}'.format(msg)
+        else:
+            msg = ''
+        log_message = '[{}] {} : {}{}'.format(self.addonName, fct_name, lin_nmbr,msg)
         xbmc.log(log_message, level)
