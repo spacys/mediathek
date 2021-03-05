@@ -41,7 +41,7 @@ class AmazonMedia():
         if self.AMs.logging:
             self.AMs.log( 'Handle: ' + self.addonHandle.__str__() + '\n'
                         + 'Args  : ' + self.addonArgs.__str__() + '\n'
-                        + 'Mode  : ' + self.addonMode.__str__())
+                        + 'Mode  : ' + self.AMs.addonMode.__str__())
     # def __del__(self):
     #     ''' Cleanup instances '''
     #     del self.AMs.addon.addonId
@@ -49,15 +49,15 @@ class AmazonMedia():
         self.addonBaseUrl   = sys.argv[0]
         self.addonHandle    = int(sys.argv[1])
         self.addonArgs      = urlparse.parse_qs(sys.argv[2][1:])
-        self.addonMode      = self.addonArgs.get('mode', None)
         self.AMs    = Settings()
         self.AMm    = MainMenu(self.AMs)
         self.AMl    = Logon(self.AMs)
         self.AMapi  = API()
         self.AMc    = AMZCall(self.AMs,self.AMl,self.addonArgs)
+        self.AMs.addonMode  = self.addonArgs.get('mode', None)
     def reqDispatch(self):
         # reset addon
-        if self.addonMode is not None and self.addonMode[0] == 'resetAddon':
+        if self.AMs.addonMode is not None and self.AMs.addonMode[0] == 'resetAddon':
             self.AMs.resetAddon()
             xbmc.executebuiltin('Notification("Information:", {}, 5000, )'.format(self.AMs.translation(30071)))
             return
@@ -71,10 +71,10 @@ class AmazonMedia():
                 xbmc.executebuiltin('Notification("Error:", {}, 5000, )'.format(self.AMs.translation(30070)))
                 return
 
-        if self.addonMode is None:
+        if self.AMs.addonMode is None:
             mode = None
         else:
-            mode = self.addonMode[0]
+            mode = self.AMs.addonMode[0]
 
         if mode is None:
             #self.menuHome()
@@ -597,7 +597,7 @@ class AmazonMedia():
     def setPaginator(self,nextToken,query=None,asin=None):
         li = xbmcgui.ListItem(label=self.AMs.translation(30020))
         li.setProperty('IsPlayable', 'false')
-        url = "{}?mode={}&token={}".format(self.addonBaseUrl,str(self.addonMode[0]),str(nextToken))
+        url = "{}?mode={}&token={}".format(self.addonBaseUrl,str(self.AMs.addonMode[0]),str(nextToken))
         if query:
             url += "&query={}".format(urlquoteplus(query.encode("utf8")))
         if asin:
