@@ -10,9 +10,10 @@ from .singleton import Singleton
 
 class AMZCall(Singleton):
     """ Amazon Media Class for Amazon communication """
-    def __init__(self,Settings,Logon):
+    def __init__(self,Settings,Logon,AddonArgs):
         self.s = Settings # settings
         self.l = Logon
+        self.a = AddonArgs
 
     def getMaestroID(self):
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
@@ -52,14 +53,14 @@ class AMZCall(Singleton):
                             hasLyrics, expandTracklist, ownership, popularity, albumArtist, collectionLibraryAvailability
         types:              artist, track, album, similarArtist, playlist, station
         """
-        token = self.s.addonArgs.get('token', [''])
+        token = self.a.get('token', [''])
         if   mode == 'searchItems':
-            if self.s.addonArgs.get('token', [None])[0] == None:
+            if self.a.get('token', [None])[0] == None:
                 prop = 'maxResults'
                 val = self.s.maxResults
             else:
                 prop = 'pageToken'
-                val = self.s.addonArgs.get('token', [None])[0]
+                val = self.a.get('token', [None])[0]
             #if self.accessType == 'UNLIMITED':
             #    tier = 'MUSIC_SUBSCRIPTION'
             #else:
@@ -120,7 +121,7 @@ class AMZCall(Singleton):
                     'sortBy':'popularity-rank',
                     'type':'album',
                     'maxCount':     self.s.maxResults,
-                    'nextToken':    self.s.addonArgs.get('token', [''])[0]
+                    'nextToken':    self.a.get('token', [''])[0]
                 }],
                 'features':[
                     #'expandTracklist',
@@ -204,7 +205,7 @@ class AMZCall(Singleton):
                 'countOnly': 'false',
                 'sortCriteriaList': None,
                 'maxResults': self.s.maxResults,
-                'nextResultsToken': self.s.addonArgs.get('token', [0])[0],
+                'nextResultsToken': self.a.get('token', [0])[0],
                 'selectCriteriaList.member.1.attributeName': 'status',
                 'selectCriteriaList.member.1.comparisonType': 'EQUALS',
                 'selectCriteriaList.member.1.attributeValue': 'AVAILABLE',
@@ -272,7 +273,7 @@ class AMZCall(Singleton):
             # mp3-prime-browse-carousels_mp3PrimeAlbumsStrategy
             # mp3-prime-browse-carousels_mp3PrimeTracksStrategy
             # mp3-prime-browse-carousels_mp3ArtistStationStrategy
-            token = self.s.addonArgs.get('token', [0])
+            token = self.a.get('token', [0])
             data  = {
                 'maxResultsPerWidget' : self.s.maxResults,
                 'minResultsPerWidget' : 1,
