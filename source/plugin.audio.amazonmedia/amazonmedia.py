@@ -55,7 +55,6 @@ class AmazonMedia():
         self.AMl    = Logon(self.AMs)
         self.AMapi  = API()
         self.AMc    = AMZCall(self.AMs,self.AMl,self.addonArgs)
-
     def reqDispatch(self):
         # reset addon
         if self.addonMode is not None and self.addonMode[0] == 'resetAddon':

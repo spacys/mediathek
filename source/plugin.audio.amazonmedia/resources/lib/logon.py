@@ -91,13 +91,17 @@ class Logon(Singleton):
     def amazonLogon(self):
         if self.s.logging: self.s.log()
         self.s.logonProcess = True
-        self.s.delCookies()
-        self.doReInit()
         self.s.addonMode = None
         self.s.access = False
+        self.s.setSetting('logonProcess','true')
+        self.s.setSetting('access','false')
+        self.prepBrowser()
+
         x = 1
         while not self.s.access:
             if x == 3: return False
+            if self.s.logging: self.s.log(x)
+            if self.s.logging: self.s.log(self.s.access)
             x+=1
             if not self.getCredentials(): return False
             self.br.open(self.s.logonURL)
@@ -106,42 +110,30 @@ class Logon(Singleton):
             # self.s.log(self.br.response().code())
             # self.s.log(self.br.response().info())
             # self.s.log( str(self.br.response().read(), encoding = 'utf-8') )
-            # return False
             try: 
                 self.doLogonForm()
             except:
-                self.checkCaptcha()
-
-                if self.s.btn_cancel:
+                if not self.checkCaptcha() or self.s.btn_cancel:
                     return False
-                else:
-                    self.content = self.getLogonResponse()
-                    # self.s.log(self.content)
-                    self.s.setVariables()
-                    try:
-                        if self.checkConfig():
-                            break
-                    except:
-                        continue
-                
+
             self.content = self.getLogonResponse()
-            # self.s.log(self.content)
             if not self.checkMFA(): return False
-            # self.s.setCookie()
-            # if not os.path.isfile(self.s.cookieFile): break
-            if self.checkConfig():
-                break
-            else:
-                return False
+            try:
+                if self.checkConfig():
+                    continue
+                else:
+                    return False
+            except:
+                continue
+
         self.s.logonProcess = False
-        # self.delCredentials()
-        self.s.setVariables()
-        # self.doReInit()
+        self.s.setSetting('logonProcess','false')
         return True
     def doLogonForm(self):
         if self.s.logging: self.s.log()
         self.br.select_form(name="signIn")
-        self.br["email"]    = self.s.userEmail
+        if not self.br.find_control("email").readonly:
+            self.br["email"] = self.s.userEmail
         self.br["password"] = self.s.userPassword
     def getLogonResponse(self):
         if self.s.logging: self.s.log()
@@ -191,9 +183,8 @@ class Logon(Singleton):
         # self.s.log(app_config)
         self.s.appConfig2(app_config['appConfig'])
         self.s.setCookie()
-        self.s.access = True
         self.s.setSetting('access','true')
-        self.s.setVariables()
+        self.s.access = True
         return True
     def checkMFA(self):
         if self.s.logging: self.s.log()
@@ -266,6 +257,7 @@ class Logon(Singleton):
         if self.s.captcha == "":
             return False
         self.br["field-keywords"] = self.s.captcha
+        return True
     def showCaptcha(self,layout, imagefile, message):
         if self.s.logging: self.s.log()
         class Captcha(xbmcgui.WindowXMLDialog):

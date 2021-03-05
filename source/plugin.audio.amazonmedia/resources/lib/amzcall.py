@@ -26,19 +26,19 @@ class AMZCall(Singleton):
     # default communication
     def amzCall(self,amzUrl,mode,referer=None,asin=None,mediatype=None):
         url = '{}/{}/api/{}'.format(self.s.url, self.s.region, amzUrl['path'])
+        self.s.cj.load(self.s.cookieFile)
         head = self.s.prepReqHeader(amzUrl['target'],referer)
         data = self.prepReqData(mode,asin,mediatype)
         resp = requests.post(url=url, data=data, headers=head, cookies=self.s.cj)
         self.s.setCookie()
 
         if resp.status_code == 401 :
-            if self.s.logging: self.s.log(resp.text)
-            self.s.access = False
-            self.s.setSetting('access','false')
+            if self.s.logging:
+                self.s.log(resp.reason)
+                self.s.log(resp.text)
             if self.l.amazonLogon():
                 return self.amzCall(amzUrl,mode,referer,asin,mediatype)
-        # if self.s.logging:
-        #     self.s.log(resp.text)
+
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
             return resp
         else:
