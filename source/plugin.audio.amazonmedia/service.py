@@ -8,6 +8,7 @@ import threading
 #from resources.lib.configs import *
 from time import time
 from resources.lib.proxy import ProxyTCPD
+from resources.lib.settings import Settings
 
 class ServiceManager():
     freqCheck = 60
@@ -16,9 +17,11 @@ class ServiceManager():
 
     def __init__(self):
         self.proxy  = ProxyTCPD()
+        self.s      = Settings()
         self.log('Bound to 127.0.0.1:{}'.format(self.proxy.port))
         self.proxy_thread = threading.Thread(target=self.proxy.serve_forever)
         xbmcaddon.Addon().setSetting('proxy','127.0.0.1:{}'.format(self.proxy.port))
+        self.s.setSetting('proxy','127.0.0.1:{}'.format(self.proxy.port))
 
     def log(self, msg, level=xbmc.LOGINFO):
         log_message = '[{}] {}'.format('AM Proxy', msg)

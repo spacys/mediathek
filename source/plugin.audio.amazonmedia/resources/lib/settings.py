@@ -25,10 +25,10 @@ class Settings(Singleton):
         self.addonName      = self.getInfo('name')
         self.addonFolder    = self.getFolder('special://home/addons/{}'.format(self.addonId))
         self.addonUDatFo    = self.getFolder('special://profile/addon_data/{}'.format(self.addonId))
-        self.addonBaseUrl   = sys.argv[0]
-        self.addonHandle    = int(sys.argv[1])
-        self.addonArgs      = urlparse.parse_qs(sys.argv[2][1:])
-        self.addonMode      = self.addonArgs.get('mode', None)
+        # self.addonBaseUrl   = sys.argv[0]
+        # self.addonHandle    = int(sys.argv[1])
+        # self.addonArgs      = urlparse.parse_qs(sys.argv[2][1:])
+        # self.addonMode      = self.addonArgs.get('mode', None)
         self.siteVerList    = ["de", "fr", "co.uk", "it", "es"]
         self.siteVersion    = self.getSetting("siteVersion")
         self.logonURL       = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])

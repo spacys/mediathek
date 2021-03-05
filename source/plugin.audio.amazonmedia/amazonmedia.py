@@ -23,6 +23,7 @@ import xbmcvfs
 # from bs4 import BeautifulSoup
 import datetime
 #import base64
+import urllib.parse as urlparse
 
 from resources.lib.settings import Settings
 from resources.lib.menu import MainMenu
@@ -38,22 +39,26 @@ class AmazonMedia():
     def __init__(self):
         self.setVariables()
         if self.AMs.logging:
-            self.AMs.log( 'Handle: ' + self.AMs.addonHandle.__str__() + '\n'
-                    + 'Args  : ' + self.AMs.addonArgs.__str__() + '\n'
-                    + 'Mode  : ' + self.AMs.addonMode.__str__())
+            self.AMs.log( 'Handle: ' + self.addonHandle.__str__() + '\n'
+                        + 'Args  : ' + self.addonArgs.__str__() + '\n'
+                        + 'Mode  : ' + self.addonMode.__str__())
     # def __del__(self):
     #     ''' Cleanup instances '''
     #     del self.AMs.addon.addonId
     def setVariables(self):
+        self.addonBaseUrl   = sys.argv[0]
+        self.addonHandle    = int(sys.argv[1])
+        self.addonArgs      = urlparse.parse_qs(sys.argv[2][1:])
+        self.addonMode      = self.addonArgs.get('mode', None)
         self.AMs    = Settings()
         self.AMm    = MainMenu(self.AMs)
         self.AMl    = Logon(self.AMs)
         self.AMapi  = API()
-        self.AMc    = AMZCall(self.AMs,self.AMl)
+        self.AMc    = AMZCall(self.AMs,self.AMl,self.addonArgs)
 
     def reqDispatch(self):
         # reset addon
-        if self.AMs.addonMode is not None and self.AMs.addonMode[0] == 'resetAddon':
+        if self.addonMode is not None and self.addonMode[0] == 'resetAddon':
             self.AMs.resetAddon()
             xbmc.executebuiltin('Notification("Information:", {}, 5000, )'.format(self.AMs.translation(30071)))
             return
@@ -67,10 +72,10 @@ class AmazonMedia():
                 xbmc.executebuiltin('Notification("Error:", {}, 5000, )'.format(self.AMs.translation(30070)))
                 return
 
-        if self.AMs.addonMode is None:
+        if self.addonMode is None:
             mode = None
         else:
-            mode = self.AMs.addonMode[0]
+            mode = self.addonMode[0]
 
         if mode is None:
             #self.menuHome()
@@ -115,7 +120,7 @@ class AmazonMedia():
             exec('self.searchItems([\'stations\',\'catalog_station\'],None,self.AMs.getSetting("{}"))'.format(mode))
 
         elif mode == 'getArtistDetails':
-            asin = self.AMs.addonArgs.get('asin', [None])
+            asin = self.addonArgs.get('asin', [None])
             self.getArtistDetails(asin[0])
 
         elif mode == 'getRecentlyPlayed':
@@ -132,7 +137,7 @@ class AmazonMedia():
         elif mode == 'getOwnedPlaylists':
             self.getOwnedPlaylists()
         elif mode == 'getPlaylistsByIdV2':
-            asin = self.AMs.addonArgs.get('asin', [None])
+            asin = self.addonArgs.get('asin', [None])
             self.getPlaylistsByIdV2(asin[0])
 
         elif mode == 'getRecomPlayLists':
@@ -145,7 +150,7 @@ class AmazonMedia():
         elif mode == 'getNewRecom':
             self.getNewRecommendations()
         elif mode == 'getNewRecomDetails':
-            asin = self.AMs.addonArgs.get('target', [None])
+            asin = self.addonArgs.get('target', [None])
             self.getNewRecomDetails(asin[0])
         # get own music, differentiate betwenn purchased and own lib
         # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
@@ -157,25 +162,25 @@ class AmazonMedia():
         elif mode in ['getStations','getAllArtistsStations','getGenres','getGenres2']:
             self.getStations(mode.replace('get','').lower())
         elif mode in ['getGenrePlaylist','createQueue']:
-            asin = self.AMs.addonArgs.get('asin', None)
+            asin = self.addonArgs.get('asin', None)
             exec('self.{}(asin[0])'.format(mode))
         # get song lists
         elif mode == 'lookup':
-            asin = self.AMs.addonArgs.get('asin', None)
+            asin = self.addonArgs.get('asin', None)
             self.lookup(asin)
         # play the song
         elif mode == 'getTrack':
-            asin = self.AMs.addonArgs.get('asin', [None])[0]
-            objectId = self.AMs.addonArgs.get('objectId', [None])[0]
+            asin = self.addonArgs.get('asin', [None])[0]
+            objectId = self.addonArgs.get('objectId', [None])[0]
             self.getTrack(asin,objectId)
         # Amazon Soccer Live
         elif mode in ['soccerBUND','soccerBUND2','soccerCHAMP','soccerDFBPOKAL','soccerSUPR']:
             self.getSoccerFilter(mode.replace('soccer',''))
         elif mode == 'getSoccerLive':
-            objectId = self.AMs.addonArgs.get('objectId', [None])[0]
+            objectId = self.addonArgs.get('objectId', [None])[0]
             self.getSoccer(objectId,'LIVE')
         elif mode == 'getSoccerOnDemand':
-            objectId = self.AMs.addonArgs.get('objectId', [None])[0]
+            objectId = self.addonArgs.get('objectId', [None])[0]
             self.getSoccer(objectId,'ONDEMAND')
     def createList(self,data,dynentry=False,soccer=False):
         itemlist = []
@@ -200,7 +205,7 @@ class AmazonMedia():
                 else:
                     url = '{}/resources/images/{}'.format(self.AMs.addonFolder, self.AMs.getSetting(item['img']) )
                 li.setArt({'icon':url,'thumb':url,'fanart':url,'poster':url,'banner':url,'landscape':url})
-            url = '{}?mode={}'.format(self.AMs.addonBaseUrl,str(item['fct']))
+            url = '{}?mode={}'.format(self.addonBaseUrl,str(item['fct']))
             if soccer:
                 url+="&objectId={}".format(str(item['target']))
                 if item['playable']:
@@ -302,8 +307,8 @@ class AmazonMedia():
         self.setAddonContent(mode,items,ctype)
     def searchItems(self,mode=None,txt=None,query=None):
         if query == None:
-            if self.AMs.addonArgs.get('token', False):
-                query = self.AMs.addonArgs.get('query', [''])[0]
+            if self.addonArgs.get('token', False):
+                query = self.addonArgs.get('query', [''])[0]
             else:
                 query = self.AMl.getUserInput(self.AMs.translation(txt), '')
                 if not query:
@@ -593,7 +598,7 @@ class AmazonMedia():
     def setPaginator(self,nextToken,query=None,asin=None):
         li = xbmcgui.ListItem(label=self.AMs.translation(30020))
         li.setProperty('IsPlayable', 'false')
-        url = "{}?mode={}&token={}".format(self.AMs.addonBaseUrl,str(self.AMs.addonMode[0]),str(nextToken))
+        url = "{}?mode={}&token={}".format(self.addonBaseUrl,str(self.addonMode[0]),str(nextToken))
         if query:
             url += "&query={}".format(urlquoteplus(query.encode("utf8")))
         if asin:
@@ -606,7 +611,7 @@ class AmazonMedia():
         }
         if met['objectId'] is not None:
             url['objectId'] = met['objectId']
-        return '{}?{}'.format(self.AMs.addonBaseUrl,urlencode(url))
+        return '{}?{}'.format(self.addonBaseUrl,urlencode(url))
     def setAddonContent(self,mode,param,ctype,stype=None,query=None):
         itemlist = []
         meta = []
@@ -768,7 +773,7 @@ class AmazonMedia():
                 else:
                     continue
         elif mode == 'genres2':                 # genres 2nd level
-            asin = self.AMs.addonArgs.get('asin', None)[0]
+            asin = self.addonArgs.get('asin', None)[0]
             items = param['categories'].get(asin)['stationMapIds']
             for item in items:
                 self.setListItem(itemlist,param['stations'].get(item),{'mode':'createQueue'})
@@ -849,9 +854,9 @@ class AmazonMedia():
         self.finalizeContent(itemlist,ctype)
         xbmc.sleep(100)
     def finalizeContent(self,itemlist,ctype):
-        xbmcplugin.addDirectoryItems(self.AMs.addonHandle, itemlist, len(itemlist))
-        xbmcplugin.setContent(self.AMs.addonHandle, ctype)
-        xbmcplugin.endOfDirectory(self.AMs.addonHandle)
+        xbmcplugin.addDirectoryItems(self.addonHandle, itemlist, len(itemlist))
+        xbmcplugin.setContent(self.addonHandle, ctype)
+        xbmcplugin.endOfDirectory(self.addonHandle)
     # play music
     def getTrack(self,asin,objectId):
         song    = self.tryGetStream(asin,objectId)
@@ -865,7 +870,7 @@ class AmazonMedia():
             if manifest:
                 song = self.writeSongFile(manifest,'mpd')
                 ''' proxy try - START '''
-                song = 'http://{}/mpd/{}'.format(xbmcaddon.Addon().getSetting('proxy'),'song.mpd')
+                song = 'http://{}/mpd/{}'.format(self.AMs.getSetting('proxy'),'song.mpd')
                 ''' proxy try - END '''
                 stream['ia']  = True
                 stream['lic'] = True
@@ -920,7 +925,7 @@ class AmazonMedia():
         li.setInfo('audio', {'codec': 'aac'})
         li.addStreamInfo('audio', {'codec': 'aac'})
         li.setContentLookup(False)
-        xbmcplugin.setResolvedUrl(self.AMs.addonHandle, True, listitem=li)
+        xbmcplugin.setResolvedUrl(self.addonHandle, True, listitem=li)
     def writeSongFile(self,manifest,ftype='m3u8'):
         song = '{}{}song.{}'.format(self.AMs.addonUDatFo,os.sep,ftype)
         m3u_string = ''
@@ -1032,7 +1037,7 @@ class AmazonMedia():
         song = self.writeSongFile(r.content.decode('utf-8'),'mpd')
 
         ''' proxy try - START '''
-        song = 'http://{}/mpd/{}'.format(xbmcaddon.Addon().getSetting('proxy'),'song.mpd')
+        song = 'http://{}/mpd/{}'.format(self.AMs.getSetting('proxy'),'song.mpd')
         ''' proxy try - END '''
         self.finalizeItem(song,True)
 

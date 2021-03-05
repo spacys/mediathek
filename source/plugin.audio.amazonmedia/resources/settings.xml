@@ -42,6 +42,7 @@
         <setting id="search1Artists"    type="text" visible="false" label="search1Artists"   default=""/>
         <setting id="search2Artists"    type="text" visible="false" label="search2Artists"   default=""/>
         <setting id="search3Artists"    type="text" visible="false" label="search3Artists"   default=""/>
+        <setting id="proxy"             type="text" visible="false" label="proxy"            default=""/>
 
         <setting id="img_search"        type="text" visible="false" label="img_search"       default="search.png"/>
         <setting id="img_playlists"     type="text" visible="false" label="img_playlists"    default="playlists.jpg"/>
