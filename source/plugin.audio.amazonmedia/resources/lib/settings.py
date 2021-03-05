@@ -28,7 +28,7 @@ class Settings(Singleton):
         # self.addonBaseUrl   = sys.argv[0]
         # self.addonHandle    = int(sys.argv[1])
         # self.addonArgs      = urlparse.parse_qs(sys.argv[2][1:])
-        # self.addonMode      = self.addonArgs.get('mode', None)
+        self.addonMode      = None # self.addonArgs.get('mode', None)
         self.siteVerList    = ["de", "fr", "co.uk", "it", "es"]
         self.siteVersion    = self.getSetting("siteVersion")
         self.logonURL       = 'https://www.amazon.{}/gp/aw/si.html'.format(self.siteVerList[int(self.siteVersion)])
