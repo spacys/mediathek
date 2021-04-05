@@ -32,10 +32,6 @@ from resources.lib.logon import Logon
 from resources.lib.amzcall import AMZCall
 
 class AmazonMedia():
-    __slots__ = ['addon','addonId','addonName','addonFolder','addonUDatFo','addonBaseUrl','addonHandle','addonArgs','addonMode','siteVerList','siteVersion','logonURL',
-        'musicURL','saveUsername','savePassword','userEmail','userPassword','userAgent','deviceId','csrf_token','csrf_ts','csrf_rnd','customerId','marketplaceId','deviceType','musicTerritory','locale','customerLang',
-        'region','url','access','accessType','maxResults','audioQualist','audioQuality','cj','logging','showimages','showUnplayableSongs','showcolentr','sPlayLists','sAlbums','sSongs',
-        'sStations','sArtists','addonFolRes','addonIcon','defFanart','cookieFile','br','content','AMs','AMm','AMl','AMapi','AMc']
     def __init__(self):
         self.setVariables()
         if self.AMs.logging:
@@ -77,7 +73,6 @@ class AmazonMedia():
             mode = self.AMs.addonMode[0]
 
         if mode is None:
-            #self.menuHome()
             self.createList(self.AMm.menuHome())
         elif mode == 'menuPlaylists':
             self.createList(self.AMm.menuPlaylists(),True)
@@ -91,7 +86,6 @@ class AmazonMedia():
             self.createList(self.AMm.menuArtists(),True)
         elif mode == 'menuSoccer':
             self.createList(self.AMm.menuSoccer())
-            #self.menuSoccer()
 
         elif mode == 'searchPlayLists':
             self.searchItems(['playlists','catalog_playlist'],30013)
@@ -415,16 +409,14 @@ class AmazonMedia():
         elif 'totalNumberOfTracks' in item:
             info['tracknumber'] = item['totalNumberOfTracks']
 
-        if 'discNum' in item:
-            info['discnumber'] = item['discNum']
+        if 'discNum' in item:           info['discnumber'] = item['discNum']
 
         if 'duration' in item:
             info['duration'] = item['duration']
         elif 'durationSeconds' in item:
             info['duration'] = item['durationSeconds']
 
-        if 'albumReleaseDate' in item:
-            info['year'] = item['albumReleaseDate'][:4]
+        if 'albumReleaseDate' in item:  info['year'] = item['albumReleaseDate'][:4]
 
         if 'primaryGenre' in item:
             info['genre'] = item['primaryGenre']
@@ -433,29 +425,21 @@ class AmazonMedia():
         elif 'productDetails' in item:
             info['genre'] = item['productDetails']['primaryGenreName']
 
-        if 'albumName' in item:
-            info['album'] = item['albumName']
-        if 'description' in item:
-            info['album'] = item['description']
-        if 'stationTitle' in item:
-            info['album'] = item['stationTitle']
+        if 'albumName' in item:             info['album'] = item['albumName']
+        if 'description' in item:           info['album'] = item['description']
+        if 'stationTitle' in item:          info['album'] = item['stationTitle']
         if 'album' in item:
             try:
                 info['album'] = item['album']['name']
             except:
                 info['album'] = item['album']['title']
 
-        if 'albumArtistName' in item:
-            info['artist'] = item['albumArtistName']
-        if 'artist' in item:
-            info['artist'] = item['artist']['name']
-        if 'artistName' in item:
-            info['artist'] = item['artistName']
+        if 'albumArtistName' in item:       info['artist'] = item['albumArtistName']
+        if 'artist' in item:                info['artist'] = item['artist']['name']
+        if 'artistName' in item:            info['artist'] = item['artistName']
 
-        if 'stationTitle' in item:
-            info['title'] = item['stationTitle']
-        if 'displayName' in item:
-            info['title'] = item['displayName']
+        if 'stationTitle' in item:          info['title'] = item['stationTitle']
+        if 'displayName' in item:           info['title'] = item['displayName']
 
         if 'isAlbum' in filter and filter['isAlbum']:
             if info['title'] == None and 'albumName' in item:
@@ -466,58 +450,39 @@ class AmazonMedia():
             if info['title'] == None and 'name' in item:
                 info['title'] = item['name']
 
-        if 'reviews' in item:
-            info['rating'] = item['reviews']['average']
-        if 'rating' in item:
-            info['rating'] = item['rating']
-        if 'averageOverallRating' in item:
-            info['rating'] = item['averageOverallRating']
+        if 'reviews' in item:               info['rating'] = item['reviews']['average']
+        if 'rating' in item:                info['rating'] = item['rating']
+        if 'averageOverallRating' in item:  info['rating'] = item['averageOverallRating']
 
         # mode : asin : objectId : thumb : purchased : isPrime : isUnlimited
         # order of 'playlistId' and 'asin' is important. Do not change the order -> reason: followed playlists
-        if 'playlistId' in item:
-            meta['asin'] = item['playlistId']
-        if 'asin' in item:
-            meta['asin'] = item['asin']
-        if 'seedId' in item:
-            meta['asin'] = item['seedId']
-        if 'categoryId' in item:
-            meta['asin'] = item['categoryId']
-        if 'stationKey' in item:
-            meta['asin'] = item['stationKey']
-        if 'identifier' in item:
-            meta['asin'] = item['identifier']
+        if 'playlistId' in item:            meta['asin'] = item['playlistId']
+        if 'asin' in item:                  meta['asin'] = item['asin']
+        if 'seedId' in item:                meta['asin'] = item['seedId']
+        if 'categoryId' in item:            meta['asin'] = item['categoryId']
+        if 'stationKey' in item:            meta['asin'] = item['stationKey']
+        if 'identifier' in item:            meta['asin'] = item['identifier']
         if 'isAlbum' in filter and filter['isAlbum']:
             if 'albumAsin' in item:
                 meta['asin'] = item['albumAsin']
 
-        if 'trackId' in item:
-            meta['objectId'] = item['trackId']
-        if 'objectId' in item:
-            meta['objectId'] = item['objectId']
-        if 'stationSeedId' in item:
-            meta['objectId'] = item['stationSeedId']
+        if 'trackId' in item:               meta['objectId'] = item['trackId']
+        if 'objectId' in item:              meta['objectId'] = item['objectId']
+        if 'stationSeedId' in item:         meta['objectId'] = item['stationSeedId']
 
-        if 'image' in item:
-            meta['thumb'] = item['image']
-        if 'imageFull' in item:
-            meta['thumb'] = item['imageFull']
-        if 'albumCoverImageFull' in item:
-            meta['thumb'] = item['albumCoverImageFull']
-        if 'albumArtImageUrl' in item:
-            meta['thumb'] = item['albumArtImageUrl']
+        # images - 'icon','thumb','fanart','poster','banner','landscape'
+        if 'image' in item:                 meta['thumb'] = item['image']
+        if 'imageFull' in item:             meta['thumb'] = item['imageFull']
+        if 'albumCoverImageFull' in item:   meta['thumb'] = item['albumCoverImageFull']
+        if 'albumArtImageUrl' in item:      meta['thumb'] = item['albumArtImageUrl']
         if 'stationImageUrl' in item and item['stationImageUrl'] is not None:
             meta['thumb'] = item['stationImageUrl']
         if 'foregroundImageUrl' in item and item['foregroundImageUrl'] is not None:
             meta['thumb'] = item['foregroundImageUrl']
-        if 'artOriginal' in item:
-            meta['thumb'] = item['artOriginal']['URL']
-        if 'artFull' in item:
-            meta['thumb'] = item['artFull']['URL']
-        if 'artUrlMap' in item:
-            meta['thumb'] = item['artUrlMap']['FULL']
-        if 'fourSquareImage' in item:
-            meta['thumb'] = item['fourSquareImage']['url']
+        if 'artOriginal' in item:           meta['thumb'] = item['artOriginal']['URL']
+        if 'artFull' in item:               meta['thumb'] = item['artFull']['URL']
+        if 'artUrlMap' in item:             meta['thumb'] = item['artUrlMap']['FULL']
+        if 'fourSquareImage' in item:       meta['thumb'] = item['fourSquareImage']['url']
         try:
             meta['thumb'] = item['album']['image']
         except:
@@ -911,16 +876,19 @@ class AmazonMedia():
     def finalizeItem(self,song,ia=False,lic=False):
         li = xbmcgui.ListItem(path=song)
         if ia:
+            li.setMimeType('application/xml+dash')
             li.setProperty('inputstream', 'inputstream.adaptive')
-            li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.AMs.userAgent))
-            li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
+            li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+            li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.AMs.userAgent))
+            # for live soccer only - test start
+            li.setProperty('inputstream.adaptive.manifest_update_parameter', 'full')
+            # for live soccer only - test end
             if lic:
                 li.setProperty('inputstream.adaptive.license_key', self.getLicenseKey() )
             li.setProperty('isFolder', 'false')
             li.setProperty('IsPlayable', 'true')
-            # li.setInfo('video', {})
-            li.setMimeType('application/dash+xml')
+            li.setInfo('video', {})
         li.setInfo('audio', {'codec': 'aac'})
         li.addStreamInfo('audio', {'codec': 'aac'})
         li.setContentLookup(False)
