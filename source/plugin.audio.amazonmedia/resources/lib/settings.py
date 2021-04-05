@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 #import xbmc
 import os
-import sys
+import sys, traceback
 import xbmc
 import xbmcaddon
 import xbmcvfs
@@ -118,7 +118,7 @@ class Settings(Singleton):
         self.setSetting('userPassword', "")
         self.setSetting('access', "false")
         self.setSetting('logging', "false")
-        self.setSetting('showimages', "false")
+        self.setSetting('showimages', "true")
         self.setSetting('showUnplayableSongs', "false")
         self.setSetting('showcolentr', "true")
         self.setSetting('accessType', "")
@@ -138,6 +138,7 @@ class Settings(Singleton):
         self.setSetting('search2Artists', "")
         self.setSetting('search3Artists', "")
         self.access = False
+        self.setVariables()
     def appConfig(self,app_config):
         if app_config is None:
             return False
@@ -242,6 +243,27 @@ class Settings(Singleton):
     def log(self, msg=None, level=xbmc.LOGINFO):
         # log_message = '[{}] {}'.format(self.addonName, msg)
         # xbmc.log(log_message, level)
+        # if self.logging:
+        #     hist = 1
+        # else:
+        #     hist = 0
+        # histrace = '[{}]\n'.format(self.addonName)
+        # x = 0
+        # while True:
+        #     frame = sys._getframe(x).f_back
+        #     histrace += '{} : {}\n'.format(frame.f_code.co_name,sys._getframe(x).f_lineno)
+        #     if not x <= hist:
+        #         break
+        #     x += 1
+        """returns the calling function's __module__.__name__"""
+        # above=1
+        # frame = sys._getframe()
+        # for frame_idx in range(0, above):
+        #     frame = frame.f_back
+
+        # caller_module = frame.f_globals["__name__"]
+        # caller_name = frame.f_code.co_name
+
         fct_name  = sys._getframe(1).f_code.co_name
         lin_nmbr  = sys._getframe(1).f_lineno
         if msg:
