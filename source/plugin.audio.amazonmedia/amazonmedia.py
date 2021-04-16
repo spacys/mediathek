@@ -25,31 +25,30 @@ import datetime
 #import base64
 import urllib.parse as urlparse
 
+from resources.lib.singleton import Singleton
 from resources.lib.settings import Settings
 from resources.lib.menu import MainMenu
 from resources.lib.api import API
-from resources.lib.logon import Logon
+# from resources.lib.logon import Logon
 from resources.lib.amzcall import AMZCall
 
-class AmazonMedia():
+class AmazonMedia(Singleton):
     def __init__(self):
         self.setVariables()
         if self.AMs.logging:
             self.AMs.log( 'Handle: ' + self.addonHandle.__str__() + '\n'
                         + 'Args  : ' + self.addonArgs.__str__() + '\n'
                         + 'Mode  : ' + self.AMs.addonMode.__str__())
-    # def __del__(self):
-    #     ''' Cleanup instances '''
-    #     del self.AMs.addon.addonId
     def setVariables(self):
         self.addonBaseUrl   = sys.argv[0]
         self.addonHandle    = int(sys.argv[1])
         self.addonArgs      = urlparse.parse_qs(sys.argv[2][1:])
         self.AMs    = Settings()
         self.AMm    = MainMenu(self.AMs)
-        self.AMl    = Logon(self.AMs)
+        # self.AMl    = Logon(self.AMs)
         self.AMapi  = API()
-        self.AMc    = AMZCall(self.AMs,self.AMl,self.addonArgs)
+        #self.AMc    = AMZCall(self.AMs,self.AMl,self.addonArgs)
+        self.AMc    = AMZCall(self.AMs, self.addonArgs)
         self.AMs.addonMode  = self.addonArgs.get('mode', None)
     def reqDispatch(self):
         # reset addon
@@ -57,15 +56,6 @@ class AmazonMedia():
             self.AMs.resetAddon()
             xbmc.executebuiltin('Notification("Information:", {}, 5000, )'.format(self.AMs.translation(30071)))
             return
-        # logon
-        # if not self.AMs.access and not self.AMl.amazonLogon():
-        #     xbmc.executebuiltin('Notification("Error:", %s, 5000, )'%(self.AMs.translation(30070)))
-        #     return
-        if self.AMs.logging: self.AMs.log('Access: {}'.format(self.AMs.access))
-        if not self.AMs.access:
-            if not self.AMl.amazonLogon():
-                xbmc.executebuiltin('Notification("Error:", {}, 5000, )'.format(self.AMs.translation(30070)))
-                return
 
         if self.AMs.addonMode is None:
             mode = None
@@ -74,20 +64,31 @@ class AmazonMedia():
 
         if mode is None:
             self.createList(self.AMm.menuHome())
-        elif mode == 'menuPlaylists':
-            self.createList(self.AMm.menuPlaylists(),True)
-        elif mode == 'menuAlbums':
-            self.createList(self.AMm.menuAlbums(),True)
-        elif mode == 'menuSongs':
-            self.createList(self.AMm.menuSongs(),True)
-        elif mode == 'menuStations':
-            self.createList(self.AMm.menuStations(),True)
-        elif mode == 'menuArtists':
-            self.createList(self.AMm.menuArtists(),True)
+            return
+        # elif mode == 'menuPlaylists':
+        #     self.createList(self.AMm.menuPlaylists(),True)
+        # elif mode == 'menuAlbums':
+        #     self.createList(self.AMm.menuAlbums(),True)
+        # elif mode == 'menuSongs':
+        #     self.createList(self.AMm.menuSongs(),True)
+        # elif mode == 'menuStations':
+        #     self.createList(self.AMm.menuStations(),True)
+        # elif mode == 'menuArtists':
+        #     self.createList(self.AMm.menuArtists(),True)
+        elif mode in ['menuPlaylists','menuAlbums','menuSongs','menuStations','menuArtists']:
+            exec('self.createList(self.AMm.{}(),True)'.format(mode))
+            return
         elif mode == 'menuSoccer':
             self.createList(self.AMm.menuSoccer())
+            return
 
-        elif mode == 'searchPlayLists':
+        if self.AMs.logging: self.AMs.log('Access: {}'.format(self.AMs.access))
+        if not self.AMs.access:
+            if not self.AMc.doLogon():
+               xbmc.executebuiltin('Notification("Error:", {}, 5000, )'.format(self.AMs.translation(30070)))
+               return
+
+        if mode == 'searchPlayLists':
             self.searchItems(['playlists','catalog_playlist'],30013)
         elif mode in ['search1PlayLists','search2PlayLists','search3PlayLists']:
             exec('self.searchItems([\'playlists\',\'catalog_playlist\'],None,self.AMs.getSetting("{}"))'.format(mode))
@@ -303,7 +304,7 @@ class AmazonMedia():
             if self.addonArgs.get('token', False):
                 query = self.addonArgs.get('query', [''])[0]
             else:
-                query = self.AMl.getUserInput(self.AMs.translation(txt), '')
+                query = self.AMs.getUserInput(self.AMs.translation(txt), '')
                 if not query:
                     return
         resp = self.AMc.amzCall( self.AMapi.search , 'searchItems' , '/search' , query,mode )
