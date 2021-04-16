@@ -41,6 +41,7 @@ class Settings(Singleton):
         self.savePassword   = self.toBool(self.getSetting("savePassword"))
         if not self.logonProcess and not self.savePassword:
             self.setSetting('userPassword', "")
+        self.reqloop        = 0
         self.userEmail      = self.getSetting("userEmail")
         self.userPassword   = base64.urlsafe_b64decode(self.getSetting("userPassword"))
         self.captcha        = ""
@@ -137,6 +138,7 @@ class Settings(Singleton):
         self.setSetting('search1Artists', "")
         self.setSetting('search2Artists', "")
         self.setSetting('search3Artists', "")
+        self.setSetting('captcha', "")
         self.access = False
         self.setVariables()
     def appConfig(self,app_config):
@@ -240,6 +242,22 @@ class Settings(Singleton):
         if referer == 'soccer':
             head['Content-Encoding'] = None
         return head
+    def getUserInput(self,title,txt,hidden=False,uni=False):
+        if self.logging: self.log()
+        kb = xbmc.Keyboard()
+        kb.setHeading(title)
+        kb.setDefault(txt)
+        kb.setHiddenInput(hidden)
+        kb.doModal()
+        if kb.isConfirmed() and kb.getText():
+            if uni:
+                ret = str(kb.getText(), encoding = 'utf-8')
+            else:
+                ret = kb.getText() # for password needed, due to encryption
+        else:
+            ret = False
+        del kb
+        return ret
     def log(self, msg=None, level=xbmc.LOGINFO):
         # log_message = '[{}] {}'.format(self.addonName, msg)
         # xbmc.log(log_message, level)

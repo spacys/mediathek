@@ -2,17 +2,19 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+import xbmc
 import json
 import requests
 import math
 import random
 from .singleton import Singleton
+from .logon import Logon
 
 class AMZCall(Singleton):
     """ Amazon Media Class for Amazon communication """
-    def __init__(self,Settings,Logon,AddonArgs):
+    def __init__(self,Settings,AddonArgs):
         self.s = Settings # settings
-        self.l = Logon
+        self.l = Logon(self.s)
         self.a = AddonArgs
 
     def getMaestroID(self):
@@ -22,7 +24,8 @@ class AMZCall(Singleton):
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
-
+    def doLogon(self):
+        return self.l.amazonLogon()
     # default communication
     def amzCall(self,amzUrl,mode,referer=None,asin=None,mediatype=None):
         url = '{}/{}/api/{}'.format(self.s.url, self.s.region, amzUrl['path'])
@@ -33,11 +36,17 @@ class AMZCall(Singleton):
         self.s.setCookie()
 
         if self.s.logging:
-            self.s.log(resp.reason)
+            self.s.log('url: ' + url)
+            self.s.log('reason: ' + resp.reason + ', code: ' + str(resp.status_code) + ', reqloop: ' + str(self.s.reqloop))
             self.s.log(resp.text)
         if resp.status_code == 401 :
-             if self.l.amazonLogon():
+            if self.s.reqloop < 1:
+                self.s.reqloop = 1
                 return self.amzCall(amzUrl,mode,referer,asin,mediatype)
+            else:
+                self.s.reqloop = 0
+                if self.l.amazonLogon():
+                    return self.amzCall(amzUrl,mode,referer,asin,mediatype)
 
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
             return resp

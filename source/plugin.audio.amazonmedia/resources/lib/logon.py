@@ -10,12 +10,12 @@ import xbmcgui
 import json
 import requests
 import mechanize
-#import pyxbmct
 from .singleton import Singleton
 
 class Logon(Singleton):
     def __init__(self,Settings):
         self.s = Settings
+        self.content = ""
     def parseHTML(self,resp):
         if self.s.logging: self.s.log()
         resp = re.sub(r'(?i)(<!doctype \w+).*>', r'\1>', resp)
@@ -28,7 +28,7 @@ class Logon(Singleton):
         if self.s.logging: self.s.log()
         if not self.s.userEmail or not self.s.userPassword:
             if not self.s.userEmail:
-                user = self.getUserInput(self.s.translation(30030),'', hidden=False, uni=False) # get Email
+                user = self.s.getUserInput(self.s.translation(30030),'', hidden=False, uni=False) # get Email
                 if user:
                     self.s.userEmail = user
                     if self.s.saveUsername:
@@ -36,7 +36,7 @@ class Logon(Singleton):
             else:
                 user = True
             if user and not self.s.userPassword:
-                pw = self.getUserInput(self.s.translation(30031),'', hidden=True, uni=False) # get Password
+                pw = self.s.getUserInput(self.s.translation(30031),'', hidden=True, uni=False) # get Password
                 if pw:
                     self.s.userPassword = pw
                     if self.s.savePassword and self.s.saveUsername:
@@ -47,23 +47,6 @@ class Logon(Singleton):
             else:
                 return False
         return True
-    def getUserInput(self,title,txt,hidden=False,uni=False):
-        if self.s.logging: self.s.log()
-        kb = xbmc.Keyboard()
-        kb.setHeading(title)
-        kb.setDefault(txt)
-        kb.setHiddenInput(hidden)
-        kb.doModal()
-        if kb.isConfirmed() and kb.getText():
-            if uni:
-                ret = str(kb.getText(), encoding = 'utf-8')
-            else:
-                ret = kb.getText() # for password needed, due to encryption
-        else:
-            ret = False
-        del kb
-        xbmc.sleep(500)
-        return ret
     def prepBrowser(self):
         if self.s.logging: self.s.log()
         self.br = mechanize.Browser()
@@ -84,10 +67,6 @@ class Logon(Singleton):
              ('csrf-rnd',   self.s.csrf_rnd),
              ('csrf-ts',    self.s.csrf_ts),
              ('Upgrade-Insecure-Requests', '1')]
-    def doReInit(self):
-        if self.s.logging: self.s.log()
-        self.s.setVariables()
-        self.prepBrowser()
     def amazonLogon(self):
         if self.s.logging: self.s.log()
         self.s.logonProcess = True
@@ -98,55 +77,61 @@ class Logon(Singleton):
         self.prepBrowser()
 
         x = 1
+        ret = False
         while not self.s.access:
-            if x == 3: return False
-            if self.s.logging: self.s.log(x)
-            if self.s.logging: self.s.log(self.s.access)
+            if x == 3:
+                break
+            if self.s.logging: self.s.log('loop: ' + str(x) + ' | access: ' + str(self.s.access))
             x+=1
-            if not self.getCredentials(): return False
             self.br.open(self.s.logonURL)
             # self.br.open('https://music.amazon.de')
             # self.br.open('https://www.amazon.de/gp/aw/si.html')
-            # self.s.log(self.br.response().code())
             # self.s.log(self.br.response().info())
             # self.s.log( str(self.br.response().read(), encoding = 'utf-8') )
-            try: 
-                self.doLogonForm()
-            except:
-                if not self.checkCaptcha() or self.s.btn_cancel:
-                    return False
 
-            self.content = self.getLogonResponse()
-            if not self.checkMFA(): return False
-            try:
-                if self.checkConfig():
-                    continue
-                else:
-                    return False
-            except:
+            if not self.doLogonForm():
+                break
+            if not self.checkMFA():
+                break
+            if self.checkConfig():
+                ret = True
+                if self.s.logging: self.s.log('checkConfig - true')
+                break
+            else:
+                if self.s.logging: self.s.log('checkConfig - false')
                 continue
-
-        self.s.logonProcess = False
-        self.s.setSetting('logonProcess','false')
-        return True
+        return ret
     def doLogonForm(self):
         if self.s.logging: self.s.log()
-        self.br.select_form(name="signIn")
-        if not self.br.find_control("email").readonly:
-            self.br["email"] = self.s.userEmail
-        self.br["password"] = self.s.userPassword
+        try:
+            self.br.select_form(name="signIn")
+            if not self.getCredentials():
+                return False
+            if not self.br.find_control("email").readonly:
+                self.br["email"] = self.s.userEmail
+            self.br["password"] = self.s.userPassword
+            self.getLogonResponse()
+            return True
+        except:
+            if not self.checkCaptcha() or self.s.btn_cancel:
+                return False
+            else:
+                self.getLogonResponse()
+                return True
     def getLogonResponse(self):
         if self.s.logging: self.s.log()
         self.br.submit()
-        self.s.setCookie()
         resp = self.br.response()
-        return str(resp.read(), encoding = 'utf-8')
+        self.s.setCookie()
+        self.s.cj.load(self.s.cookieFile)
+        self.content = str(resp.read(), encoding = 'utf-8')
     def checkConfig(self):
         if self.s.logging: self.s.log()
         app_config = None
         self.s.cj.load(self.s.cookieFile)
         head = self.s.prepReqHeader('')
         resp = requests.post(self.s.musicURL, data=None, headers=head, cookies=self.s.cj)
+        self.s.setCookie()
         #self.s.log(resp.text)
         configfound = False
         soup = self.parseHTML(resp.text)
@@ -155,7 +140,9 @@ class Logon(Singleton):
             # self.s.log(scripts.contents)
             if 'appConfig' in scripts.contents[0]:
                 if self.s.logging: self.s.log('Config available')
-                #self.s.log(scripts.contents)
+                #######################
+                # self.s.log(scripts.contents)
+                #######################
                 sc = scripts.contents[0]
                 sc = sc.replace("window.amznMusic = ","")
                 sc = sc.replace("appConfig:","\"appConfig\":")
@@ -172,6 +159,8 @@ class Logon(Singleton):
                 sc = sc.replace(";","")
                 sc = sc.replace("\"ssr\":\"false\",","\"ssr\":\"false\"")
                 # self.s.log(sc)
+                if not 'tier' in sc:
+                    break
                 app_config = json.loads(sc)
                 configfound = True
                 break
@@ -181,10 +170,13 @@ class Logon(Singleton):
         if not configfound:
             return False
         # self.s.log(app_config)
-        self.s.appConfig2(app_config['appConfig'])
-        self.s.setCookie()
-        self.s.setSetting('access','true')
         self.s.access = True
+        self.s.logonProcess = False
+        self.s.setSetting('access','true')
+        self.s.setSetting('logonProcess','false')
+        self.s.appConfig2(app_config['appConfig'])
+        self.s.setVariables()
+        self.prepBrowser()
         return True
     def checkMFA(self):
         if self.s.logging: self.s.log()
@@ -195,7 +187,7 @@ class Logon(Singleton):
                 form = soup.find('form', class_="cvf-widget-form cvf-widget-form-dcq fwcim-form a-spacing-none")
                 msgheading = form.find('label', class_="a-form-label").getText().strip()
                 msgtxt = ""
-                inp = self.getUserInput(msgheading, msgtxt)
+                inp = self.s.getUserInput(msgheading, msgtxt)
                 if self.checkMFAInput(inp,'dcq_question_subjective_1') == False:
                     return False
             elif 'name="claimspicker"' in self.content:
@@ -205,7 +197,7 @@ class Logon(Singleton):
                 msgtxt = form[0].findAll('div', class_='a-row')[1].renderContents().strip()
                 if xbmcgui.Dialog().yesno(msgheading, msgtxt):
                     self.br.select_form(nr=0)
-                    self.content = self.getLogonResponse()
+                    self.getLogonResponse()
                 else:
                     return False
             elif 'name="code"' in self.content: # sms info
@@ -214,7 +206,7 @@ class Logon(Singleton):
                 msgheading = form[0].findAll(lambda tag: tag.name == 'span' and not tag.attrs)
                 msgheading = msgheading[1].text + '\n' + msgheading[2].text
                 msgtxt = ''
-                inp = self.getUserInput(msgheading, msgtxt)
+                inp = self.s.getUserInput(msgheading, msgtxt)
                 if self.checkMFAInput(inp,'code') == False:
                     return False
             elif 'auth-mfa-form' in self.content:
@@ -222,7 +214,7 @@ class Logon(Singleton):
                 self.s.log('### MFA ###############')
                 msgheading = msg.p.renderContents().strip()
                 msgtxt = ''
-                inp = self.getUserInput(msgheading, msgtxt)
+                inp = self.s.getUserInput(msgheading, msgtxt)
                 if self.checkMFAInput(inp,'otpCode','ActivateWindow(busydialog)') == False:
                     return False
             else: # Unknown form
@@ -236,7 +228,7 @@ class Logon(Singleton):
                 xbmc.executebuiltin(action)
             self.br.select_form(nr=0)
             self.br[target] = inp
-            self.content = self.getLogonResponse()
+            self.getLogonResponse()
         else:
             return False
     def checkCaptcha(self):
@@ -303,4 +295,3 @@ class Logon(Singleton):
         cp = Captcha(layout, self.s.addonFolder, 'Default', image=imagefile, text=message, settings=self.s)
         cp.doModal()
         del cp
-        xbmc.sleep(750)
