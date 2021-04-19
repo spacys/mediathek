@@ -768,7 +768,7 @@ class AmazonMedia(Singleton):
         elif mode == 'searchitems':             # search items (songs / albums)
             for item in param['hits']:
                 if stype == 'albums':
-                    mod  = {'mode':'lookup'}
+                    mod  = {'mode':'lookup','isList':True}
                     fold = True
                 elif stype == 'tracks' or stype == 'artists':
                     mod  = {'mode':'getTrack'}
@@ -785,7 +785,7 @@ class AmazonMedia(Singleton):
                 pass
         elif mode == 'searchplaylists':         # search playlists
             for item in param['hits']:
-                self.setListItem(itemlist,item['document'],{'mode':'lookup'})
+                self.setListItem(itemlist,item['document'],{'mode':'lookup','isList':True})
             try:
                 if not param['nextPage'] == None and len(param['hits']) <= self.AMs.maxResults: # next page
                     itemlist.append(self.setPaginator(param['nextPage'],query))
