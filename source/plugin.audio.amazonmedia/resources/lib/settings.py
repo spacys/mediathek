@@ -4,13 +4,13 @@
 from __future__ import unicode_literals
 #import xbmc
 import os
-import sys, traceback
+import sys #, traceback
 import xbmc
 import xbmcaddon
 import xbmcvfs
 import base64
 import http.cookiejar as cookielib
-import urllib.parse as urlparse
+# import urllib.parse as urlparse
 
 from .singleton import Singleton
 

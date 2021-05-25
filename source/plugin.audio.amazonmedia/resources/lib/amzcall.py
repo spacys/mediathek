@@ -7,6 +7,7 @@ import json
 import requests
 import math
 import random
+import datetime
 from .singleton import Singleton
 from .logon import Logon
 
@@ -16,7 +17,6 @@ class AMZCall(Singleton):
         self.s = Settings # settings
         self.l = Logon(self.s)
         self.a = AddonArgs
-
     def getMaestroID(self):
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
     def generatePlayerUID(self):
