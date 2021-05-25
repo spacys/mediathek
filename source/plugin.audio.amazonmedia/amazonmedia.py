@@ -24,12 +24,12 @@ import datetime
 #import base64
 import urllib.parse as urlparse
 
-from .resources.lib.singleton import Singleton
-from .resources.lib.settings import Settings
-from .resources.lib.menu import MainMenu
-from .resources.lib.api import API
+from resources.lib.singleton import Singleton
+from resources.lib.settings import Settings
+from resources.lib.menu import MainMenu
+from resources.lib.api import API
 # from resources.lib.logon import Logon
-from .resources.lib.amzcall import AMZCall
+from resources.lib.amzcall import AMZCall
 
 class AmazonMedia(Singleton):
     def __init__(self):
