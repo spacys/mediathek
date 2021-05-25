@@ -7,8 +7,8 @@ import xbmcaddon
 import threading
 #from resources.lib.configs import *
 from time import time
-from .resources.lib.proxy import ProxyTCPD
-from .resources.lib.settings import Settings
+from resources.lib.proxy import ProxyTCPD
+from resources.lib.settings import Settings
 
 class ServiceManager():
     def __init__(self):
