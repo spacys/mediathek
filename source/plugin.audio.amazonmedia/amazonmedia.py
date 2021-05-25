@@ -9,7 +9,7 @@ from urllib.parse import urlencode as urlencode
 import requests
 # import mechanize
 # import http.cookiejar as cookielib
-# import sys
+import sys
 import re
 import os
 import json
@@ -18,19 +18,18 @@ import xbmc
 import xbmcplugin
 import xbmcaddon
 import xbmcgui
-# import xbmcaddon
 import xbmcvfs
 # from bs4 import BeautifulSoup
 import datetime
 #import base64
 import urllib.parse as urlparse
 
-from resources.lib.singleton import Singleton
-from resources.lib.settings import Settings
-from resources.lib.menu import MainMenu
-from resources.lib.api import API
+from .resources.lib.singleton import Singleton
+from .resources.lib.settings import Settings
+from .resources.lib.menu import MainMenu
+from .resources.lib.api import API
 # from resources.lib.logon import Logon
-from resources.lib.amzcall import AMZCall
+from .resources.lib.amzcall import AMZCall
 
 class AmazonMedia(Singleton):
     def __init__(self):
@@ -43,12 +42,12 @@ class AmazonMedia(Singleton):
         self.addonBaseUrl   = sys.argv[0]
         self.addonHandle    = int(sys.argv[1])
         self.addonArgs      = urlparse.parse_qs(sys.argv[2][1:])
-        self.AMs    = Settings()
-        self.AMm    = MainMenu(self.AMs)
+        self.AMs            = Settings()
+        self.AMm            = MainMenu(self.AMs)
         # self.AMl    = Logon(self.AMs)
-        self.AMapi  = API()
+        self.AMapi          = API()
         #self.AMc    = AMZCall(self.AMs,self.AMl,self.addonArgs)
-        self.AMc    = AMZCall(self.AMs, self.addonArgs)
+        self.AMc            = AMZCall(self.AMs, self.addonArgs)
         self.AMs.addonMode  = self.addonArgs.get('mode', None)
     def reqDispatch(self):
         # reset addon
@@ -813,7 +812,7 @@ class AmazonMedia(Singleton):
             try:
                 if len(param['albumList']) == self.AMs.maxResults:
                     itemlist.append(self.setPaginator(param['nextTokenMap']['album'],None,query))
-                    itemlist.append((url, li, True))
+                    #itemlist.append((url, li, True))
             except:
                 pass
         self.finalizeContent(itemlist,ctype)
