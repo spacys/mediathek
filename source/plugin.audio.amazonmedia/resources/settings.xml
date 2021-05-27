@@ -2,7 +2,7 @@
 <settings>
     <category label="30100">
         <setting id="siteVersion"       type="enum" label="30101" values="DE|FR|UK|IT|ES" default="0"/>
-        <setting id="quality"           type="enum" label="30102" values="256kbit|128kbit|48kbit" default="0"/>
+        <setting id="quality"           type="enum" label="30102" values="256kbit|128kbit|48kbit|HD?" default="0"/>
         <setting type="sep"/>
         <setting id="showimages"        type="bool" label="30105" default="true"/>
         <setting id="showUnplayableSongs" type="bool" label="30107" default="false"/>

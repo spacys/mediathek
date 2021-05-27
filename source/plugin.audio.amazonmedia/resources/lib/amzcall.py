@@ -569,6 +569,10 @@ class AMZCall(Singleton):
             }
             data = json.dumps(data)
         elif mode == 'getTrackDash':
+            if int(self.s.getSetting("quality")) == 3:
+                audio = self.s.audioQualist[0] # fallback to quality 'high'
+            else:
+                audio = self.s.audioQuality
             mID = self.getMaestroID()
             data = {
                 'customerId' :          self.s.customerId,
@@ -580,7 +584,7 @@ class AMZCall(Singleton):
                     'identifier' :      asin,
                     'identifierType' :  mediatype
                 }],
-                'bitrateTypeList' : [ self.s.audioQuality ],
+                'bitrateTypeList' : [ audio ], # self.s.audioQuality
                 'musicDashVersionList' : [ 'V2' ],
                 'appInfo' : {
                     'musicAgent': mID # 'Maestro/1.0 WebCP/1.0.202513.0 (9a46-5ad0-dmcp-8d19-ee5c6)'

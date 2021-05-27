@@ -62,7 +62,7 @@ class Settings(Singleton):
         self.access         = self.toBool(self.getSetting("access"))
         self.accessType     = self.getSetting("accessType")
         self.maxResults     = 50
-        self.audioQualist   = ["HIGH","MEDIUM","LOW"]
+        self.audioQualist   = ["HIGH","MEDIUM","LOW","ALL"]
         self.audioQuality   = self.audioQualist[int(self.getSetting("quality"))]
         self.cj             = cookielib.MozillaCookieJar()
         self.logging        = self.toBool(self.getSetting("logging"))

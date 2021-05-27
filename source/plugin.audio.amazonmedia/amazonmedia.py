@@ -833,9 +833,7 @@ class AmazonMedia(Singleton):
             manifest = self.tryGetStreamDash(asin,objectId)
             if manifest:
                 song = self.writeSongFile(manifest,'mpd')
-                ''' proxy try - START '''
                 song = 'http://{}/mpd/{}'.format(self.AMs.getSetting('proxy'),'song.mpd')
-                ''' proxy try - END '''
                 stream['ia']  = True
                 stream['lic'] = True
         if song == None:
