@@ -1,37 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-# import urllib.parse as urlparse
-from urllib.parse import quote as urlquote
-from urllib.parse import quote_plus as urlquoteplus
-from urllib.parse import urlencode as urlencode
-
 import requests
-# import mechanize
-# import http.cookiejar as cookielib
 import sys
 import re
 import os
 import json
-# import shutil
+import datetime
+import urllib.parse as urlparse
+from urllib.parse import quote as urlquote
+from urllib.parse import quote_plus as urlquoteplus
+from urllib.parse import urlencode as urlencode
+
 import xbmc
 import xbmcplugin
-import xbmcaddon
 import xbmcgui
 import xbmcvfs
-# from bs4 import BeautifulSoup
-import datetime
-#import base64
-import urllib.parse as urlparse
 
-from resources.lib.singleton import Singleton
 from resources.lib.settings import Settings
 from resources.lib.menu import MainMenu
 from resources.lib.api import API
-# from resources.lib.logon import Logon
 from resources.lib.amzcall import AMZCall
+from resources.lib.logon import Logon
 
-class AmazonMedia(Singleton):
+class AmazonMedia():
     def __init__(self):
         self.setVariables()
         if self.AMs.logging:
@@ -44,10 +36,10 @@ class AmazonMedia(Singleton):
         self.addonArgs      = urlparse.parse_qs(sys.argv[2][1:])
         self.AMs            = Settings()
         self.AMm            = MainMenu(self.AMs)
-        # self.AMl    = Logon(self.AMs)
+        self.AMl            = Logon(self.AMs)
         self.AMapi          = API()
         #self.AMc    = AMZCall(self.AMs,self.AMl,self.addonArgs)
-        self.AMc            = AMZCall(self.AMs, self.addonArgs)
+        self.AMc            = AMZCall(self.AMs, self.AMl, self.addonArgs)
         self.AMs.addonMode  = self.addonArgs.get('mode', None)
     def reqDispatch(self):
         # reset addon
@@ -83,7 +75,8 @@ class AmazonMedia(Singleton):
 
         if self.AMs.logging: self.AMs.log('Access: {}'.format(self.AMs.access))
         if not self.AMs.access:
-            if not self.AMc.doLogon():
+            # if not self.AMc.doLogon():
+            if not self.AMl.amazonLogon():
                xbmc.executebuiltin('Notification("Error:", {}, 5000, )'.format(self.AMs.translation(30070)))
                return
 
@@ -91,6 +84,11 @@ class AmazonMedia(Singleton):
             self.searchItems(['playlists','catalog_playlist'],30013)
         elif mode in ['search1PlayLists','search2PlayLists','search3PlayLists']:
             exec('self.searchItems([\'playlists\',\'catalog_playlist\'],None,self.AMs.getSetting("{}"))'.format(mode))
+
+        # test start
+        elif mode == 'getPodcasts':
+            self.getPodcasts()
+        # test end
 
         elif mode == 'searchAlbums':
             self.searchItems(['albums','catalog_album'],30010)
@@ -871,6 +869,7 @@ class AmazonMedia(Singleton):
     def tryGetStreamDash(self,asin,objectId):
         resp = self.AMc.amzCall(self.AMapi.streamDash,'getTrackDash',None,asin,'ASIN')
         return json.loads(resp.text)['contentResponseList'][0]['manifest']
+    # resp = self.AMc.amzCall(self.AMapi.getStreamingURLsWithFirstChunkV2,'getTrackDashV2',None,asin,'ASIN')
     def finalizeItem(self,song,ia=False,lic=False):
         li = xbmcgui.ListItem(path=song)
         if ia:
@@ -1005,6 +1004,8 @@ class AmazonMedia(Singleton):
         song = 'http://{}/mpd/{}'.format(self.AMs.getSetting('proxy'),'song.mpd')
         ''' proxy try - END '''
         self.finalizeItem(song,True)
+    def getPodcasts(self):
+        resp = self.AMc.amzCall(self.AMapi.GetPodcast,'getPodcasts',None,None,None)
 
 if __name__ == '__main__':
     AmazonMedia().reqDispatch()

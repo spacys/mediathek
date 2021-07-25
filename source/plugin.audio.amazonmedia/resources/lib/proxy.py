@@ -1,19 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
-#from kodi_six.utils import py2_decode
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler
 from socketserver import ThreadingTCPServer
-
 from io import BytesIO
 from gzip import GzipFile
-#from resources.lib.network import MechanizeLogin
 import re
 import os
 import requests
-from urllib.parse import unquote, urlparse, parse_qsl
+from urllib.parse import urlparse, parse_qsl
 
 import xbmc
 import xbmcvfs
