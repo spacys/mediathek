@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-import xbmc
-import xbmcaddon
 import threading
-#from resources.lib.configs import *
 from time import time
+import xbmc
 from resources.lib.proxy import ProxyTCPD
 from resources.lib.settings import Settings
 
@@ -17,6 +15,7 @@ class ServiceManager():
         self.s.log('Proxy Bound to 127.0.0.1:{}'.format(self.proxy.port))
         self.proxy_thread = threading.Thread(target=self.proxy.serve_forever)
         self.s.setSetting('proxy','127.0.0.1:{}'.format(self.proxy.port))
+        self.monitor = xbmc.Monitor()
 
     def run(self):
         def _start_servers():
@@ -26,18 +25,18 @@ class ServiceManager():
             self.s.log('Proxy Server started')
 
         def _stop_servers():
-            self.s.setSetting('proxy','')
             self.proxy.server_close()
             self.proxy.shutdown()
             self.proxy_thread.join()
+            self.s.setSetting('proxy','')
             self.s.log('Proxy Server stopped')
         
-        monitor = xbmc.Monitor()
+        #monitor = xbmc.Monitor()
 
         _start_servers()
 
-        while not monitor.abortRequested():
-            if monitor.waitForAbort(1):
+        while not self.monitor.abortRequested():
+            if self.monitor.waitForAbort(1):
                 break
 
         _stop_servers()

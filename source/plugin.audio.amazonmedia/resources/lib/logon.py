@@ -5,14 +5,13 @@ from bs4 import BeautifulSoup
 import re
 import os
 import base64
-import xbmc
-import xbmcgui
 import json
 import requests
+import xbmc
+import xbmcgui
 import mechanize
-from .singleton import Singleton
 
-class Logon(Singleton):
+class Logon():
     def __init__(self,Settings):
         self.s = Settings
         self.content = ""

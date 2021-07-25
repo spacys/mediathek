@@ -1,20 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
-#import xbmc
 import os
-import sys #, traceback
+import sys
+import base64
+import http.cookiejar as cookielib
 import xbmc
 import xbmcaddon
 import xbmcvfs
-import base64
-import http.cookiejar as cookielib
-# import urllib.parse as urlparse
 
-from .singleton import Singleton
-
-class Settings(Singleton):
+class Settings():
     """ Amazon Media Addon Settings """
     def __init__(self):
         self.logonProcess   = False

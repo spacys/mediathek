@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from .singleton import Singleton
 
-class MainMenu(Singleton):
+class MainMenu():
     """
     Amazon Media Main Menu Entries
         'txt'    - String ID for translation
@@ -21,7 +20,9 @@ class MainMenu(Singleton):
                 {'txt':30015,'fct':'getGenres',             'img':'img_genres'},
                 {'txt':30027,'fct':'menuArtists',           'img':'img_artists'},
                 {'txt':30041,'fct':'getNewRecom',           'img':'img_newrecom'},
-                {'txt':30035,'fct':'menuSoccer',            'img':'img_soccer'}]
+                {'txt':30035,'fct':'menuSoccer',            'img':'img_soccer'},
+                {'txt':30035,'fct':'getPodcasts',           'img':'img_albums'}
+                ]
     def menuPlaylists(self):
         return [{'txt':30013,'fct':'searchPlayLists',       'img':'img_search'},
                 {'txt':30032,'fct':'search1PlayLists',      'img':'img_search','search':self.s.sPlayLists[0]},

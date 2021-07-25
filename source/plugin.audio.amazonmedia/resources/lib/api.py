@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from .singleton import Singleton
 
-class API(Singleton):
+class API():
     """ Amazon Media APIs """
-    #def setAPIConstants(self):
     def __init__(self):
         """
         Amazon API definitions
@@ -96,6 +94,10 @@ class API(Singleton):
             'path':   'dmls/',
             'target': '{}getLicenseForPlaybackV2'.format(self.base)
         }
+        self.getStreamingURLsWithFirstChunkV2 = { # HD playback?
+            'path':   'dmls/',
+            'target': '{}getStreamingURLsWithFirstChunkV2'.format(self.base)
+        }
         self.search = {
             'path':   'textsearch/search/v1_1/',
             'target': 'com.amazon.tenzing.textsearch.v1_1.TenzingTextSearchServiceExternalV1_1.search'
@@ -185,3 +187,18 @@ class API(Singleton):
             'path':   'amals/getOnDemandStreamingURLs',
             'target': 'com.amazon.amazonmusicaudiolocatorservice.model.AmazonMusicAudioLocatorServiceExternal.GetOnDemandStreamingURLs'
         }
+        # podcasts
+        # api/podcast
+        # https://music-uk-dub.dub.proxy.amazon.com/EU/api/podcast/ " + t + "/visual"
+        # https://music.amazon.com/" + e + "/api/podcast/" + t + "/visual"
+        self.GetPodcast = {
+            'path':   'podcast',
+            'target': 'Podcast.Web.WidgetsInterface.LibraryShowsWidgetElement'
+        }
+        # "/podcasts/" + e.podcastId + "/" + encodeURI(e.podcastTitle),
+        # "/podcasts/" + e.podcastId + "/episodes/" + e.episodeId + "/" + a,
+        # "/podcasts/" + e.podcastId + "/" + encodeURI(e.podcastTitle),
+        # preset: '{"podcastId":"' + e.podcastId + '","startAtEpisodeId":"' + e.episodeId + '"}',
+        # e.PODCAST_LIBRARY_RECENTS_WIDGET = "Podcast.Web.WidgetsInterface.BookmarkedEpisodesWidgetElement",
+        # e.PODCAST_LIBRARY_PLAYLIST_WIDGET = "Podcast.Web.WidgetsInterface.LibraryPlaylistWidgetElement",
+        # e.PODCAST_LIBRARY_SHOWS_WIDGET = "Podcast.Web.WidgetsInterface.LibraryShowsWidgetElement"

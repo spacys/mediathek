@@ -1,21 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
-import xbmc
 import json
 import requests
 import math
 import random
 import datetime
-from .singleton import Singleton
 from .logon import Logon
 
-class AMZCall(Singleton):
+class AMZCall():
     """ Amazon Media Class for Amazon communication """
-    def __init__(self,Settings,AddonArgs):
+    def __init__(self,Settings,Logon,AddonArgs):
         self.s = Settings # settings
-        self.l = Logon(self.s)
+        self.l = Logon
         self.a = AddonArgs
     def getMaestroID(self):
         return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
@@ -24,8 +21,8 @@ class AMZCall(Singleton):
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
     def doCalc(self):
         return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
-    def doLogon(self):
-        return self.l.amazonLogon()
+    # def doLogon(self):
+    #     return self.l.amazonLogon()
     # default communication
     def amzCall(self,amzUrl,mode,referer=None,asin=None,mediatype=None):
         url = '{}/{}/api/{}'.format(self.s.url, self.s.region, amzUrl['path'])
@@ -594,6 +591,60 @@ class AMZCall(Singleton):
                     'customerId' :      self.s.customerId,
                     'territoryId' :     self.s.musicTerritory,
                     'entitlementList' : [ 'HAWKFIRE' ]
+                }
+            }
+            data = json.dumps(data)
+        elif mode == 'getPodcasts': # test only
+            data = {
+                'customerId' :          self.s.customerId,
+                'deviceToken' : {
+                    'deviceTypeId' :    self.s.deviceType,
+                    'deviceId' :        self.s.deviceId
+                }
+             }
+            data = json.dumps(data)
+        elif mode == 'getTrackDashV2': # test only
+            if int(self.s.getSetting("quality")) == 3:
+                audio = self.s.audioQualist[0] # fallback to quality 'high'
+            else:
+                audio = self.s.audioQuality
+            # case "PRIME":
+            #     return "ROBIN";
+            # case "UNLIMITED":
+            #     return "HAWKFIRE";
+            # case "UNLIMITED_HD":
+            #     return "KATANA";
+            mID = self.getMaestroID()
+            data = {
+                'customerId' :          self.s.customerId,
+                'deviceToken' : {
+                    'deviceTypeId' :    self.s.deviceType,
+                    'deviceId' :        self.s.deviceId
+                },
+                'contentIdList' : [{
+                    'identifier' :      asin,
+                    'identifierType' :  mediatype
+                }],
+                #'bitrateTypeList' : [ audio ], # self.s.audioQuality missing
+                #'musicDashVersionList' : [ 'V2' ], # missing
+                #'appInfo' : { # missing
+                #    'musicAgent': mID
+                #},
+                'musicRequestIdentityContext': {
+                    'musicIdentities': {
+                        'musicAccountCid': self.s.customerId
+                    }
+                },
+                'customerInfo' : {
+                    'marketplaceId' :   self.s.marketplaceId,
+                    # 'customerId' :      self.s.customerId,   # missing
+                    'territoryId' :     self.s.musicTerritory,
+                    'entitlementList' : [ 'ROBIN' ] # account mapping
+                },
+                'appMetadata': { 'https': 'true' },
+                'clientMetadata': {
+                    'clientId': 'WebCP',
+                    'clientRequestId': ''
                 }
             }
             data = json.dumps(data)
