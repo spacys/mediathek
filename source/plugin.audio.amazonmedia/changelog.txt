@@ -1,3 +1,7 @@
+1.0.20
+- addon modularized
+- code improved / fixed
+- list entries sorted and many more
 1.0.19
 - user agent updated
 1.0.18
