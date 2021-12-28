@@ -14,7 +14,6 @@
 
         <setting id="userAgent"         type="text" visible="false" label="userAgent"        default="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"/>
         <setting id="deviceId"          type="text" visible="false" label="deviceId"         default=""/>
-        <setting id="accessToken"       type="text" visible="false" label="accessToken"      default=""/>
         <setting id="csrf_token"        type="text" visible="false" label="csrf_token"       default=""/>
         <setting id="csrf_ts"           type="text" visible="false" label="csrf_ts"          default=""/>
         <setting id="csrf_rnd"          type="text" visible="false" label="csrf_rnd"         default=""/>
@@ -26,7 +25,6 @@
         <setting id="customerLang"      type="text" visible="false" label="customerLang"     default=""/>
         <setting id="region"            type="text" visible="false" label="region"           default=""/>
         <setting id="url"               type="text" visible="false" label="url"              default=""/>
-        <setting id="access"            type="bool" visible="false" label="access"           default="false"/>
         <setting id="accessType"        type="text" visible="false" label="accessType"       default=""/>
         <setting id="search1PlayLists"  type="text" visible="false" label="search1PlayLists" default=""/>
         <setting id="search2PlayLists"  type="text" visible="false" label="search2PlayLists" default=""/>
@@ -63,8 +61,8 @@
     </category>
     <category label="30200">
         <setting id="saveUsername"      type="bool" label="30108" default="false"/>
-        <setting id="savePassword"      type="bool" label="30109" enable="!eq(-1,false)"     default="false"/>
-        <setting id="userEmail"         type="text" visible="false" label="30030"            default=""/>
+        <setting id="userEmail"         type="text" visible="!eq(-1,false)" label="30030" enable="!eq(-1,false)" default=""/>
+        <setting id="savePassword"      type="bool" label="30109" enable="!eq(-2,false)"     default="false"/>
         <setting id="userPassword"      type="text" visible="false" label="30031" option="hidden" default=""/>
     </category>
 </settings>
