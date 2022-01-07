@@ -10,15 +10,13 @@ class AMcall(Singleton):
     def __init__(self):
         self._t = AMtools()
 
-    def getMaestroID(self):
-        return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
+    def getMaestroID(self): return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
+    
+    def doCalc(self):       return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
 
     def generatePlayerUID(self):
         a = str(float.hex(float(math.floor(16 * (1 + random.random())))))[4:5]
         return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
-
-    def doCalc(self):
-        return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
 
     def amzCall(self,amzUrl,mode,referer=None,asin=None,mediatype=None):
         from resources.lib.api import AMapi
