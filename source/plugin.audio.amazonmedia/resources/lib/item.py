@@ -51,30 +51,21 @@ class AMitem(Singleton):
         #     if 'totalTrackCount' in item:
         #         info['tracknumber'] = item['totalTrackCount']
 
-        if 'trackNum' in item:
-            info['tracknumber'] = item['trackNum']
-        elif 'trackCount' in item:
-            info['tracknumber'] = item['trackCount']
-        elif 'totalTrackCount' in item:
-            info['tracknumber'] = item['totalTrackCount']
-        elif 'totalNumberOfTracks' in item:
-            info['tracknumber'] = item['totalNumberOfTracks']
+        if 'trackNum' in item:              info['tracknumber'] = item['trackNum']
+        elif 'trackCount' in item:          info['tracknumber'] = item['trackCount']
+        elif 'totalTrackCount' in item:     info['tracknumber'] = item['totalTrackCount']
+        elif 'totalNumberOfTracks' in item: info['tracknumber'] = item['totalNumberOfTracks']
 
-        if 'discNum' in item:           info['discnumber'] = item['discNum']
+        if 'discNum' in item:               info['discnumber'] = item['discNum']
 
-        if 'duration' in item:
-            info['duration'] = item['duration']
-        elif 'durationSeconds' in item:
-            info['duration'] = item['durationSeconds']
+        if 'duration' in item:              info['duration'] = item['duration']
+        elif 'durationSeconds' in item:     info['duration'] = item['durationSeconds']
 
-        if 'albumReleaseDate' in item:  info['year'] = item['albumReleaseDate'][:4]
+        if 'albumReleaseDate' in item:      info['year'] = item['albumReleaseDate'][:4]
 
-        if 'primaryGenre' in item:
-            info['genre'] = item['primaryGenre']
-        elif 'genreName' in item:
-            info['genre'] = item['genreName']
-        elif 'productDetails' in item:
-            info['genre'] = item['productDetails']['primaryGenreName']
+        if 'primaryGenre' in item:          info['genre'] = item['primaryGenre']
+        elif 'genreName' in item:           info['genre'] = item['genreName']
+        elif 'productDetails' in item:      info['genre'] = item['productDetails']['primaryGenreName']
 
         if 'albumName' in item:             info['album'] = item['albumName']
         if 'description' in item:           info['album'] = item['description']
@@ -217,6 +208,7 @@ class AMitem(Singleton):
         if inf['artist'] is not None:       url['artist']       = inf['artist']
         if inf['year'] is not None:         url['year']         = inf['year']
         if inf['rating'] is not None:       url['rating']       = inf['rating']
+        if inf['duration'] is not None:     url['duration']     = inf['duration']
         if inf['tracknumber'] is not None:  url['tracknumber']  = inf['tracknumber']
         if met['thumb'] is not None:        url['art']          = met['thumb']
 

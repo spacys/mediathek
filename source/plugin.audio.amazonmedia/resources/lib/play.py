@@ -72,16 +72,23 @@ class AMplay(Singleton):
         return json.loads(resp.text)['contentResponseList'][0]['manifest']
 
     def finalizeItem(self,song,ia=False,lic=False):
-        inf = {
-            'tracknumber':  int(self._t.addonArgs.get('tracknumber', [0])[0] ),
-            'discnumber':   int(self._t.addonArgs.get('discnumber',  [0])[0] ),
-            'duration':     int(self._t.addonArgs.get('duration',    [0])[0] ),
-            'year':         int(self._t.addonArgs.get('year',     [1900])[0] ),
-            'genre':            self._t.addonArgs.get('genre',      [''])[0],
-            'album':            self._t.addonArgs.get('album',      [''])[0],
-            'artist':      [    self._t.addonArgs.get('artist',     [''])[0] ],
-            'rating':       float(self._t.addonArgs.get('rating',    [0])[0] )
+        inf  = {}
+        data = {
+            'tracknumber',
+            'discnumber',
+            'duration',
+            'year',
+            'genre',
+            'album',
+            'artist',
+            'rating'
         }
+        for item in data:
+            if not self._t.addonArgs.get(item, [None])[0] == None:
+                if 'artist' in item:
+                    inf[item] = [ self._t.addonArgs.get(item, [None])[0] ]
+                else:
+                    inf[item] = self._t.addonArgs.get(item, [None])[0]
 
         li = xbmcgui.ListItem(path=song, label=self._t.addonArgs.get('title', [None])[0])
         if ia:
@@ -94,14 +101,14 @@ class AMplay(Singleton):
             if lic:
                 li.setProperty('inputstream.adaptive.license_key', self.getLicenseKey() )
             li.setInfo('video', inf)
-        inf['artist'] = str(inf['artist'][0])
+        #inf['artist'] = str(inf['artist'][0])
         li.setProperty('isFolder', 'false')
         li.setProperty('IsPlayable', 'true')
         li.setArt({'thumb':self._t.addonArgs.get('art', [None])[0]})
         li.setInfo('audio', {'codec': 'aac'})
         li.addStreamInfo('audio', {'codec': 'aac'})
         li.setContentLookup(False)
-        li.setInfo('music', inf)
+        # li.setInfo('music', inf)
         xbmcplugin.setResolvedUrl(self._t.addonHandle, True, listitem=li)
 
     def getLicenseKey(self):
