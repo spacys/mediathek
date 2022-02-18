@@ -1,0 +1,44 @@
+1.0.20
+- addon modularized
+- code improved / fixed
+- list entries sorted and many more
+1.0.19
+- user agent updated
+1.0.18
+- code optimized
+1.0.17
+- Audio quality option 'ALL'/'HD?' removed
+1.0.16
+- Audio quality option 'ALL'/'HD?' added
+1.0.15
+- quick fix
+1.0.14
+- cleanup
+1.0.13
+- minor fixes
+1.0.12
+- List update
+1.0.11
+- Logon process stabilized
+1.0.10
+- some changes on defaults
+1.0.9
+- mode fix
+1.0.8
+- more improvements
+1.0.7
+- some improvements
+1.0.6
+- next Logon fix
+1.0.5
+- Logon fix
+1.0.4
+- captcha button fix
+1.0.3
+- search fix
+1.0.2
+- 2nd Logon fix
+1.0.1
+- Logon fix
+1.0.0
+- Kodi Matrix port, can not be used for older Kodi versions
