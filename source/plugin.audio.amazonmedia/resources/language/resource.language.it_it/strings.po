@@ -186,6 +186,10 @@ msgctxt "#30075"
 msgid "Another instance is running."
 msgstr "Another instance is running."
 
+msgctxt "#30076"
+msgid "Credentials successful removed."
+msgstr "Credentials successful removed."
+
 msgctxt "#30100"
 msgid "General"
 msgstr "Generale"
@@ -225,6 +229,10 @@ msgstr "Salva nome utente?"
 msgctxt "#30109"
 msgid "Save Password?"
 msgstr "Salva la password"
+
+msgctxt "#30110"
+msgid "Reset Credentials"
+msgstr "Ripristina Credenziali utente"
 
 msgctxt "#30200"
 msgid "User Credentials"

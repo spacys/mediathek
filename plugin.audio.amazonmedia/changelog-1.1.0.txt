@@ -1,3 +1,6 @@
+1.1.0
+- Addon redesign / Code documented
+- Clean up
 1.0.20
 - addon modularized
 - code improved / fixed

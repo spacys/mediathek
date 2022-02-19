@@ -6,14 +6,10 @@ from http.server import BaseHTTPRequestHandler
 from socketserver import ThreadingTCPServer
 from io import BytesIO
 from gzip import GzipFile
-import re
-import os
-import requests
+import re, os, requests
 from urllib.parse import urlparse, parse_qsl
 
-import xbmc
-import xbmcvfs
-import xbmcaddon
+import xbmc, xbmcvfs, xbmcaddon
 
 class ProxyHTTPD(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'  # Allow keep-alive

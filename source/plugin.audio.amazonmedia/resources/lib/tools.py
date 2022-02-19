@@ -1,118 +1,117 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, os
-from resources.lib.singleton import Singleton
+import sys, os, pickle
 import urllib.parse as urlparse
-import http.cookiejar as cookielib
-#import requests
-import xbmc
-import xbmcaddon
-import xbmcvfs
+import xbmc, xbmcgui, xbmcaddon, xbmcvfs, xbmcplugin
+from resources.lib.access import AMaccess
+from resources.lib.singleton import Singleton
 
-class AMtools(Singleton):
-    _globals = {}
-    """ Allow the usage of dot notation for data inside the _globals dictionary, without explicit function call """
-    def __getattr__(self, name):
-        return self._globals[name]
-
-    def __init__(self):
-        self._globals['maxResults']     = 100
-        self._globals['siteVerList']    = ['de', 'fr', 'co.uk', 'it', 'es']
-        self._globals['audioQualist']   = ['HIGH','MEDIUM','LOW']
+class AMtools( Singleton ):
+    """ Allow the usage of dot notation for data inside the g dictionary, without explicit function call """
+    G = {}
+    def __init__( self ):
         self.setVariables()
 
-    def setVariables(self):
-        """ initialize gloabl addon variables """
-        self._globals['addon']          = xbmcaddon.Addon()
-        self._globals['addonBaseUrl']   = sys.argv[0]
-        self._globals['addonHandle']    = int(sys.argv[1])
-        self._globals['addonArgs']      = urlparse.parse_qs(sys.argv[2][1:])
-        self._globals['addonMode']      = self._globals['addonArgs'].get('mode', None)
-        self._globals['addonFolder']    = self.getFolder('special://home/addons/{}'.format(self.getInfo('id')))
-        self._globals['addonUDatFo']    = self.getFolder('special://profile/addon_data/{}'.format(self.getInfo('id')))
-        self._globals['reqloop']        = 0
+    def setVariables( self ):
+        """ initialize global addon variables """
+        self.musicURL           = 'https://music.amazon.{}'
+        self.userAgent          = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36'
 
-        if not xbmcvfs.exists(self._globals['addonUDatFo']):
-            xbmcvfs.mkdirs(self._globals['addonUDatFo'])
+        self.G['addonBaseUrl']  = sys.argv[0]
+        self.G['addonHandle']   = int(sys.argv[1])
+        self.G['addonArgs']     = urlparse.parse_qs(sys.argv[2][1:])
+        self.G['addonMode']     = self.G['addonArgs'].get('mode', None)
+        self.G['addonFolder']   = xbmcvfs.translatePath( 'special://home/addons/{}'.format( self.getInfo('id') ) )
+        self.G['addonUDatFo']   = xbmcvfs.translatePath( 'special://profile/addon_data/{}'.format( self.getInfo('id') ) )
 
-        if not xbmcvfs.exists(os.path.join(self._globals['addonFolder'], 'settings.xml')):
-            self.setSetting('captcha', '')
+        self.G['TLDlist']       = ['de', 'fr', 'co.uk', 'it', 'es']
 
-        self._globals['siteVersion']    = self.getSetting('siteVersion')
-        self._globals['logonURL']       = 'https://www.amazon.{}/gp/aw/si.html'.format(self._globals['siteVerList'][int(self._globals['siteVersion'])])
-        self._globals['musicURL']       = 'https://music.amazon.{}'.format(self._globals['siteVerList'][int(self._globals['siteVersion'])])
-        self._globals['url']            = self.getSetting('url')
+        self.credentials        = AMaccess()
+        self.credentials.USERTLD = self.G['TLDlist'][int(self.getSetting('userTLD'))]
 
-        self._globals['logging']        = self.getSetting('logging')
+        self.G['audioQuality']  = 'HIGH'
+        self.G['maxResults']    = 100
+        self.G['logging']       = self.getSetting('logging')
+        self.G['showcolentr']   = self.getSetting('showcolentr')
+        self.G['showimages']    = self.getSetting('showimages')
 
-        if not self.getSetting('saveUsername'): self.setSetting('userEmail', '')
-        if not self.getSetting('savePassword'): self.setSetting('userPassword', '')
+    @staticmethod
+    def getInfo( oProp ):
+        """
+        Provide addon properties.
+        :param str oProp:   The requested property
+        """
+        return xbmcaddon.Addon().getAddonInfo(oProp)
 
-        self._globals['deviceId']       = self.getSetting('deviceId')
-        self._globals['deviceType']     = self.getSetting('deviceType')
-        self._globals['customerId']     = self.getSetting('customerId')
-        self._globals['marketplaceId']  = self.getSetting('marketplaceId')
-        self._globals['musicTerritory'] = self.getSetting('musicTerritory')
-        self._globals['region']         = self.getSetting('region')
-        self._globals['locale']         = self.getSetting('locale')
-        self._globals['customerLang']   = self.getSetting('customerLang')
-        self._globals['accessType']     = self.getSetting('accessType')
+    @staticmethod
+    def getMode():
+        """
+        Current addon runmode
+        """
+        return urlparse.parse_qs(sys.argv[2][1:]).get('mode', [None])[0]
 
-        self._globals['audioQuality']   = self._globals['audioQualist'][int(self.getSetting('quality'))]
-        self._globals['cj']             = cookielib.MozillaCookieJar()
-        self._globals['cookieFile']     = os.path.join(self._globals['addonUDatFo'], 'cookie')
-
-        if os.path.isfile(self._globals['cookieFile']):
-            self.loadCookie()
-
-    def getInfo(self,oProp):    return self._globals['addon'].getAddonInfo(oProp)
-    def getFolder(self,oPath):  return xbmcvfs.translatePath(oPath)
-
-    def getMode(self):
-        self._globals['addonArgs']      = urlparse.parse_qs(sys.argv[2][1:])
-        self._globals['addonMode']      = self._globals['addonArgs'].get('mode', [None])
-        return self._globals['addonMode'][0]
-
-    def getSetting(self,oProp):
-        """ provide the current setting """
-        prop = self._globals['addon'].getSetting(oProp)
+    def getSetting( self, oProp ):
+        """
+        Provide the current setting
+        :param str oProp:   key of the setting
+        """
+        prop = xbmcaddon.Addon().getSetting(oProp)
         if (str.lower(prop) == 'true' or
             str.lower(prop) == 'false'):
             prop = self.toBool(prop)
         return prop
 
-    def setSetting(self,oProp,val):
-        """ save the given setting """
-        self._globals['addon'].setSetting(oProp,val)
+    @staticmethod
+    def setSetting( oProp, val ):
+        """
+        Save the given setting
+        :param str oProp:   key of the setting
+        :param str val:     value of the setting
+        """
+        xbmcaddon.Addon().setSetting(oProp,val)
 
-    def getTranslation(self,oId):
-        """ provide the translation of oID """
-        return self._globals['addon'].getLocalizedString(oId)
+    @staticmethod
+    def getTranslation( oId ):
+        """
+        Provide the translation of oID
+        :param int oId: string ID
+        """
+        return xbmcaddon.Addon().getLocalizedString(oId)
 
-    def toBool(self,s):
-        """ convert the given string to bool """
+    @staticmethod
+    def toBool( s ):
+        """
+        Convert the given string to bool
+        :param str s: string to convert
+        """
         if s == 'True' or s == 'true':
              return True
         else:
              return False
 
-    def setCookie(self):    self._globals['cj'].save(self._globals['cookieFile'], ignore_discard=True, ignore_expires=True)
-    def loadCookie(self):   self._globals['cj'].load(self._globals['cookieFile'])
-
-    def log(self,msg=None,level=xbmc.LOGINFO):
-        """ write some log data """
+    @staticmethod
+    def log( msg=None, level=xbmc.LOGINFO ):
+        """
+        Write some log data
+        :param str msg:     log information
+        :param str level:   level of logging
+        """
         fct_name  = sys._getframe(1).f_code.co_name
         lin_nmbr  = sys._getframe(1).f_lineno
         if msg:
             msg = '{}{}'.format(os.linesep,msg)
         else:
             msg = ''
-        log_message = '[{}] {} : {}{}'.format(self.getInfo('name'), fct_name, lin_nmbr, msg)
+        log_message = '[{}] {} : {}{}'.format(xbmcaddon.Addon().getAddonInfo('name'), fct_name, lin_nmbr, msg)
         xbmc.log(log_message, level)
 
-    def setSearch(self,q,query):
-        """ store the last three search entries and keep the most recent on the 1st position """
+    def setSearch( self, q, query ):
+        """
+        Store the last three search entries and keep the most recent on the 1st position
+        :param str q:       search category
+        :param str query:   user query string
+        """
         update = True
         for i in q:
             if self.getSetting(i) == query:
@@ -123,13 +122,83 @@ class AMtools(Singleton):
             self.setSetting(q[1],self.getSetting(q[0]))
             self.setSetting(q[0],query)
 
-    def delFile(self,delFile):
-        """ remove the given file """
-        if os.path.exists(delFile):
-            os.remove(delFile)
+    def load( self ):
+        """
+        Load data from a file in addon_data folder.
+        :return: a data object
+        """
+        oPath = xbmcvfs.translatePath(
+            'special://profile/addon_data/{}/data.obj'.format(
+                xbmcaddon.Addon().getAddonInfo('id')
+            )
+        )
+        with open(oPath, 'rb') as file:
+            self.credentials = pickle.load(file)
+        
+        self.credentials.COOKIE.load(
+            os.path.join(
+                xbmcvfs.translatePath('special://profile/addon_data/{}'.format(
+                    xbmcaddon.Addon().getAddonInfo('id'))
+                ), 'cookie'
+            ),
+            ignore_discard=True,
+            ignore_expires=True
+        )
+        return self.credentials
+    
+    @staticmethod
+    def save( obj ):
+        """
+        Save the object data to a file in addon_data folder.
+        """
+        path = '{}{}{}'.format(
+            xbmcvfs.translatePath('special://profile/addon_data/{}'.format(
+                xbmcaddon.Addon().getAddonInfo('id'))
+            ),
+            os.sep,
+            'data.obj'
+        )
+        with open(path, 'wb') as file:
+            pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
+            file.close()
 
-    def getUserInput(self,title,txt,hidden=False,uni=False):
-        if self._globals['logging']: self.log()
+    @staticmethod
+    def saveCookie( obj ):
+        """
+        Save the cookie data to a file in addon_data folder.
+        :param cookie_object obj: CookieJar object
+        """
+        obj.save(
+            os.path.join(
+                xbmcvfs.translatePath('special://profile/addon_data/{}'.format(
+                    xbmcaddon.Addon().getAddonInfo('id'))
+                ), 'cookie'
+            ),
+            ignore_discard=True,
+            ignore_expires=True
+        )
+
+    @staticmethod
+    def delFile( delFile ):
+        """
+        Remove the given file
+        :param str delFile: path + file name to be removed
+        """
+        try:
+            if os.path.exists(delFile):
+                os.remove(delFile)
+        except:
+            pass
+
+    @staticmethod
+    def getUserInput( title, txt, hidden=False, uni=False ):
+        """
+        Generic user input
+        :param str title:   title of the dialog
+        :param str txt:     content of the dialog
+        :param bool hidden: user input visible / unvisible
+        :param bool uni:    unicode encoding active / inactive
+        """
         kb = xbmc.Keyboard()
         kb.setHeading(title)
         kb.setDefault(txt)
@@ -145,54 +214,40 @@ class AMtools(Singleton):
         del kb
         return ret
 
-    def prepReqHeader(self, amzTarget, referer=None):
-        head = { 'Accept' : 'application/json, text/javascript, */*; q=0.01',
-                'Accept-Encoding' : 'gzip,deflate,br',
-                'Accept-Language' : '{},en-US,en;q=0.9'.format(self._globals['siteVerList'][int(self.getSetting('siteVersion'))]),
-                'csrf-rnd' :        self.getSetting('csrf_rnd'),
-                'csrf-token' :      self.getSetting('csrf_token'),
-                'csrf-ts' :         self.getSetting('csrf_ts'),
-                'Host' :            'music.amazon.{}'.format(self._globals['siteVerList'][int(self.getSetting('siteVersion'))]),
-                'Origin' :          self.getSetting('musicURL'),
-                'User-Agent' :      self.getSetting('userAgent'),
-                'X-Requested-With' : 'XMLHttpRequest'
-        }
-        if amzTarget is not None:
-            head['Content-Encoding'] = 'amz-1.0'
-            head['content-type'] = 'application/json'
-            head['X-Amz-Target'] = amzTarget
-        if referer == 'soccer':
-            head['Content-Encoding'] = None
-        return head
+    @staticmethod
+    def checkUserTLD( userTLD, domainList ):
+        """
+        Validate the received user top level domain, returns the index of domain array
+        :param str   userTLD: The users top level domain
+        :param array domainList: List of supported domains
+        """
+        if userTLD in domainList:
+            x = 0
+            for i in domainList:
+                if userTLD == i:
+                    return str(x)
+                else:
+                    x+=1
+        else:
+            return '0'
 
-    def resetAddon(self):
-        """ remove Cookie and Setting, initilialize the variables """
-        self.delFile(self._globals['cookieFile'])
+    def set_userTLD( self, userTLD ):
+        """
+        Set user top level domain.
+        :param int userTLD: Index of user domain to be set
+        """
+        self.credentials.USERTLD = self.G['TLDlist'][int(userTLD)]
+
+    def resetAddon( self ):
+        """
+        Remove Cookie and Setting, initilialize the variables to defaults
+        """
         data = {
-            'siteVersion': '0',
-            'quality': '0',
-            'musicTerritory': '',
-            'locale': '',
-            'customerLang': '',
-            'region': '',
-            'url': '',
-            'csrf_ts': '',
-            'csrf_rnd': '',
-            'csrf_token': '',
-            'customerId': '',
-            'marketplaceId': '',
-            'deviceId': '',
-            'deviceType': '',
-            'saveUsername': 'false',
-            'savePassword': 'false',
-            'userEmail': '',
-            'userPassword': '',
-            'access': 'false',
+            'userTLD': '0',
             'logging': 'false',
             'showimages': 'true',
             'showUnplayableSongs': 'false',
             'showcolentr': 'true',
-            'accessType': '',
             'search1PlayLists': '',
             'search2PlayLists': '',
             'search3PlayLists': '',
@@ -211,6 +266,109 @@ class AMtools(Singleton):
             'captcha': ''
         }
         for key, value in data.items():
-            self.setSetting(key, value)
-        
-        self.setVariables()
+            self.setSetting( key, value )
+        self.resetCredentials()
+
+    def resetCredentials( self ):
+        """
+        Remove Cookie and data object files
+        """
+        # remove cookie
+        # path = xbmcvfs.translatePath('special://profile/addon_data/{}'.format(
+        #     xbmcaddon.Addon().getAddonInfo('id'))
+        # )
+        files = { 'cookie', 'data.obj' }
+        for f in files:
+            file = '{}{}{}'.format( self.G['addonUDatFo'], os.sep, f )
+            self.delFile( file )
+        # remove data object
+        # file = '{}{}{}'.format( self.G['addonUDatFo'], os.sep, 'data.obj' )
+        # self.delFile( file )
+        #xbmc.sleep(randint(750,1500))
+        # self.setVariables()
+
+    def createList( self, data, dynentry=False, soccer=False ):
+        """
+        Create list entries for Kodi menu
+        :param array data:      content of Kodi menu
+        :param bool dynentry:   flag for dynamic content (e.g. search items)
+        """
+        itemlist = []
+        url = None
+        for item in data:
+            #self.log(item)
+            isFolder = True
+            if dynentry and 'search' in item and self.getSetting(item['search']) == '':
+                continue
+            # if soccer:
+            if soccer or ('special' in item and item['special'] == 'newrecom'):
+                title = item['txt']
+            else:
+                title = self.getTranslation(item['txt'])
+
+            if dynentry and 'search' in item:
+                title += self.getSetting(item['search'])
+            li = xbmcgui.ListItem(label=title)
+            li.setInfo(type="music", infoLabels={"title": title})
+            if 'img' in item:
+                if 'http' in item['img']:
+                    url = item['img']
+                else:
+                    url = '{}/resources/images/{}'.format( self.G['addonFolder'], item['img'] )
+                li.setArt({
+                    'icon':url,
+                    'thumb':url,
+                    'fanart':url,
+                    'poster':url,
+                    'banner':url,
+                    'landscape':url
+                })
+            url = '{}?mode={}'.format( self.G['addonBaseUrl'], str(item['fct']) )
+            if soccer:
+                url+="&objectId={}".format(str(item['target']))
+                if item['playable']:
+                    pl = 'true'
+                else:
+                    pl = 'false'
+                li.setProperty('IsPlayable', pl)
+                isFolder = False
+            if 'special' in item and item['special'] == 'newrecom' and 'target' in item:
+                url+='&target={}'.format(str(item['target']))
+            itemlist.append((url, li, isFolder))
+        self.finalizeContent( self.G['addonHandle'], itemlist, 'albums' )
+
+    @staticmethod
+    def finalizeContent( addonHandle, itemlist, ctype ):
+        """
+        Finalization of Kodi list items
+        :param str addonHandle: Kodi addon handle
+        :param array itemlist:  Array of list items
+        :param str ctype:       Content type ( songs / albums )
+        """
+        xbmcplugin.addDirectoryItems(addonHandle, itemlist, len(itemlist))
+        xbmcplugin.setContent(addonHandle, ctype)
+        xbmcplugin.endOfDirectory(addonHandle)
+
+    def prepReqHeader( self, amzTarget ):
+        """
+        Request header preparation
+        :param str amzTarget: API endpoint
+        """
+        head = { 'Accept' : 'application/json, text/javascript, */*; q=0.01',
+                'Accept-Encoding' : 'gzip, deflate', #,br
+                'Accept-Language' : '{},en-US,en;q=0.9'.format( self.credentials.USERTLD ),
+                'csrf-token' :      self.credentials.CSRF_TOKEN,
+                'csrf-rnd' :        self.credentials.CSRF_RND,
+                'csrf-ts' :         self.credentials.CSRF_TS,
+                'Host' :            'music.amazon.{}'.format( self.credentials.USERTLD ),
+                'Origin' :          self.musicURL.format( self.credentials.USERTLD ),
+                'User-Agent' :      self.userAgent,
+                'X-Requested-With' : 'XMLHttpRequest'
+        }
+
+        if amzTarget is not None:
+            head['Content-Encoding'] = 'amz-1.0'
+            head['Content-Type'] = 'application/json'
+            head['X-Amz-Target'] = amzTarget
+
+        return head

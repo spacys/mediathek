@@ -1,16 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import datetime
 from urllib.parse import urlencode as urlencode
 from urllib.parse import quote_plus as urlquoteplus
 from resources.lib.tools import AMtools
-from resources.lib.singleton import Singleton
 import xbmcgui
 
-class AMitem(Singleton):
-    def __init__(self):
-        self._t = AMtools()
-    def setData(self,item,filter):
+class AMitem( AMtools ):
+    """
+    Main Item Class to assign request content to the Addon list item data structure
+    """
+    def setListItem( self, item, param ):
+        """
+        Entry point for Kodi list item creation, returns a item tupel
+        :param array/json item:     Single data object from Amazon API call
+        :param array/json param:    Addon mode parameter for the item
+        """
+        inf, met = self.setData( item, param )
+        url, li  = self.setItem( inf, met )
+        return (url, li, True)
+
+    def setData( self, item, filter ):
+        """
+        Common Addon data structure for all items. Received data from Amazon API call will be assigned to the respective Addon data structure. \n
+        Returns data structure 'info' and 'meta'.
+        :param array/json item:     Single data object from Amazon API call
+        :param array/json filter:   Addon mode parameter for the item
+        """
         if 'update' in filter and filter['update']:
             info = filter['info']
             meta = filter['meta']
@@ -76,9 +93,12 @@ class AMitem(Singleton):
             except:
                 info['album'] = item['album']['title']
 
-        if 'albumArtistName' in item:       info['artist'] = item['albumArtistName']
-        if 'artist' in item:                info['artist'] = item['artist']['name']
-        if 'artistName' in item:            info['artist'] = item['artistName']
+        if 'isAlbumFolder' in filter and filter['isAlbumFolder'] == True:
+            pass # this is only for folder views ...field 'artist' break Kodi visualization for albums
+        else:
+            if 'albumArtistName' in item:       info['artist'] = item['albumArtistName']
+            if 'artist' in item:                info['artist'] = item['artist']['name']
+            if 'artistName' in item:            info['artist'] = item['artistName']
 
         if 'stationTitle' in item:          info['title'] = item['stationTitle']
         if 'displayName' in item:           info['title'] = item['displayName']
@@ -144,7 +164,7 @@ class AMitem(Singleton):
         if ('isMusicSubscription' in item and (item['isMusicSubscription'] == True or item['isMusicSubscription'] == 'true')):
             meta['isUnlimited'] = True
 
-        if self._t.getSetting('showcolentr'):
+        if self.G['showcolentr']:
             if meta['purchased']:
                 meta['color'] = '[COLOR gold]%s[/COLOR]'
             elif meta['isPrime'] or 'stationMapIds' in item:
@@ -154,13 +174,13 @@ class AMitem(Singleton):
             else:
                 meta['color'] = '[COLOR red]%s[/COLOR]'
 
-        if ((self._t.getSetting('accessType') == 'PRIME'     and not meta['isPrime'] and not meta['purchased']) or
-            (self._t.getSetting('accessType') == 'UNLIMITED' and not meta['isPrime'] and not meta['purchased'] and not meta['isUnlimited'] )):
+        if ((self.credentials.ACCESSTYPE == 'PRIME'     and not meta['isPrime'] and not meta['purchased']) or
+            (self.credentials.ACCESSTYPE == 'UNLIMITED' and not meta['isPrime'] and not meta['purchased'] and not meta['isUnlimited'] )):
             meta['isPlayable'] = False
         else:
             meta['isPlayable'] = True
 
-        if (self._t.getSetting('accessType') == 'UNLIMITED' and meta['isUnlimited']):
+        if (self.credentials.ACCESSTYPE == 'UNLIMITED' and meta['isUnlimited']):
             meta['isPlayable'] = True
         
         if 'isList' in filter and filter['isList'] and info['tracknumber'] is not None:
@@ -172,31 +192,43 @@ class AMitem(Singleton):
 
         #self.log(info)
         #self.log(meta)
-        return (info,meta)
+        return ( info, meta )
 
-    def setItem(self,inf,met):
+    def setItem( self, inf, met ):
+        """
+        Provides a Kodi List Item, based on Addon data structures and Addon parameters
+        :param array/json inf:  Addon data structure for Item information
+        :param array/json met:  Addon data structure for Meta information
+        """
         li = xbmcgui.ListItem(label=met['color'] % (inf['title']))
         if not met['thumb'] == None:
-            li.setArt(self.setImage(met['thumb']))
-        li.setInfo(type='music', infoLabels=inf)
+            li.setArt( self.setImage( met['thumb'] ) )
+        li.setInfo( type='music', infoLabels=inf )
         if not met['isPlayable']: # workaround for unplayable items
             met['mode'] = '1234'
-        url = self.setUrl(inf,met)
-        li.setProperty('IsPlayable', str(met['isPlayable']))
+        url = self.setUrl( inf, met )
+        li.setProperty( 'IsPlayable', str(met['isPlayable']) )
         # self.log(url)
         # self.log(inf)
         # self.log(met)
-        return (url,li)
+        return ( url, li )
 
-    def setImage(self,img):
-        #if self.showimages:
-        if self._t.getSetting('showimages'):
+    def setImage( self, img ):
+        """
+        Assign image to the Kodi list item property
+        :param str img: link to the image
+        """
+        if self.G['showimages']:
             return ({'icon':img,'thumb':img,'fanart':img,'poster':img,'banner':img,'landscape':img})
         else:
             return ({'thumb':img}) # there is a bug in the listitems, after setting multiple arts, setInfo shows the Genre only
 
-    def setUrl(self,inf,met):
-        """ add url parameter """
+    def setUrl( self, inf, met ):
+        """
+        Generate item url based on common Addon data structures
+        :param array/json inf:  Addon data structure for Item information
+        :param array/json met:  Addon data structure for Meta information
+        """
         url = {
             'mode':     met['mode'],
             'asin':     met['asin']
@@ -210,27 +242,33 @@ class AMitem(Singleton):
         if inf['rating'] is not None:       url['rating']       = inf['rating']
         if inf['duration'] is not None:     url['duration']     = inf['duration']
         if inf['tracknumber'] is not None:  url['tracknumber']  = inf['tracknumber']
-        if met['thumb'] is not None:        url['art']          = met['thumb']
+        #if met['thumb'] is not None:        url['art']          = met['thumb']
 
-        return '{}?{}'.format(self._t.addonBaseUrl,urlencode(url))
+        return '{}?{}'.format(self.G['addonBaseUrl'],urlencode(url))
 
-    def setListItem(self,itemList,item,param):
-        inf, met = self.setData(item,param)
-        url, li  = self.setItem(inf,met)
-        itemList.append((url, li, True))
-        return itemList
+    def addPaginator( self, resultToken, resultLen ):
+        """
+        Generate paginator as an additional list item
+        :param str resultToken: paginator token from the Amazon API
+        :param array resultLen: received item array
+        """
+        if not resultToken == None and not len(resultLen) < self.G['maxResults']: # next page
+            return True, self.setPaginator(resultToken)
+        else:
+            return False, ''
 
-    def addPaginator(self,itemList,resultToken,resultLen):
-        if not resultToken == None and not len(resultLen) < self._t.maxResults: # next page
-            itemList.append(self.setPaginator(resultToken))
-        return itemList
-
-    def setPaginator(self,nextToken,query=None,asin=None):
-        li = xbmcgui.ListItem(label=self._t.getTranslation(30020))
+    def setPaginator( self, nextToken, query=None, asin=None ):
+        """
+        Provides a Kodi List Item as paginator, returns item tupel
+        :param str nextToken:   page token
+        :param str query:       request query
+        :param str asin:        Album-, Artist-, Station-, Playlist-ID
+        """
+        li = xbmcgui.ListItem(label=self.getTranslation(30020))
         li.setProperty('IsPlayable', 'false')
-        url = "{}?mode={}&token={}".format(self._t.addonBaseUrl,str(self._t.getMode()),str(nextToken))
+        url = "{}?mode={}&token={}".format(self.G['addonBaseUrl'],str(self.getMode()),str(nextToken))
         if query:
-            url += "&query={}".format(urlquoteplus(query.encode("utf8")))
+            url += "&query={}".format( urlquoteplus( query.encode("utf8") ) )
         if asin:
-            url += "&asin={}".format(urlquoteplus(asin.encode("utf8")))
+            url += "&asin={}".format( urlquoteplus( asin.encode("utf8") ) )
         return (url, li, True)
