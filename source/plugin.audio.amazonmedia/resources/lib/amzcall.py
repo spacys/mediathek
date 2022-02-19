@@ -1,89 +1,121 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import math, random, requests, json, datetime
 from resources.lib.tools import AMtools
-from resources.lib.singleton import Singleton
-import math, random, requests, json, datetime, os
-import xbmc
+from resources.lib.api import AMapi
 
-class AMcall(Singleton):
-    def __init__(self):
-        self._t = AMtools()
-
-    def getMaestroID(self): return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format(self.generatePlayerUID())
+class AMcall( AMtools ):
+    """
+    Common class for the Amazon API calls
+    """
+    def getMaestroID( self ):
+        """
+        Calculate random Player ID
+        """
+        a = str(
+            float.hex(
+                float(
+                    math.floor(16 * (1 + random.random()))
+                )
+            )
+        )[4:5]
+        uid = '{}-{}-dmcp-{}-{}{}'.format(
+            self.doCalc(),
+            self.doCalc(),
+            self.doCalc(),
+            self.doCalc(),
+            a
+        )
+        return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format( uid )
     
-    def doCalc(self):       return str(float.hex(float(math.floor(65536 * (1 + random.random())))))[4:8]
+    @staticmethod
+    def doCalc():
+        """
+        Calculate random ID
+        """
+        return str(
+            float.hex(
+                float(
+                    math.floor(65536 * (1 + random.random()))
+                )
+            )
+        )[4:8]
 
-    def generatePlayerUID(self):
-        a = str(float.hex(float(math.floor(16 * (1 + random.random())))))[4:5]
-        return '{}-{}-dmcp-{}-{}{}'.format(self.doCalc(),self.doCalc(),self.doCalc(),self.doCalc(),a)
+    def amzCall( self, amzUrl, mode, referer=None, asin=None, mediatype=None ):
+        """
+        Main function for the Amazon Call
+        :param str amzUrl:  Endpoint ID
+        :param str mode:    Request Addon Data ID
+        :param str referer: no longer in use
+        :param str asin:    Playlist-, Albums-, Song-, Artist-, Station-ID
+        :param str/array mediatype: content depends on the caller function
+        """
+        self.credentials = self.load()
 
-    def amzCall(self,amzUrl,mode,referer=None,asin=None,mediatype=None):
-        from resources.lib.api import AMapi
-        amPath = AMapi().getAPI(amzUrl)
+        amPath = AMapi.getAPI( amzUrl )
 
-        if os.path.isfile(self._t.cookieFile):
-            self._t.loadCookie()
-        else:
-            from resources.lib.logon import AMlogon
-            if not AMlogon().amazonLogon():
-                xbmc.executebuiltin('Notification("Error:", {}, 5000, )'.format(self._t.getTranslation(30070)))
-                return
-            self._t.loadCookie()
+        url  = '{}/{}/api/{}'.format(
+            self.musicURL.format( self.credentials.USERTLD ),
+            self.credentials.REGION,
+            amPath['path']
+        )
 
-        url  = '{}/{}/api/{}'.format(self._t.getSetting('url'), self._t.getSetting('region'), amPath['path'])
-        head = self._t.prepReqHeader(amPath['target'],referer)
-        data = self.prepReqData(mode,asin,mediatype)
+        head = self.prepReqHeader(amPath['target'])
+        data = self.prepReqData( mode, asin, mediatype )
 
-        resp = requests.post(url=url, headers=head, data=data, cookies=self._t.cj)
-        self._t.setCookie()
+        resp = requests.post( url=url, headers=head, data=data, cookies=self.credentials.COOKIE )
+        self.saveCookie( self.credentials.COOKIE )
 
-        if self._t.logging:
-            self._t.log('url: ' + url)
-            self._t.log('reason: ' + resp.reason + ', code: ' + str(resp.status_code) + ', reqloop: ' + str(self._t.reqloop))
-            self._t.log(resp.text)
+        if self.G['logging']:
+            self.log('url: ' + url)
+            self.log('reason: ' + resp.reason + ', code: ' + str(resp.status_code))
+            self.log(resp.text)
 
         if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
             return resp
         else:
             return resp.json()
 
-    def prepReqData(self,mode,asin=None,mediatype=None):
-        #data = json.dumps(data)
-        #data = json.JSONEncoder().encode(data)
+    def prepReqData( self, mode, asin=None, mediatype=None ):
         """
+        Provide request data structure for Amazon API calls
+
         rankType:           newly-added, popularity-rank, top-sellers, newly-released
         requestedContent:   FULL_CATALOG, KATANA, MUSIC_SUBSCRIPTION, PRIME_UPSELL_MS, ALL_STREAMABLE, PRIME
         features:           fullAlbumDetails, playlistLibraryAvailability, childParentOwnership, trackLibraryAvailability,
                             hasLyrics, expandTracklist, ownership, popularity, albumArtist, collectionLibraryAvailability
         types:              artist, track, album, similarArtist, playlist, station
+
+        :param str mode:            Request Addon Data ID
+        :param str asin:            Playlist-, Albums-, Song-, Artist-, Station-ID
+        :param str/array mediatype: content depends on the caller function
         """
-        token = self._t.addonArgs.get('token', [''])
+        #data = json.dumps(data)
+        #data = json.JSONEncoder().encode(data)
+        token = self.G['addonArgs'].get('token', [''])
         if   mode == 'searchItems':
-            if self._t.addonArgs.get('token', [None])[0] == None:
+            if self.G['addonArgs'].get('token', [None])[0] == None:
                 prop = 'maxResults'
-                val = self._t.maxResults
+                val = self.G['maxResults']
             else:
                 prop = 'pageToken'
-                val = self._t.addonArgs.get('token', [None])[0]
-            #if self._t.getSetting('accessType') == 'UNLIMITED':
-            #    tier = 'MUSIC_SUBSCRIPTION'
-            #else:
-            #    tier = self._t.getSetting('accessType')
+                val = self.G['addonArgs'].get('token', [None])[0]
+
             data = {
                 'customerIdentity': {
-                    'deviceId': self._t.getSetting('deviceId'),
-                    'deviceType': self._t.getSetting('deviceType'),
+                    'deviceId': self.credentials.DEVICEID,
+                    'deviceType': self.credentials.DEVICETYPE,
                     'sessionId': '',
-                    'customerId': self._t.getSetting('customerId')
+                    'customerId': self.credentials.CUSTOMERID
                 },
                 'features': {
                     'spellCorrection': {
                         'allowCorrection': 'true'
                     }
                 },
-                'locale': self._t.getSetting('locale'),
-                'musicTerritory': self._t.getSetting('musicTerritory'),
+                'locale': self.credentials.LOCALE,
+                'musicTerritory': self.credentials.MUSICTERRITORY,
                 'query': asin,
                 'requestContext': 'true',
                 'resultSpecs': [{
@@ -108,48 +140,51 @@ class AMcall(Singleton):
                             'hasExplicitLanguage': 'true'
                         },
                         'eligibility': {
-                            'tier': self._t.getSetting('accessType') # correction for unlimited accounts necessary?
+                            'tier': self.credentials.ACCESSTYPE
                         }
                     }
                 }]
             }
             data = json.JSONEncoder().encode(data)
+
         elif mode == 'getArtistDetails':
-            if self._t.getSetting('accessType') == 'UNLIMITED':
+            if self.credentials.ACCESSTYPE == 'UNLIMITED':
                 tier = 'MUSIC_SUBSCRIPTION'
             else:
-                tier = self._t.getSetting('accessType')
+                tier = self.credentials.ACCESSTYPE
             data  = {
                 'requestedContent': tier,
                 'asin': asin,
                 'types':[{
                     'sortBy':'popularity-rank',
                     'type':'album',
-                    'maxCount':     self._t.maxResults,
-                    'nextToken':    self._t.addonArgs.get('token', [''])[0]
+                    'maxCount':     self.G['maxResults'],
+                    'nextToken':    self.G['addonArgs'].get('token', [''])[0]
                 }],
                 'features':[
                     #'expandTracklist',
                     #'collectionLibraryAvailability',
                     'popularity'
                 ],
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId')
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE,
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID
             }
             data = json.dumps(data)
+
         elif mode == 'recentlyplayed':
             data = {
                 'activityTypeFilters': [mediatype],
                 'pageToken':        token[0],
-                'lang':             self._t.getSetting('locale'),
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId'),
+                'lang':             self.credentials.LOCALE,
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE,
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID,
             }
             data = json.dumps(data)
+
         elif mode == 'getMetaTracks':
             """
             available fields in attributeList:
@@ -195,13 +230,14 @@ class AMcall(Singleton):
                     'sort':'albumName',
                     'order':'ASC'
                 },
-                'maxResults':       self._t.maxResults,
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId'),
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType')
+                'maxResults':       self.G['maxResults'],
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID,
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE
             }
             data = json.JSONEncoder().encode(data)
+
         elif mode == 'recentlyaddedsongs':
             data = {
                 'selectCriteria': None,
@@ -209,8 +245,8 @@ class AMcall(Singleton):
                 'distinctOnly': 'false',
                 'countOnly': 'false',
                 'sortCriteriaList': None,
-                'maxResults': self._t.maxResults,
-                'nextResultsToken': self._t.addonArgs.get('token', [0])[0],
+                'maxResults': self.G['maxResults'],
+                'nextResultsToken': self.G['addonArgs'].get('token', [0])[0],
                 'selectCriteriaList.member.1.attributeName': 'status',
                 'selectCriteriaList.member.1.comparisonType': 'EQUALS',
                 'selectCriteriaList.member.1.attributeValue': 'AVAILABLE',
@@ -222,88 +258,95 @@ class AMcall(Singleton):
                 'Operation': 'selectTrackMetadata',
                 'caller': 'getServerSmartList',
                 'ContentType': 'JSON',
-                'customerInfo.customerId':  self._t.getSetting('customerId'),
-                'customerInfo.deviceId':    self._t.getSetting('deviceId'),
-                'customerInfo.deviceType':  self._t.getSetting('deviceType')
+                'customerInfo.customerId':  self.credentials.CUSTOMERID,
+                'customerInfo.deviceId':    self.credentials.DEVICEID,
+                'customerInfo.deviceType':  self.credentials.DEVICETYPE
             }
+
         elif mode == 'followedplaylists':
             data = {
                 'optIntoSharedPlaylists': 'true',
                 'entryOffset':      0, # todo
-                'pageSize':         self._t.maxResults,
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId')
+                'pageSize':         self.G['maxResults'],
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE,
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID
             }
             data = json.dumps(data)
+
         elif mode == 'getownedplaylists':
             data = {
                 'entryOffset':      0, #todo
-                'pageSize':         self._t.maxResults,
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId')
+                'pageSize':         self.G['maxResults'],
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE,
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID
             }
             data = json.dumps(data)
+
         elif mode == 'getplaylistsbyid':
             data = {
                 'playlistIds':      [asin],
                 'requestedMetadata':['asin','albumName','sortAlbumName','artistName','primeStatus','isMusicSubscription','duration','sortArtistName','sortAlbumArtistName','objectId','title','status','assetType','discNum','trackNum','instantImport','purchased'],
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId')
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE,
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID
             }
             data = json.dumps(data)
+
         elif mode == 'playlist':
             data  = {
                 'rankType':         mediatype,
-                'requestedContent': 'PRIME',#self._t.getSetting('accessType'),
+                'requestedContent': 'PRIME',#self.credentials.ACCESSTYPE,
                 'features':         ['playlistLibraryAvailability','collectionLibraryAvailability'],
                 'types':            ['playlist'],
                 'nextTokenMap':     {'playlist' : token[0]},
-                'maxCount':         self._t.maxResults,
-                'lang':             self._t.getSetting('locale'),
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId')
+                'maxCount':         self.G['maxResults'],
+                'lang':             self.credentials.LOCALE,
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE,
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID
             }
             data = json.dumps(data)
+
         elif mode == 'recommendations':
             # mediatypes:
             # mp3-prime-browse-carousels_playlistStrategy
             # mp3-prime-browse-carousels_mp3PrimeAlbumsStrategy
             # mp3-prime-browse-carousels_mp3PrimeTracksStrategy
             # mp3-prime-browse-carousels_mp3ArtistStationStrategy
-            token = self._t.addonArgs.get('token', [0])
+            token = self.G['addonArgs'].get('token', [0])
             data  = {
-                'maxResultsPerWidget' : self._t.maxResults,
+                'maxResultsPerWidget' : self.G['maxResults'],
                 'minResultsPerWidget' : 1,
-                'lang' :                self._t.getSetting('locale'),
-                'requestedContent' :    'PRIME', #self._t.getSetting('accessType'),
-                'musicTerritory' :      self._t.getSetting('musicTerritory'),
-                'deviceId' :            self._t.getSetting('deviceId'),
-                'deviceType' :          self._t.getSetting('deviceType'),
-                'customerId' :          self._t.getSetting('customerId'),
+                'lang' :                self.credentials.LOCALE,
+                'requestedContent' :    'PRIME', #self.credentials.ACCESSTYPE,
+                'musicTerritory' :      self.credentials.MUSICTERRITORY,
+                'deviceId' :            self.credentials.DEVICEID,
+                'deviceType' :          self.credentials.DEVICETYPE,
+                'customerId' :          self.credentials.CUSTOMERID,
                 'widgetIdTokenMap' : { mediatype : int(token[0]) }
             }
             data = json.dumps(data)
+
         elif mode == 'new_recommendations':
             data = {
-                'deviceId' :            self._t.getSetting('deviceId'),
-                'deviceType' :          self._t.getSetting('deviceType'),
-                'customerId' :          self._t.getSetting('customerId'),
-                'musicTerritory' :      self._t.getSetting('musicTerritory'),
-                'lang' :                self._t.getSetting('customerLang'),
+                'deviceId' :            self.credentials.DEVICEID,
+                'deviceType' :          self.credentials.DEVICETYPE,
+                'customerId' :          self.credentials.CUSTOMERID,
+                'musicTerritory' :      self.credentials.MUSICTERRITORY,
+                'lang' :                self.credentials.LOCALE,
                 'requestedContent' :    'PRIME_UPSELL_MS',#,
                 'options' :             ['populateRecentlyPlayed']
                 #'options' :             'requestBundesligaContent'
             }
             data = json.dumps(data)
             #data = json.JSONEncoder().encode(data)
+
         elif mode == 'getPurchased': # purchased and all Songs / purchased Albums
             data = {
                 'searchReturnType': mediatype[0],
@@ -336,45 +379,48 @@ class AMcall(Singleton):
                 'selectedColumns.member.15': 'sortAlbumName',
                 'selectedColumns.member.16': 'sortTitle',
                 'sortCriteriaList': None,
-                'maxResults': self._t.maxResults,
+                'maxResults': self.G['maxResults'],
                 'nextResultsToken': token[0],
                 'Operation': 'searchLibrary',
                 'caller': mediatype[1],
                 'sortCriteriaList.member.1.sortColumn': mediatype[2],
                 'sortCriteriaList.member.1.sortType': 'ASC',
                 'ContentType': 'JSON',
-                'customerInfo.customerId': self._t.getSetting('customerId'),
-                'customerInfo.deviceId': self._t.getSetting('deviceId'),
-                'customerInfo.deviceType': self._t.getSetting('deviceType')
+                'customerInfo.customerId': self.credentials.CUSTOMERID,
+                'customerInfo.deviceId': self.credentials.DEVICEID,
+                'customerInfo.deviceType': self.credentials.DEVICETYPE
             }
-            if self._t.getMode() == 'getPurSongs' or self._t.getMode() == 'getPurAlbums':
+            if self.getMode() == 'getPurSongs' or self.getMode() == 'getPurAlbums':
                 data['searchCriteria.member.3.attributeName']  = 'purchased'
                 data['searchCriteria.member.3.comparisonType'] = 'EQUALS'
                 data['searchCriteria.member.3.attributeValue'] = 'true'
             #else:
                 #filter = ['primeStatus','NOT_EQUALS','NOT_PRIME']
+
         elif mode == 'songs':
             data  = {
                 'asins' : [ asin ],
                 'features' : [ 'collectionLibraryAvailability','expandTracklist','playlistLibraryAvailability','trackLibraryAvailability','hasLyrics'],
                 'requestedContent' : 'MUSIC_SUBSCRIPTION',
-                'deviceId' : self._t.getSetting('deviceId'),
-                'deviceType' : self._t.getSetting('deviceType'),
-                'musicTerritory' : self._t.getSetting('musicTerritory'),
-                'customerId' : self._t.getSetting('customerId')
+                'deviceId' : self.credentials.DEVICEID,
+                'deviceType' : self.credentials.DEVICETYPE,
+                'musicTerritory' : self.credentials.MUSICTERRITORY,
+                'customerId' : self.credentials.CUSTOMERID
             }
             data = json.dumps(data)
+
         elif mode == 'itemLookup':
             data = {
                 'asins': asin, # [asin], is an array!!
                 'features': mediatype, # is an array!!
                 'requestedContent': 'MUSIC_SUBSCRIPTION',
-                'deviceId': self._t.getSetting('deviceId'),
-                'deviceType': self._t.getSetting('deviceType'),
-                'musicTerritory': self._t.getSetting('musicTerritory'),
-                'customerId': self._t.getSetting('customerId')
+                'deviceId': self.credentials.DEVICEID,
+                'deviceType': self.credentials.DEVICETYPE,
+                'musicTerritory': self.credentials.MUSICTERRITORY,
+                'customerId': self.credentials.CUSTOMERID
             }
             data = json.JSONEncoder().encode(data)
+
         elif mode == 'itemLookup2ndRound':
             data = {
                 'selectCriteriaList.member.1.attributeName':'status',
@@ -390,7 +436,7 @@ class AMcall(Singleton):
                 'albumArtUrlsSizeList.member.1':'FULL',
                 'albumArtUrlsSizeList.member.2':'LARGE',
                 'albumArtUrlsRedirects':'false',
-                'maxResults':   self._t.maxResults,
+                'maxResults':   self.G['maxResults'],
                 'nextResultsToken':0,
                 'Operation':'selectTrackMetadata',
                 'distinctOnly':'false',
@@ -441,58 +487,63 @@ class AMcall(Singleton):
                 'sortCriteriaList.member.2.sortColumn':'trackNum',
                 'sortCriteriaList.member.2.sortType':'ASC',
                 'ContentType':'JSON',
-                'customerInfo.customerId':  self._t.getSetting('customerId'),
-                'customerInfo.deviceId':    self._t.getSetting('deviceId'),
-                'customerInfo.deviceType':  self._t.getSetting('deviceType')
+                'customerInfo.customerId':  self.credentials.CUSTOMERID,
+                'customerInfo.deviceId':    self.credentials.DEVICEID,
+                'customerInfo.deviceType':  self.credentials.DEVICETYPE
             }
+
         elif mode == 'getStations':
             data = {
-                'requestedContent': 'PRIME', #self._t.getSetting('accessType'),
-                'lang':             self._t.getSetting('locale'),
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId')
+                'requestedContent': 'PRIME', #self.credentials.ACCESSTYPE,
+                'lang':             self.credentials.LOCALE,
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE,
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID
             }
             data = json.dumps(data)
+
         elif mode == 'createQueue':
             data = {
                 'identifier': asin,
                 'identifierType':'STATION_KEY',
                 'customerInfo': {
-                    'deviceId':     self._t.getSetting('deviceId'),
-                    'deviceType':   self._t.getSetting('deviceType'),
-                    'musicTerritory':self._t.getSetting('musicTerritory'),
-                    'customerId':   self._t.getSetting('customerId')
+                    'deviceId':     self.credentials.DEVICEID,
+                    'deviceType':   self.credentials.DEVICETYPE,
+                    'musicTerritory':self.credentials.MUSICTERRITORY,
+                    'customerId':   self.credentials.CUSTOMERID
                 },
                 'allowedParentalControls':{}
             }
             data = json.dumps(data)
+
         elif mode == 'getNextTracks':
             data = {
                 'pageToken' : mediatype,
                 'numberOfTracks':10,
                 'customerInfo': {
-                    'deviceId':     self._t.getSetting('deviceId'),
-                    'deviceType':   self._t.getSetting('deviceType'),
-                    'musicTerritory':self._t.getSetting('musicTerritory'),
-                    'customerId':   self._t.getSetting('customerId')
+                    'deviceId':     self.credentials.DEVICEID,
+                    'deviceType':   self.credentials.DEVICETYPE,
+                    'musicTerritory':self.credentials.MUSICTERRITORY,
+                    'customerId':   self.credentials.CUSTOMERID
                 },
                 'allowedParentalControls':{}
             }
             data = json.dumps(data)
+
         elif mode == 'getGenrePlaylist':
             data = {
                 'identifier': asin,
                 'identifierType': 'STATION_KEY',
                 'customerInfo': {
-                    'deviceId':     self._t.getSetting('deviceId'),
-                    'deviceType':   self._t.getSetting('deviceType'),
-                    'musicTerritory':self._t.getSetting('musicTerritory'),
-                    'customerId':   self._t.getSetting('customerId')
+                    'deviceId':     self.credentials.DEVICEID,
+                    'deviceType':   self.credentials.DEVICETYPE,
+                    'musicTerritory':self.credentials.MUSICTERRITORY,
+                    'customerId':   self.credentials.CUSTOMERID
                 },
                 'allowedParentalControls': {}
             }
+
         elif mode == 'getMetaData':
             data = {
                 'trackIdList': asin,
@@ -523,130 +574,76 @@ class AMcall(Singleton):
                     'uploaded',
                     'albumReleaseDate'
                 ],
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId'),
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType')
+                'musicTerritory':   self.credentials.MUSICTERRITORY,
+                'customerId':       self.credentials.CUSTOMERID,
+                'deviceId':         self.credentials.DEVICEID,
+                'deviceType':       self.credentials.DEVICETYPE
             }
             data = json.dumps(data)
+
         elif mode == 'getTrack':
             data = {
-                'customerId' : self._t.getSetting('customerId'),
+                'customerId' : self.credentials.CUSTOMERID,
                 'deviceToken' : {
-                    'deviceTypeId': self._t.getSetting('deviceType'),
-                    'deviceId' :    self._t.getSetting('deviceId')
+                    'deviceTypeId': self.credentials.DEVICETYPE,
+                    'deviceId' :    self.credentials.DEVICEID
                 },
-                'bitRate' : self._t.audioQuality,
+                'bitRate' : 'HIGH',
                 'appMetadata' : { 'https' : 'true' },
                 'clientMetadata' : { 'clientId' : 'WebCP' },
                 'contentId' : {
                     'identifier' : asin,
                     'identifierType' : mediatype #, # 'ASIN',
-                    #'bitRate' : self._t.audioQuality
+                    #'bitRate' : 'HIGH'
                 }
             }
             data = json.dumps(data)
+
         elif mode == 'getTrackHLS':
             data = {
-                'customerId' : self._t.getSetting('customerId'),
+                'customerId' : self.credentials.CUSTOMERID,
                 'deviceToken' : {
-                    'deviceTypeId': self._t.getSetting('deviceType'),
-                    'deviceId' :    self._t.getSetting('deviceId')
+                    'deviceTypeId': self.credentials.DEVICETYPE,
+                    'deviceId' :    self.credentials.DEVICEID
                 },
-                'bitRate' : self._t.audioQuality,
+                'bitRate' : 'HIGH',
                 'appMetadata' : { 'https' : 'true' },
                 'clientMetadata' : { 'clientId' : 'WebCP' },
                 'contentId' : {
                     'identifier' : asin,
                     'identifierType' : mediatype #, # 'ASIN',
                 },
-                'bitRateList' : [ self._t.audioQuality ],
+                'bitRateList' : [ 'HIGH' ],
                 'hlsVersion': 'V3'
             }
             data = json.dumps(data)
+
         elif mode == 'getTrackDash':
-            if int(self._t.getSetting("quality")) == 3:
-                audio = self._t.audioQualist[0] # fallback to quality 'high'
-            else:
-                audio = self._t.audioQuality
             mID = self.getMaestroID()
             data = {
-                'customerId' :          self._t.getSetting('customerId'),
+                'customerId' :          self.credentials.CUSTOMERID,
                 'deviceToken' : {
-                    'deviceTypeId' :    self._t.getSetting('deviceType'),
-                    'deviceId' :        self._t.getSetting('deviceId')
+                    'deviceTypeId' :    self.credentials.DEVICETYPE,
+                    'deviceId' :        self.credentials.DEVICEID
                 },
                 'contentIdList' : [{
                     'identifier' :      asin,
                     'identifierType' :  mediatype
                 }],
-                'bitrateTypeList' : [ audio ], # self._t.audioQuality
+                'bitrateTypeList' : [ 'HIGH' ],
                 'musicDashVersionList' : [ 'V2' ],
                 'appInfo' : {
                     'musicAgent': mID # 'Maestro/1.0 WebCP/1.0.202513.0 (9a46-5ad0-dmcp-8d19-ee5c6)'
                 },
                 'customerInfo' : {
-                    'marketplaceId' :   self._t.getSetting('marketplaceId'),
-                    'customerId' :      self._t.getSetting('customerId'),
-                    'territoryId' :     self._t.getSetting('musicTerritory'),
+                    'marketplaceId' :   self.credentials.MARKETPLACEID,
+                    'customerId' :      self.credentials.CUSTOMERID,
+                    'territoryId' :     self.credentials.MUSICTERRITORY,
                     'entitlementList' : [ 'HAWKFIRE' ]
                 }
             }
             data = json.dumps(data)
-        elif mode == 'getPodcasts': # test only
-            data = {
-                'customerId' :          self._t.getSetting('customerId'),
-                'deviceToken' : {
-                    'deviceTypeId' :    self._t.getSetting('deviceType'),
-                    'deviceId' :        self._t.getSetting('deviceId')
-                }
-             }
-            data = json.dumps(data)
-        elif mode == 'getTrackDashV2': # test only
-            if int(self._t.getSetting("quality")) == 3:
-                audio = self._t.audioQualist[0] # fallback to quality 'high'
-            else:
-                audio = self._t.audioQuality
-            # case "PRIME":
-            #     return "ROBIN";
-            # case "UNLIMITED":
-            #     return "HAWKFIRE";
-            # case "UNLIMITED_HD":
-            #     return "KATANA";
-            mID = self.getMaestroID()
-            data = {
-                'customerId' :          self._t.getSetting('customerId'),
-                'deviceToken' : {
-                    'deviceTypeId' :    self._t.getSetting('deviceType'),
-                    'deviceId' :        self._t.getSetting('deviceId')
-                },
-                'contentIdList' : [{
-                    'identifier' :      asin,
-                    'identifierType' :  mediatype
-                }],
-                #'bitrateTypeList' : [ audio ], # self._t.audioQuality missing
-                #'musicDashVersionList' : [ 'V2' ], # missing
-                #'appInfo' : { # missing
-                #    'musicAgent': mID
-                #},
-                'musicRequestIdentityContext': {
-                    'musicIdentities': {
-                        'musicAccountCid': self._t.getSetting('customerId')
-                    }
-                },
-                'customerInfo' : {
-                    'marketplaceId' :   self._t.getSetting('marketplaceId'),
-                    # 'customerId' :      self._t.getSetting('customerId'),   # missing
-                    'territoryId' :     self._t.getSetting('musicTerritory'),
-                    'entitlementList' : [ 'ROBIN' ] # account mapping
-                },
-                'appMetadata': { 'https': 'true' },
-                'clientMetadata': {
-                    'clientId': 'WebCP',
-                    'clientRequestId': ''
-                }
-            }
-            data = json.dumps(data)
+
         elif mode == 'getLicenseForPlaybackV2':
             mID = self.getMaestroID()
             # 'b{SSM}' base64NonURLencoded
@@ -655,10 +652,10 @@ class AMcall(Singleton):
             data = {
                 'DrmType':'WIDEVINE',
                 #'licenseChallenge':'b{SSM}',
-                'customerId':self._t.getSetting('customerId'),
+                'customerId':self.credentials.CUSTOMERID,
                 'deviceToken':{
-                    'deviceTypeId':self._t.getSetting('deviceType'),
-                    'deviceId':self._t.getSetting('deviceId')
+                    'deviceTypeId':self.credentials.DEVICETYPE,
+                    'deviceId':self.credentials.DEVICEID
                 },
                 'appInfo':{
                     'musicAgent':mID
@@ -669,68 +666,5 @@ class AMcall(Singleton):
             else:
                 data['licenseChallenge'] = 'b{SSM}'
             data = json.dumps(data)
-        elif mode == 'getSoccerMain':
-            data = { # TODO
-                'competitionId':    mediatype,
-                'localTimeOffset': '+02:00',
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId'),
-                'lang':             self._t.getSetting('locale')
-            }
-            data = json.dumps(data)
-        elif mode == 'getSoccerProgramDetails':
-            data = { # TODO
-                'programId':        mediatype,
-                'localTimeOffset': '+02:00',
-                'deviceId':         self._t.getSetting('deviceId'),
-                'deviceType':       self._t.getSetting('deviceType'),
-                'musicTerritory':   self._t.getSetting('musicTerritory'),
-                'customerId':       self._t.getSetting('customerId'),
-                'lang':             self._t.getSetting('locale')
-            }
-            data = json.dumps(data)
-        elif mode == 'getSoccerLiveURL':
-            data = {
-                'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getlivestreamingurls#GetLiveStreamingURLs',
-                'Service':'com.amazon.amazonmusicaudiolocatorservice.model#AmazonMusicAudioLocatorServiceExternal',
-                'Input':{
-                    'customerId':self._t.getSetting('customerId'),
-                    'deviceToken':{
-                        'deviceTypeId':self._t.getSetting('deviceType'),
-                        'deviceId':self._t.getSetting('deviceId')
-                    },
-                    'appMetadata':{'appId':'WebCP'},
-                    'clientMetadata':{
-                        'clientId':self._t.getSetting('deviceType'),
-                        'clientIpAddress':''},
-                    'contentIdList':[{
-                        'identifier':mediatype,
-                        'identifierType':'MCID'}],
-                    'protocol':'DASH'
-                }
-            }
-            data = json.dumps(data)
-        elif mode == 'getSoccerOnDemandURL':
-            data = {
-                'Operation':'com.amazon.amazonmusicaudiolocatorservice.model.getondemandstreamingurls#GetOnDemandStreamingURLs',
-                'Service':'com.amazon.amazonmusicaudiolocatorservice.model#AmazonMusicAudioLocatorServiceExternal',
-                'Input':{
-                    'customerId':self._t.getSetting('customerId'),
-                    'deviceToken':{
-                        'deviceTypeId':self._t.getSetting('deviceType'),
-                        'deviceId':self._t.getSetting('deviceId')
-                    },
-                    'appMetadata':{'appId':'WebCP'},
-                    'clientMetadata':{
-                        'clientId':self._t.getSetting('deviceType'),
-                        'clientIpAddress':''},
-                    'contentIdList':[{
-                        'identifier':mediatype,
-                        'identifierType':'MCID'}],
-                    'protocol':'DASH'
-                }
-            }
-            data = json.dumps(data)
+
         return data

@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from resources.lib.singleton import Singleton
-
-class AMapi(Singleton):
+class AMapi():
     """
-        Amazon Media API definitions
-        amzUrl      = AmazonBaseUrl + region + /api/ + path
-        amzTarget   = target
+    Amazon Media API definitions \n
+    amzUrl      = AmazonBaseUrl + region + /api/ + path \n
+    amzTarget   = target
     """
-    def getAPI(self,amapi):
+    @staticmethod
+    def getAPI( amapi ):
+        """
+        Provides Amazon URL and Service endpoint
+        :param str amapi: the requested API
+        """
         if  amapi == 'APIgetBrowseRecommendations':
             s = {   'path':   'muse/legacy/getBrowseRecommendations',
                     'target': 'com.amazon.musicensembleservice.MusicEnsembleService.getBrowseRecommendations'
@@ -130,8 +133,6 @@ class AMapi(Singleton):
         # e.PODCAST_LIBRARY_PLAYLIST_WIDGET = "Podcast.Web.WidgetsInterface.LibraryPlaylistWidgetElement",
         # e.PODCAST_LIBRARY_SHOWS_WIDGET = "Podcast.Web.WidgetsInterface.LibraryShowsWidgetElement"
         else:
-            s = {   'path':   'No API available',
-                    'target': 'No API available'
-            }
+            raise Exception("No API provided!")
 
         return s

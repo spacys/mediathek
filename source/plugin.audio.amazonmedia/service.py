@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 from __future__ import unicode_literals
-import threading
-#from time import time
-import xbmc
-import xbmcaddon
-import sys
+import threading, sys
+import xbmc, xbmcaddon
 from resources.lib.proxy import ProxyTCPD
 
 class ServiceManager():
@@ -31,27 +29,28 @@ class ServiceManager():
         xbmc.log(log_message, level)
 
     def run(self):
-        def _start_servers():
+        def _start_server():
             self.proxy.server_activate()
             self.proxy.timeout = 1
             self.proxy_thread.start()
             self.monitor = xbmc.Monitor()
             self.log('Proxy Server started')
 
-        def _stop_servers():
+        def _stop_server():
             self.proxy.server_close()
             self.proxy.shutdown()
             self.proxy_thread.join()
             self.setSetting('proxy','')
+            del self.monitor
             self.log('Proxy Server stopped')
         
-        _start_servers()
+        _start_server()
 
         while not self.monitor.abortRequested():
             if self.monitor.waitForAbort(1):
                 break
 
-        _stop_servers()
+        _stop_server()
 
 if __name__ == '__main__':
     ServiceManager().run()
