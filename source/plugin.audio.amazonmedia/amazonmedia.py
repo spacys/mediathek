@@ -62,102 +62,107 @@ class AmazonMedia( AMtools ):
         elif mode == 'menuStations':    self.createList( AMmenu.menuStations(),True )
         elif mode == 'menuArtists':     self.createList( AMmenu.menuArtists(),True )
 
-        # search playlists
-        elif mode == 'searchPlayLists': self.searchItems(['playlists','catalog_playlist'],30013)
-        elif mode in ['search1PlayLists','search2PlayLists','search3PlayLists']:
-            exec('self.searchItems([\'playlists\',\'catalog_playlist\'],None,self.getSetting("{}"))'.format(mode))
+        try:
+            # search playlists
+            if mode == 'searchPlayLists': self.searchItems(['playlists','catalog_playlist'],30013)
+            elif mode in ['search1PlayLists','search2PlayLists','search3PlayLists']:
+                exec('self.searchItems([\'playlists\',\'catalog_playlist\'],None,self.getSetting("{}"))'.format(mode))
 
-        # search albums
-        elif mode == 'searchAlbums':    self.searchItems(['albums','catalog_album'],30010)
-        elif mode in ['search1Albums','search2Albums','search3Albums']:
-            exec('self.searchItems([\'albums\',\'catalog_album\'],None,self.getSetting("{}"))'.format(mode))
+            # search albums
+            elif mode == 'searchAlbums':    self.searchItems(['albums','catalog_album'],30010)
+            elif mode in ['search1Albums','search2Albums','search3Albums']:
+                exec('self.searchItems([\'albums\',\'catalog_album\'],None,self.getSetting("{}"))'.format(mode))
 
-        # search songs
-        elif mode == 'searchSongs':     self.searchItems(['tracks','catalog_track'],30011)
-        elif mode in ['search1Songs','search2Songs','search3Songs']:
-            exec('self.searchItems([\'tracks\',\'catalog_track\'],None,self.getSetting("{}"))'.format(mode))
+            # search songs
+            elif mode == 'searchSongs':     self.searchItems(['tracks','catalog_track'],30011)
+            elif mode in ['search1Songs','search2Songs','search3Songs']:
+                exec('self.searchItems([\'tracks\',\'catalog_track\'],None,self.getSetting("{}"))'.format(mode))
 
-        # search artists
-        elif mode == 'searchArtist':    self.searchItems(['artists','catalog_artist'],30014)
-        elif mode in ['search1Artists','search2Artists','search3Artists']:
-            exec('self.searchItems([\'artists\',\'catalog_artist\'],None,self.getSetting("{}"))'.format(mode))
+            # search artists
+            elif mode == 'searchArtist':    self.searchItems(['artists','catalog_artist'],30014)
+            elif mode in ['search1Artists','search2Artists','search3Artists']:
+                exec('self.searchItems([\'artists\',\'catalog_artist\'],None,self.getSetting("{}"))'.format(mode))
 
-        # search stations
-        elif mode == 'searchStations':  self.searchItems(['stations','catalog_station'],30016)
-        elif mode in ['search1Stations','search2Stations','search3Stations']:
-            exec('self.searchItems([\'stations\',\'catalog_station\'],None,self.getSetting("{}"))'.format(mode))
+            # search stations
+            elif mode == 'searchStations':  self.searchItems(['stations','catalog_station'],30016)
+            elif mode in ['search1Stations','search2Stations','search3Stations']:
+                exec('self.searchItems([\'stations\',\'catalog_station\'],None,self.getSetting("{}"))'.format(mode))
 
-        elif mode == 'getArtistDetails':
-            asin = self.G['addonArgs'].get('asin', [None])
-            self.getArtistDetails(asin[0])
+            elif mode == 'getArtistDetails':
+                asin = self.G['addonArgs'].get('asin', [None])
+                self.getArtistDetails(asin[0])
 
-        elif mode == 'getRecentlyPlayed':
-            items = self._c.amzCall('APIGetRecentTrackActivity', 'recentlyplayed', None, None, 'PLAYED')['recentActivityMap']['PLAYED']
-            self.setAddonContent('recentlyplayed',items,'songs')
+            elif mode == 'getRecentlyPlayed':
+                items = self._c.amzCall('APIGetRecentTrackActivity', 'recentlyplayed', None, None, 'PLAYED')['recentActivityMap']['PLAYED']
+                self.setAddonContent('recentlyplayed',items,'songs')
 
-        elif mode == 'getRecentlyAddedSongs':
-            items = self._c.amzCall('APIcirrus','recentlyaddedsongs',None,None,None)['selectTrackMetadataResponse']['selectTrackMetadataResult']
-            self.setAddonContent('recentlyaddedsongs',items,'songs')
+            elif mode == 'getRecentlyAddedSongs':
+                items = self._c.amzCall('APIcirrus','recentlyaddedsongs',None,None,None)['selectTrackMetadataResponse']['selectTrackMetadataResult']
+                self.setAddonContent('recentlyaddedsongs',items,'songs')
 
-        elif mode == 'getPopularPlayLists':
-            self.getPlayLists('popularity-rank')
+            elif mode == 'getPopularPlayLists':
+                self.getPlayLists('popularity-rank')
 
-        elif mode == 'getNewPlayLists':
-            self.getPlayLists('newly-released')
+            elif mode == 'getNewPlayLists':
+                self.getPlayLists('newly-released')
 
-        elif mode == 'getFollowedPlayLists':
-            items = self._c.amzCall('APIgetFollowedPlaylistsInLibrary','followedplaylists',None,None,None)
-            self.setAddonContent('followedplaylists',items,'albums')
+            elif mode == 'getFollowedPlayLists':
+                items = self._c.amzCall('APIgetFollowedPlaylistsInLibrary','followedplaylists',None,None,None)
+                self.setAddonContent('followedplaylists',items,'albums')
 
-        elif mode == 'getOwnedPlaylists':
-            items = self._c.amzCall('APIgetOwnedPlaylistsInLibrary','getownedplaylists',None,None,None)
-            self.setAddonContent('ownedplaylists',items,'albums')
-        # TODO NEW ownedPlaylist selection
+            elif mode == 'getOwnedPlaylists':
+                items = self._c.amzCall('APIgetOwnedPlaylistsInLibrary','getownedplaylists',None,None,None)
+                self.setAddonContent('ownedplaylists',items,'albums')
+            # TODO NEW ownedPlaylist selection
 
-        elif mode == 'getPlaylistsByIdV2':
-            asin = self.G['addonArgs'].get('asin', [None])
-            #self.getPlaylistsByIdV2(asin[0])
-            items = self._c.amzCall('APIgetPlaylistsByIdV2','getplaylistsbyid',None,asin[0],None)
-            self.setAddonContent('getplaylistsbyid',items,'songs')
+            elif mode == 'getPlaylistsByIdV2':
+                asin = self.G['addonArgs'].get('asin', [None])
+                #self.getPlaylistsByIdV2(asin[0])
+                items = self._c.amzCall('APIgetPlaylistsByIdV2','getplaylistsbyid',None,asin[0],None)
+                self.setAddonContent('getplaylistsbyid',items,'songs')
 
-        # recommendations
-        elif mode == 'getRecomPlayLists':   self.getRecommendations('mp3-prime-browse-carousels_playlistStrategy')
-        elif mode == 'getRecomAlbums':      self.getRecommendations('mp3-prime-browse-carousels_mp3PrimeAlbumsStrategy')
-        elif mode == 'getRecomStations':    self.getRecommendations('mp3-prime-browse-carousels_mp3ArtistStationStrategy')
+            # recommendations
+            elif mode == 'getRecomPlayLists':   self.getRecommendations('mp3-prime-browse-carousels_playlistStrategy')
+            elif mode == 'getRecomAlbums':      self.getRecommendations('mp3-prime-browse-carousels_mp3PrimeAlbumsStrategy')
+            elif mode == 'getRecomStations':    self.getRecommendations('mp3-prime-browse-carousels_mp3ArtistStationStrategy')
 
-        elif mode == 'getNewRecom':         self.getNewRecommendations()
-        elif mode == 'getNewRecomDetails':
-            asin = self.G['addonArgs'].get('target', [None])
-            self.getNewRecomDetails(asin[0])
+            elif mode == 'getNewRecom':         self.getNewRecommendations()
+            elif mode == 'getNewRecomDetails':
+                asin = self.G['addonArgs'].get('target', [None])
+                self.getNewRecomDetails(asin[0])
 
-        # get own music, differentiate betwenn purchased and own lib
-        # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
-        elif mode in ['getPurAlbums','getAllAlbums']:
-            self.getPurchased(['ALBUMS','getAllDataByMetaType','sortAlbumName'],'albums')
-        elif mode in ['getPurSongs','getAllSongs']:
-            self.getPurchased(['TRACKS','getServerSongs','sortTitle'],'songs')
+            # get own music, differentiate betwenn purchased and own lib
+            # param: searchReturnType , caller, sortCriteriaList.member.1.sortColumn
+            elif mode in ['getPurAlbums','getAllAlbums']:
+                self.getPurchased(['ALBUMS','getAllDataByMetaType','sortAlbumName'],'albums')
+            elif mode in ['getPurSongs','getAllSongs']:
+                self.getPurchased(['TRACKS','getServerSongs','sortTitle'],'songs')
 
-        # get amazon stations
-        elif mode in ['getStations','getAllArtistsStations','getGenres','getGenres2']:
-            items = self._c.amzCall('APIgetStationSections','getStations','/stations')
-            self.setAddonContent(mode.replace('get','').lower(),items,'albums')
+            # get amazon stations
+            elif mode in ['getStations','getAllArtistsStations','getGenres','getGenres2']:
+                items = self._c.amzCall('APIgetStationSections','getStations','/stations')
+                self.setAddonContent(mode.replace('get','').lower(),items,'albums')
 
-        elif mode in ['getGenrePlaylist','createQueue']:
-            asin = self.G['addonArgs'].get('asin', None)
-            exec('self.{}(asin[0])'.format(mode))
+            elif mode in ['getGenrePlaylist','createQueue']:
+                asin = self.G['addonArgs'].get('asin', None)
+                exec('self.{}(asin[0])'.format(mode))
 
-        # get song lists
-        elif mode == 'lookup':
-            asin = self.G['addonArgs'].get('asin', None)
-            self.lookup(asin)
+            # get song lists
+            elif mode == 'lookup':
+                asin = self.G['addonArgs'].get('asin', None)
+                self.lookup(asin)
 
-        # play the song
-        elif mode == 'getTrack':
-            asin = self.G['addonArgs'].get('asin', [None])[0]
-            objectId = self.G['addonArgs'].get('objectId', [None])[0]
-            from resources.lib.play import AMplay
-            AMplay().getTrack(asin,objectId)
+            # play the song
+            elif mode == 'getTrack':
+                asin = self.G['addonArgs'].get('asin', [None])[0]
+                objectId = self.G['addonArgs'].get('objectId', [None])[0]
+                from resources.lib.play import AMplay
+                AMplay().getTrack(asin,objectId)
  
+        except: # something went wrong, try to logon again
+            self.resetCredentials()
+            self.credentials = AMlogon().amazonLogon()
+
     # get music information
     def lookup( self, asin ):
         """

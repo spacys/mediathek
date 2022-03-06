@@ -113,7 +113,7 @@ class AMplay( AMtools ):
                 else:
                     inf[item] = self.G['addonArgs'].get(item, [None])[0]
 
-        li = xbmcgui.ListItem(path=song, label=self.G['addonArgs'].get('title', [None])[0])
+        li = xbmcgui.ListItem(path=song, label=self.G['addonArgs'].get('title', [None])[0])        
         if ia:
             li.setMimeType('application/xml+dash')
             li.setProperty('inputstream', 'inputstream.adaptive')
