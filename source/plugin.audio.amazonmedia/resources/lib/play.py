@@ -64,7 +64,11 @@ class AMplay( AMtools ):
         else:
             resp = self._c.amzCall( 'APIstream', 'getTrack', None, objectId, 'COID' )
             obj = json.loads(resp.text)
-            if 'statusCode' in obj and obj['contentResponse']['statusCode'] == 'CONTENT_NOT_ELIGIBLE' or obj['contentResponse']['statusCode'] == 'BAD_REQUEST':
+            # self.log(obj)
+            try:
+                if 'statusCode' in obj and obj['contentResponse']['statusCode'] == 'CONTENT_NOT_ELIGIBLE' or obj['contentResponse']['statusCode'] == 'BAD_REQUEST':
+                    return None
+            except:
                 return None
             try:
                 song = obj['contentResponse']['urlList'][0]
@@ -154,9 +158,9 @@ class AMplay( AMtools ):
 
         head['Cookie'] = cj_str
         licHeader = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
-        self.log(licHeader)
+        #self.log(licHeader)
         licBody = self._c.prepReqData('getLicenseForPlaybackV2')
-        self.log(licBody)
+        #self.log(licBody)
         # licURL expect (req | header | body | response)
         return '{}|{}|{}|JBlicense'.format( url, licHeader, licBody )
 
