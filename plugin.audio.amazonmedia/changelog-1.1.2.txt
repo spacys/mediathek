@@ -1,3 +1,5 @@
+1.1.2
+- Logon fixed
 1.1.1
 - settings fixed
 1.1.0

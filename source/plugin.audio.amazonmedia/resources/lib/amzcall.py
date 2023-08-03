@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import math, random, requests, json, datetime
+from urllib.parse import quote as urlquote
 from resources.lib.tools import AMtools
 from resources.lib.api import AMapi
 
 class AMcall( AMtools ):
+#class AMcall( ):
     """
     Common class for the Amazon API calls
     """
@@ -659,12 +661,13 @@ class AMcall( AMtools ):
                 },
                 'appInfo':{
                     'musicAgent':mID
-                }
+                },
+                'Authorization':self.credentials.ACCESSTOKEN
             }
             if mediatype:
                 data['licenseChallenge'] = mediatype
             else:
                 data['licenseChallenge'] = 'b{SSM}'
-            data = json.dumps(data)
-
+            #data = json.dumps(data)
+            data = urlquote(json.dumps(data))
         return data

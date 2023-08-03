@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, os, pickle
+import sys, os, pickle, requests
 import urllib.parse as urlparse
 import xbmc, xbmcgui, xbmcaddon, xbmcvfs, xbmcplugin
+from random import randint
 from resources.lib.access import AMaccess
 from resources.lib.singleton import Singleton
 
@@ -16,7 +17,7 @@ class AMtools( Singleton ):
     def setVariables( self ):
         """ initialize global addon variables """
         self.musicURL           = 'https://music.amazon.{}'
-        self.userAgent          = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36'
+        self.userAgent          = self.getUserAgent()
 
         self.G['addonBaseUrl']  = sys.argv[0]
         self.G['addonHandle']   = int(sys.argv[1])
@@ -35,6 +36,18 @@ class AMtools( Singleton ):
         self.G['logging']       = self.getSetting('logging')
         self.G['showcolentr']   = self.getSetting('showcolentr')
         self.G['showimages']    = self.getSetting('showimages')
+
+    def getUserAgent( self ):
+        setUA = self.getSetting('userAgent')
+        if setUA == '':
+            url = 'https://raw.githubusercontent.com/Kikobeats/top-user-agents/master/index.json'
+            resp = requests.get( url=url)
+            if resp.status_code == 200:
+                setUA = resp.json()[randint(0, len(resp.json()) - 1)]
+            else:
+                setUA = 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0'
+            self.setSetting( 'userAgent', setUA )
+        return setUA
 
     @staticmethod
     def getInfo( oProp ):
@@ -263,7 +276,8 @@ class AMtools( Singleton ):
             'search1Artists': '',
             'search2Artists': '',
             'search3Artists': '',
-            'captcha': ''
+            'captcha': '',
+            'userAgent': ''
         }
         for key, value in data.items():
             self.setSetting( key, value )
@@ -273,19 +287,10 @@ class AMtools( Singleton ):
         """
         Remove Cookie and data object files
         """
-        # remove cookie
-        # path = xbmcvfs.translatePath('special://profile/addon_data/{}'.format(
-        #     xbmcaddon.Addon().getAddonInfo('id'))
-        # )
         files = { 'cookie', 'data.obj' }
         for f in files:
             file = '{}{}{}'.format( self.G['addonUDatFo'], os.sep, f )
             self.delFile( file )
-        # remove data object
-        # file = '{}{}{}'.format( self.G['addonUDatFo'], os.sep, 'data.obj' )
-        # self.delFile( file )
-        #xbmc.sleep(randint(750,1500))
-        # self.setVariables()
 
     def createList( self, data, dynentry=False, soccer=False ):
         """
@@ -354,16 +359,21 @@ class AMtools( Singleton ):
         Request header preparation
         :param str amzTarget: API endpoint
         """
-        head = { 'Accept' : 'application/json, text/javascript, */*; q=0.01',
-                'Accept-Encoding' : 'gzip, deflate', #,br
-                'Accept-Language' : '{},en-US,en;q=0.9'.format( self.credentials.USERTLD ),
-                'csrf-token' :      self.credentials.CSRF_TOKEN,
-                'csrf-rnd' :        self.credentials.CSRF_RND,
-                'csrf-ts' :         self.credentials.CSRF_TS,
-                'Host' :            'music.amazon.{}'.format( self.credentials.USERTLD ),
-                'Origin' :          self.musicURL.format( self.credentials.USERTLD ),
-                'User-Agent' :      self.userAgent,
-                'X-Requested-With' : 'XMLHttpRequest'
+        head = {
+            #'Accept' : 'application/json, text/javascript, */*; q=0.01',
+            # old: 'Accept' : 'application/json, */*',
+            'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Encoding' : 'gzip, deflate, br',
+            # old: 'Accept-Encoding' : 'gzip, deflate', #,br
+            'Accept-Language' : '{},en-US,en;q=0.8'.format( self.credentials.USERTLD ),
+            'Accept-Charset'  : 'UTF-8,*;q=0.8',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Host' :            'music.amazon.{}'.format( self.credentials.USERTLD ),
+            'Origin' :          self.musicURL.format( self.credentials.USERTLD ),
+            'csrf-token' :      self.credentials.CSRF_TOKEN,
+            'csrf-rnd' :        self.credentials.CSRF_RND,
+            'csrf-ts' :         self.credentials.CSRF_TS,
+            'User-Agent' :      self.userAgent
         }
 
         if amzTarget is not None:

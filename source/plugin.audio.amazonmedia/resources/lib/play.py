@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from urllib.parse import quote as urlquote
-import json, re, os
+import json, re, os, base64
 import xbmc, xbmcgui, xbmcplugin, xbmcvfs
 
 from resources.lib.api import AMapi
@@ -119,7 +119,7 @@ class AMplay( AMtools ):
             li.setProperty('inputstream', 'inputstream.adaptive')
             li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
             li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
-            li.setProperty('inputstream.adaptive.stream_headers', 'user-agent={}'.format(self.userAgent))
+            li.setProperty('inputstream.adaptive.manifest_headers', 'user-agent={}'.format(self.userAgent))
             li.setProperty('inputstream.adaptive.manifest_update_parameter', 'full')
             if lic:
                 li.setProperty('inputstream.adaptive.license_key', self.getLicenseKey() )
@@ -129,6 +129,8 @@ class AMplay( AMtools ):
         li.setProperty('IsPlayable', 'true')
         #li.setArt({'thumb':self.G['addonArgs'].get('art', [None])[0]})
         li.setInfo('audio', {'codec': 'aac'})
+        # old: li.addStreamInfo('audio', {'codec': 'aac'})
+        # InfoTagVideo.addAudioStream()
         li.addStreamInfo('audio', {'codec': 'aac'})
         li.setContentLookup(False)
         xbmcplugin.setResolvedUrl(self.G['addonHandle'], True, listitem=li)
@@ -152,7 +154,9 @@ class AMplay( AMtools ):
 
         head['Cookie'] = cj_str
         licHeader = '&'.join(['%s=%s' % (k, urlquote(v, safe='')) for k, v in head.items()])
+        self.log(licHeader)
         licBody = self._c.prepReqData('getLicenseForPlaybackV2')
+        self.log(licBody)
         # licURL expect (req | header | body | response)
         return '{}|{}|{}|JBlicense'.format( url, licHeader, licBody )
 

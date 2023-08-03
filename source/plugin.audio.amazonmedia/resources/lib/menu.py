@@ -17,7 +17,8 @@ class AMmenu():
                 {'txt':30008,'fct':'menuStations',          'img':'stations.jpg'},
                 {'txt':30015,'fct':'getGenres',             'img':'genres.jpg'},
                 {'txt':30027,'fct':'menuArtists',           'img':'artists.jpg'},
-                {'txt':30041,'fct':'getNewRecom',           'img':'newrecom.jpg'}]
+                {'txt':30041,'fct':'getNewRecom',           'img':'newrecom.jpg'},
+                {'txt':30039,'fct':'testplaylist',          'img':'newrecom.jpg'}]
 
     @staticmethod
     def menuPlaylists():
