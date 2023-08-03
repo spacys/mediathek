@@ -14,6 +14,8 @@ from resources.lib.tools import AMtools
 from resources.lib.logon import AMlogon
 from resources.lib.amzcall import AMcall
 
+# import requests,json
+
 class AmazonMedia( AMtools ):
 
     def reqDispatch( self ):

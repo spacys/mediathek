@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os, re, json, mechanize
+import urllib.parse as urlparse
 from bs4 import BeautifulSoup
 from resources.lib.tools import AMtools
 
@@ -53,9 +54,10 @@ class AMlogon( AMtools ):
         self._br.set_handle_equiv(True)
         self._br.set_cookiejar(self.credentials.COOKIE)
         self._br.addheaders = [
-            ('Accept',          'application/json, text/javascript, */*; q=0.01'),
-            ('Accept-Encoding', 'gzip, deflate'),
-            ('Accept-Language', '{},en-US;en;q=0.9'.format(self.credentials.USERTLD) ),
+            # old: ('Accept',          'application/json, text/javascript, */*; q=0.8'),
+            ('Accept',          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'),
+            ('Accept-Encoding', 'gzip, deflate, br'),
+            ('Accept-Language', '{},en-US,en;q=0.8'.format( self.credentials.USERTLD )),
             ('Connection',      'keep-alive'),
             ('Content-Type',    'application/json; charset=utf-8'),
             ('User-Agent',      self.userAgent),
@@ -68,7 +70,20 @@ class AMlogon( AMtools ):
         """
         if not self._getCredentials():  return False
         self._prepBrowser()
-        amzURL = 'https://www.amazon.{}/gp/aw/si.html'.format(self.credentials.USERTLD)
+        # old: amzURL = 'https://www.amazon.{}/gp/aw/si.html'.format(self.credentials.USERTLD)
+        params = {
+            "openid.pape.max_auth_age" : "3600",
+            "openid.return_to" : 'https://music.amazon.{}/?referer=https%3A%2F%2Fmusic.amazon.{}%2F'.format(self.credentials.USERTLD,self.credentials.USERTLD),
+            "openid.identity" : "http://specs.openid.net/auth/2.0/identifier_select",
+            "openid.assoc_handle" : "amzn_webamp_de",
+            "openid.mode" : "checkid_setup",
+            "language" : ("de_DE" if self.credentials.LOCALE is None else self.credentials.LOCALE ),
+            "openid.claimed_id" : "http://specs.openid.net/auth/2.0/identifier_select",
+            "pageId" : "login",
+            "openid.ns" : "http://specs.openid.net/auth/2.0"
+        }
+        amzURL = 'https://www.amazon.{}/ap/signin?{}'.format(self.credentials.USERTLD, urlparse.urlencode(params))
+
         self._br.open(amzURL)
         self._br.select_form(name="signIn")
         if not self._br.find_control("email").readonly:
@@ -231,6 +246,7 @@ class AMlogon( AMtools ):
         self._content = str(self._br.response().read(), encoding = 'utf-8')
         soup = self._parseHTML(self._content)
         # self.log(soup)
+
         script_list = soup.find_all('script')
         for scripts in script_list:
             # self.log(scripts.contents)
@@ -239,13 +255,13 @@ class AMlogon( AMtools ):
                 sc = sc.replace( "window.amznMusic = " , "" )
                 sc = sc.replace( "appConfig:" , "\"appConfig\":" )
                 sc = sc.replace( "ssr: false," , "\"ssr\":\"\"" )
-                sc = sc.replace( "false" , "\"\"" )
-                sc = sc.replace( "true" , "\"\"" )
+                sc = sc.replace( "false" , "\"false\"" )
+                sc = sc.replace( "true" , "\"true\"" )
                 sc = sc.replace( os.linesep , "" )
                 sc = sc.replace( ";" , "" )
                 # self.log(sc)
                 if not 'tier' in sc:
-                    self.log('No tier available, lonon was not successful.')
+                    self.log('No tier available, logon was not successful.')
                     break
                 app_config = json.loads(sc)
                 self.log('Config available')
@@ -266,6 +282,7 @@ class AMlogon( AMtools ):
         :param array app_config: The application configuration
         """
         #self.log(app_config)
+        self.credentials.ACCESSTOKEN =       'Bearer {}'.format(app_config['accessToken'])
         self.credentials.CSRF_TOKEN =        app_config['csrf']['token']
         self.credentials.CSRF_TS =           app_config['csrf']['ts']
         self.credentials.CSRF_RND =          app_config['csrf']['rnd']
