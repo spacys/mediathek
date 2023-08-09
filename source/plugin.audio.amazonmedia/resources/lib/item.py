@@ -80,9 +80,9 @@ class AMitem( AMtools ):
 
         if 'albumReleaseDate' in item:      info['year'] = item['albumReleaseDate'][:4]
 
-        if 'primaryGenre' in item:          info['genre'] = item['primaryGenre']
-        elif 'genreName' in item:           info['genre'] = item['genreName']
-        elif 'productDetails' in item:      info['genre'] = item['productDetails']['primaryGenreName']
+        if 'primaryGenre' in item:          info['genre'] = [item['primaryGenre']]
+        elif 'genreName' in item:           info['genre'] = [item['genreName']]
+        elif 'productDetails' in item:      info['genre'] = [item['productDetails']['primaryGenreName']]
 
         if 'albumName' in item:             info['album'] = item['albumName']
         if 'description' in item:           info['album'] = item['description']
@@ -203,7 +203,10 @@ class AMitem( AMtools ):
         li = xbmcgui.ListItem(label=met['color'] % (inf['title']))
         if not met['thumb'] == None:
             li.setArt( self.setImage( met['thumb'] ) )
-        li.setInfo( type='music', infoLabels=inf )
+
+        info_tag = self.setItemTags(li, 'music')
+        info_tag.set_info(inf)
+
         if not met['isPlayable']: # workaround for unplayable items
             met['mode'] = '1234'
         url = self.setUrl( inf, met )

@@ -14,8 +14,6 @@ from resources.lib.tools import AMtools
 from resources.lib.logon import AMlogon
 from resources.lib.amzcall import AMcall
 
-# import requests,json
-
 class AmazonMedia( AMtools ):
 
     def reqDispatch( self ):
@@ -695,7 +693,7 @@ class AmazonMedia( AMtools ):
         elif mode == 'searchstations':          # search stations
             for item in param['hits']:
                 itemlist.append(
-                    self._i.setListItem( item['document'], {'mode':'createQueue', 'query':query} )
+                    self._i.setListItem(item['document'],{'mode':'createQueue', 'query':query} )
                 )
             try:
                 if not param['nextPage'] == None and len(param['hits']) <= self.G['maxResults']: # next page
