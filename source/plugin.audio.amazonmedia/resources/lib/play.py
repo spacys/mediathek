@@ -112,12 +112,14 @@ class AMplay( AMtools ):
         }
         for item in data:
             if not self.G['addonArgs'].get(item, [None])[0] == None:
-                if 'artist' in item:
+                if ('artist' in item or 'genre' in item):
                     inf[item] = [ self.G['addonArgs'].get(item, [None])[0] ]
                 else:
                     inf[item] = self.G['addonArgs'].get(item, [None])[0]
 
         li = xbmcgui.ListItem(path=song, label=self.G['addonArgs'].get('title', [None])[0])        
+        info_tag = self.setItemTags(li, 'video')
+        info_tag.set_info(inf)
         if ia:
             li.setMimeType('application/xml+dash')
             li.setProperty('inputstream', 'inputstream.adaptive')
@@ -127,15 +129,9 @@ class AMplay( AMtools ):
             li.setProperty('inputstream.adaptive.manifest_update_parameter', 'full')
             if lic:
                 li.setProperty('inputstream.adaptive.license_key', self.getLicenseKey() )
-            li.setInfo('video', inf)
 
         li.setProperty('isFolder', 'false')
         li.setProperty('IsPlayable', 'true')
-        #li.setArt({'thumb':self.G['addonArgs'].get('art', [None])[0]})
-        li.setInfo('audio', {'codec': 'aac'})
-        # old: li.addStreamInfo('audio', {'codec': 'aac'})
-        # InfoTagVideo.addAudioStream()
-        li.addStreamInfo('audio', {'codec': 'aac'})
         li.setContentLookup(False)
         xbmcplugin.setResolvedUrl(self.G['addonHandle'], True, listitem=li)
 
