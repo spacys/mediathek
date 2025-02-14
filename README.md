@@ -1,3 +1,6 @@
+# THE DEVELOPMENT WAS STOPPED!
+I'll keep this repo for historical reasons.
+
 # Amazon (Music) mediathek
 Unofficial Kodi addon for Amazon Prime Music and Amazon Unlimited Music to search and play Music.
 An Amazon account is necessary to use the service.
