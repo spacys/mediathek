@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import math, random, requests, json, datetime
-from urllib.parse import quote as urlquote
+import os, random, requests, json, datetime, time
+import xbmc
 from resources.lib.tools import AMtools
+from resources.lib.logon import AMlogon
 from resources.lib.api import AMapi
 
 class AMcall( AMtools ):
@@ -11,38 +12,90 @@ class AMcall( AMtools ):
     """
     Common class for the Amazon API calls
     """
-    def getMaestroID( self ):
+    LIBRARY_ALBUM_ATTRIBUTES = ['albumName', 'albumArtistName', 'albumAsin', 'objectId',
+                                'albumCoverImageFull', 'sortAlbumName', 'albumReleaseDate', 'primaryGenre']
+    LIBRARY_TRACK_ATTRIBUTES = ['trackNum', 'discNum', 'duration', 'albumReleaseDate', 'primaryGenre',
+                                'albumName', 'artistName', 'title', 'asin', 'objectId', 'albumAsin',
+                                'artistAsin', 'purchased', 'status', 'primeStatus', 'albumCoverImageFull']
+    signedIn = False
+
+    def libraryData( self, attributes, filters, sort, order='ASC', paged=False ):
         """
-        Calculate random Player ID
+        Request body of a Cirrus v3 library call
+        :param array attributes:    item fields to return
+        :param array filters:       filterList entries
+        :param str sort:            attribute to sort by
+        :param str order:           ASC or DESC
+        :param bool paged:          pass on the page token of the current request
         """
-        a = str(
-            float.hex(
-                float(
-                    math.floor(16 * (1 + random.random()))
-                )
-            )
-        )[4:5]
-        uid = '{}-{}-dmcp-{}-{}{}'.format(
-            self.doCalc(),
-            self.doCalc(),
-            self.doCalc(),
-            self.doCalc(),
-            a
-        )
-        return 'Maestro/1.0 WebCP/1.0.202638.0 ({})'.format( uid )
-    
+        data = {
+            'filterList':       filters,
+            'attributeList':    attributes,
+            'sortOrder':        {'sort': sort, 'order': order},
+            'maxResults':       self.G['maxResults'],
+            'musicTerritory':   self.credentials.MUSICTERRITORY,
+            'customerId':       self.credentials.CUSTOMERID,
+            'deviceId':         self.credentials.DEVICEID,
+            'deviceType':       self.credentials.DEVICETYPE
+        }
+        token = self.G['addonArgs'].get('token', [None])[0] if paged else None
+        if token:
+            data['nextToken'] = token
+        return json.dumps(data)
+
     @staticmethod
-    def doCalc():
+    def libraryFilter( name, value, comparison='EQUALS' ):
+        return {'attributeName': name, 'comparisonType': comparison, 'attributeValue': value}
+
+    # The player of the signed in web player (Vinyl) names itself; its id carries the first four letters.
+    APP_NAME = 'GreenHornet_Web'
+    APP_VERSION = '1.0.1468'
+
+    def musicAgent( self ):
         """
-        Calculate random ID
+        The music agent as the web player builds it: Vinyl/2.0 <app>/<version> (<random player id>)
         """
-        return str(
-            float.hex(
-                float(
-                    math.floor(65536 * (1 + random.random()))
-                )
-            )
-        )[4:8]
+        def part( digits=4 ):
+            return ''.join(random.choice('0123456789abcdef') for _ in range(digits))
+        uid = '{}-{}-{}-{}-{}'.format( part(), part(), self.APP_NAME[:4], part(), part(5) )
+        return 'Vinyl/2.0 {}/{} ({})'.format( self.APP_NAME, self.APP_VERSION, uid )
+
+    def verifiedMediaPath( self ):
+        """
+        Whether Widevine can vouch for the player, which Amazon asks for before it licenses more than
+        its lowest quality. The web player knows that a Linux desktop cannot and plays only the
+        quality marked "LD" there; any other gets the license refused with VMP_VALIDATION_FAILED.
+        Kodi has a Verified Media Path on Android only.
+        """
+        return bool(xbmc.getCondVisibility('System.Platform.Android')) and not self.vmpFailed()
+
+    def licenseOutOfReach( self ):
+        """
+        Whether Amazon refused, within the last day, even the one quality a player without Verified
+        Media Path may ask for. Seen with Kodi on Windows: Amazon expects Chrome for Windows to have
+        such a path. Asking again only plays the unprotected start of song after song.
+        """
+        if xbmc.getCondVisibility('System.Platform.Android') or not self.vmpFailed():
+            return False
+        try:
+            return time.time() - os.path.getmtime( self.dataFile(self.VMP_FLAG) ) < 24 * 60 * 60
+        except OSError:
+            return False
+
+    def deviceToken( self ):
+        """
+        The device as the player of the web player names it to the music locator (dmls). \n
+        Chrome on Linux has no Widevine Verified Media Path either and is handed a license without
+        saying so. Only once Amazon refused a license for that reason does the device call itself
+        unverified, as the web player does.
+        """
+        token = {
+            'deviceTypeId' :    self.credentials.DEVICETYPE,
+            'deviceId' :        self.credentials.DEVICEID
+        }
+        if self.vmpFailed():
+            token['vmpValidationStatus'] = 'UNVERIFIED'
+        return token
 
     def amzCall( self, amzUrl, mode, referer=None, asin=None, mediatype=None ):
         """
@@ -50,10 +103,13 @@ class AMcall( AMtools ):
         :param str amzUrl:  Endpoint ID
         :param str mode:    Request Addon Data ID
         :param str referer: no longer in use
-        :param str asin:    Playlist-, Albums-, Song-, Artist-, Station-ID
+        :param str asin:    Playlist-, Albums-, Song-, Artist-ID
         :param str/array mediatype: content depends on the caller function
         """
-        self.credentials = self.load()
+        # Kodi starts the add-on anew for every call, so the sign-in is read once per call.
+        if not self.signedIn:
+            self.credentials = self.load()
+            self.signedIn = True
 
         amPath = AMapi.getAPI( amzUrl )
 
@@ -66,608 +122,173 @@ class AMcall( AMtools ):
         head = self.prepReqHeader(amPath['target'])
         data = self.prepReqData( mode, asin, mediatype )
 
-        resp = requests.post( url=url, headers=head, data=data, cookies=self.credentials.COOKIE )
-        self.saveCookie( self.credentials.COOKIE )
+        resp = requests.post( url=url, headers=head, data=data, cookies=self.credentials.COOKIE, timeout=self.TIMEOUT )
+        # The tokens of the web player expire after some days, the sign-in cookies last longer.
+        if resp.status_code == 401 and self.renewTokens():
+            head = self.prepReqHeader(amPath['target'])
+            data = self.prepReqData( mode, asin, mediatype )
+            resp = requests.post( url=url, headers=head, data=data, cookies=self.credentials.COOKIE, timeout=self.TIMEOUT )
+        if resp.status_code == 401 and 'Authorization' in head:
+            # The web player also knows a sign-in by cookies alone. A refused access token
+            # must not lock out a sign-in whose cookies are still good.
+            del head['Authorization']
+            resp = requests.post( url=url, headers=head, data=data, cookies=self.credentials.COOKIE, timeout=self.TIMEOUT )
 
         if self.G['logging']:
             self.log('url: ' + url)
             self.log('reason: ' + resp.reason + ', code: ' + str(resp.status_code))
             self.log(resp.text)
 
-        if mode == 'getTrack' or mode == 'getTrackHLS' or mode == 'getTrackDash':
+        if mode in ('getTrackDash', 'getTrackCoid'):
             return resp
         else:
             return resp.json()
+
+    def renewTokens( self ):
+        """
+        Load fresh tokens from the web player configuration and store them with the sign-in
+        """
+        logon = AMlogon()
+        logon.credentials = self.credentials
+        # The configuration carries fresh CSRF tokens and an access token; without it the
+        # web player's own way of renewing the access token is left.
+        app_config = logon.fetchAppConfig()
+        if app_config and app_config.get('accessToken'):
+            logon._appConfig( app_config )
+        else:
+            token = logon.fetchAccessToken()
+            if not token:
+                return False
+            self.credentials.ACCESSTOKEN = 'Bearer {}'.format(token)
+        self.save( self.credentials )
+        return True
+
+    AUDIO_QUALITY = 'HIGH'
+
+    # One function per request: what the add-on calls a request, and the function that fills it in.
+    REQUESTS = {
+        'recentlyaddedsongs':       'reqRecentlyAddedSongs',
+        'getLibraryAlbums':         'reqLibrary',
+        'itemLookup':               'reqItemLookup',
+        'getTrackDash':             'reqTrackDash',
+        'getTrackCoid':             'reqTrackCoid',
+        'getLicenseForPlaybackV2':  'reqLicense'
+    }
 
     def prepReqData( self, mode, asin=None, mediatype=None ):
         """
         Provide request data structure for Amazon API calls
 
-        rankType:           newly-added, popularity-rank, top-sellers, newly-released
         requestedContent:   FULL_CATALOG, KATANA, MUSIC_SUBSCRIPTION, PRIME_UPSELL_MS, ALL_STREAMABLE, PRIME
         features:           fullAlbumDetails, playlistLibraryAvailability, childParentOwnership, trackLibraryAvailability,
                             hasLyrics, expandTracklist, ownership, popularity, albumArtist, collectionLibraryAvailability
         types:              artist, track, album, similarArtist, playlist, station
 
         :param str mode:            Request Addon Data ID
-        :param str asin:            Playlist-, Albums-, Song-, Artist-, Station-ID
+        :param str asin:            Playlist-, Albums-, Song-, Artist-ID
         :param str/array mediatype: content depends on the caller function
         """
-        #data = json.dumps(data)
-        #data = json.JSONEncoder().encode(data)
-        token = self.G['addonArgs'].get('token', [''])
-        if   mode == 'searchItems':
-            if self.G['addonArgs'].get('token', [None])[0] == None:
-                prop = 'maxResults'
-                val = self.G['maxResults']
-            else:
-                prop = 'pageToken'
-                val = self.G['addonArgs'].get('token', [None])[0]
+        data = getattr( self, self.REQUESTS[mode] )( mode, asin, mediatype )
+        return data if isinstance(data, str) else json.dumps(data)
 
-            data = {
-                'customerIdentity': {
-                    'deviceId': self.credentials.DEVICEID,
-                    'deviceType': self.credentials.DEVICETYPE,
-                    'sessionId': '',
-                    'customerId': self.credentials.CUSTOMERID
-                },
-                'features': {
-                    'spellCorrection': {
-                        'allowCorrection': 'true'
-                    }
-                },
-                'locale': self.credentials.LOCALE,
-                'musicTerritory': self.credentials.MUSICTERRITORY,
-                'query': asin,
-                'requestContext': 'true',
-                'resultSpecs': [{
-                    'label': mediatype[0], #'albums',
-                    'documentSpecs': [{
-                        'type': mediatype[1], #'catalog_album',
-                        'fields': [
-                            '__DEFAULT',
-                            'artOriginal',
-                            'artMedium',
-                            'artLarge',
-                            'artFull',
-                            'isMusicSubscription',
-                            'primeStatus',
-                            'albumName',
-                            'albumReleaseDate'
-                        ]
-                    }],
-                    prop : val,
-                    'contentRestrictions': {
-                        'allowedParentalControls': {
-                            'hasExplicitLanguage': 'true'
-                        },
-                        'eligibility': {
-                            'tier': self.credentials.ACCESSTYPE
-                        }
-                    }
-                }]
-            }
-            data = json.JSONEncoder().encode(data)
+    def customer( self ):
+        """
+        Who asks and from where: the four fields nearly every request carries
+        """
+        return {
+            'deviceId' :        self.credentials.DEVICEID,
+            'deviceType' :      self.credentials.DEVICETYPE,
+            'musicTerritory' :  self.credentials.MUSICTERRITORY,
+            'customerId' :      self.credentials.CUSTOMERID
+        }
 
-        elif mode == 'getArtistDetails':
-            if self.credentials.ACCESSTYPE == 'UNLIMITED':
-                tier = 'MUSIC_SUBSCRIPTION'
-            else:
-                tier = self.credentials.ACCESSTYPE
-            data  = {
-                'requestedContent': tier,
-                'asin': asin,
-                'types':[{
-                    'sortBy':'popularity-rank',
-                    'type':'album',
-                    'maxCount':     self.G['maxResults'],
-                    'nextToken':    self.G['addonArgs'].get('token', [''])[0]
-                }],
-                'features':[
-                    #'expandTracklist',
-                    #'collectionLibraryAvailability',
-                    'popularity'
-                ],
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE,
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID
-            }
-            data = json.dumps(data)
+    def reqRecentlyAddedSongs( self, mode, asin, mediatype ):
+        return self.libraryData(
+            self.LIBRARY_TRACK_ATTRIBUTES,
+            [
+                self.libraryFilter('status', 'AVAILABLE'),
+                self.libraryFilter('creationDate',
+                                   str(datetime.date.today() - datetime.timedelta(days=90)),
+                                   'GREATER_THAN')
+            ],
+            'creationDate', 'DESC', paged=True
+        )
 
-        elif mode == 'recentlyplayed':
-            data = {
-                'activityTypeFilters': [mediatype],
-                'pageToken':        token[0],
-                'lang':             self.credentials.LOCALE,
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE,
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID,
-            }
-            data = json.dumps(data)
+    def reqLibrary( self, mode, asin, mediatype ):
+        """Albums of the library: the albums bought, as the albums of the library come from GraphQL"""
+        filters = [ self.libraryFilter('status', 'AVAILABLE'), self.libraryFilter('purchased', 'true') ]
+        return self.libraryData( self.LIBRARY_ALBUM_ATTRIBUTES, filters, 'albumName', paged=True )
 
-        elif mode == 'getMetaTracks':
-            """
-            available fields in attributeList:
-            ['uploaded', 'composer', 'primaryGenre', 'albumArtistName', 'albumCoverImageFull', 'sortAlbumArtistName', 'purchased', 'fileExtension', 'albumReleaseDate',
-            'albumAsin', 'fileName', 'albumCoverImageXL', 'albumContributors', 'songWriter', 'albumCoverImageMedium', 'albumCoverImageLarge', 'orderId', 'assetType',
-            'parentalControls', 'marketplace', 'lyricist', 'localFilePath', 'albumRating', 'creationDate', 'bitrate', 'albumArtistAsin', 'performer', 'purchaseDate',
-            'sortArtistName', 'albumPrimaryGenre', 'primeStatus', 'discNum', 'status', 'rogueBackfillDate', 'physicalOrderId', 'artistName', 'lastUpdatedDate', 'albumCoverImageTiny',
-            'duration', 'audioUpgradeDate', 'albumCoverImageSmall', 'errorCode', 'asin', 'title', 'isMusicSubscription', 'contributors', 'sortTitle', 'objectId', 'albumName',
-            'trackNum', 'sortAlbumName', 'publisher', 'fileSize', 'rating', 'md5', 'artistAsin']
-            """
-            data = {
-                'filterList':[
-                    {
-                        'attributeName':'albumAsin',
-                        'comparisonType':'EQUALS',
-                        'attributeValue':asin
-                    },
-                    {
-                        'attributeName':'status',
-                        'comparisonType':'EQUALS',
-                        'attributeValue':'AVAILABLE'
-                    }
-                ],
-                'attributeList':[
-                    'trackNum',
-                    'discNum',
-                    'duration',
-                    'albumReleaseDate',
-                    'primaryGenre',
-                    'albumName',
-                    'artistName',
-                    'title',
-                    'asin',
-                    'objectId',
+    def reqItemLookup( self, mode, asin, mediatype ):
+        return dict({
+            'asins': asin, # [asin], is an array!!
+            'features': mediatype, # is an array!!
+            'requestedContent': 'MUSIC_SUBSCRIPTION'
+        }, **self.customer())
 
-                    'albumAsin',
-                    'artistAsin',
-                    'purchased',
-                    'status',
-                    'primeStatus'
-                ],
-                'sortOrder':{
-                    'sort':'albumName',
-                    'order':'ASC'
-                },
-                'maxResults':       self.G['maxResults'],
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID,
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE
-            }
-            data = json.JSONEncoder().encode(data)
-
-        elif mode == 'recentlyaddedsongs':
-            data = {
-                'selectCriteria': None,
-                'albumArtUrlsRedirects': 'false',
-                'distinctOnly': 'false',
-                'countOnly': 'false',
-                'sortCriteriaList': None,
-                'maxResults': self.G['maxResults'],
-                'nextResultsToken': self.G['addonArgs'].get('token', [0])[0],
-                'selectCriteriaList.member.1.attributeName': 'status',
-                'selectCriteriaList.member.1.comparisonType': 'EQUALS',
-                'selectCriteriaList.member.1.attributeValue': 'AVAILABLE',
-                'selectCriteriaList.member.2.attributeName': 'creationDate',
-                'selectCriteriaList.member.2.comparisonType': 'GREATER_THAN',
-                'selectCriteriaList.member.2.attributeValue': datetime.date.today()-datetime.timedelta(days=90),
-                'sortCriteriaList.member.1.sortColumn': 'creationDate',
-                'sortCriteriaList.member.1.sortType': 'DESC',
-                'Operation': 'selectTrackMetadata',
-                'caller': 'getServerSmartList',
-                'ContentType': 'JSON',
-                'customerInfo.customerId':  self.credentials.CUSTOMERID,
-                'customerInfo.deviceId':    self.credentials.DEVICEID,
-                'customerInfo.deviceType':  self.credentials.DEVICETYPE
-            }
-
-        elif mode == 'followedplaylists':
-            data = {
-                'optIntoSharedPlaylists': 'true',
-                'entryOffset':      0, # todo
-                'pageSize':         self.G['maxResults'],
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE,
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID
-            }
-            data = json.dumps(data)
-
-        elif mode == 'getownedplaylists':
-            data = {
-                'entryOffset':      0, #todo
-                'pageSize':         self.G['maxResults'],
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE,
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID
-            }
-            data = json.dumps(data)
-
-        elif mode == 'getplaylistsbyid':
-            data = {
-                'playlistIds':      [asin],
-                'requestedMetadata':['asin','albumName','sortAlbumName','artistName','primeStatus','isMusicSubscription','duration','sortArtistName','sortAlbumArtistName','objectId','title','status','assetType','discNum','trackNum','instantImport','purchased'],
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE,
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID
-            }
-            data = json.dumps(data)
-
-        elif mode == 'playlist':
-            data  = {
-                'rankType':         mediatype,
-                'requestedContent': 'PRIME',#self.credentials.ACCESSTYPE,
-                'features':         ['playlistLibraryAvailability','collectionLibraryAvailability'],
-                'types':            ['playlist'],
-                'nextTokenMap':     {'playlist' : token[0]},
-                'maxCount':         self.G['maxResults'],
-                'lang':             self.credentials.LOCALE,
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE,
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID
-            }
-            data = json.dumps(data)
-
-        elif mode == 'recommendations':
-            # mediatypes:
-            # mp3-prime-browse-carousels_playlistStrategy
-            # mp3-prime-browse-carousels_mp3PrimeAlbumsStrategy
-            # mp3-prime-browse-carousels_mp3PrimeTracksStrategy
-            # mp3-prime-browse-carousels_mp3ArtistStationStrategy
-            token = self.G['addonArgs'].get('token', [0])
-            data  = {
-                'maxResultsPerWidget' : self.G['maxResults'],
-                'minResultsPerWidget' : 1,
-                'lang' :                self.credentials.LOCALE,
-                'requestedContent' :    'PRIME', #self.credentials.ACCESSTYPE,
-                'musicTerritory' :      self.credentials.MUSICTERRITORY,
-                'deviceId' :            self.credentials.DEVICEID,
-                'deviceType' :          self.credentials.DEVICETYPE,
-                'customerId' :          self.credentials.CUSTOMERID,
-                'widgetIdTokenMap' : { mediatype : int(token[0]) }
-            }
-            data = json.dumps(data)
-
-        elif mode == 'new_recommendations':
-            data = {
-                'deviceId' :            self.credentials.DEVICEID,
-                'deviceType' :          self.credentials.DEVICETYPE,
-                'customerId' :          self.credentials.CUSTOMERID,
-                'musicTerritory' :      self.credentials.MUSICTERRITORY,
-                'lang' :                self.credentials.LOCALE,
-                'requestedContent' :    'PRIME_UPSELL_MS',#,
-                'options' :             ['populateRecentlyPlayed']
-                #'options' :             'requestBundesligaContent'
-            }
-            data = json.dumps(data)
-            #data = json.JSONEncoder().encode(data)
-
-        elif mode == 'getPurchased': # purchased and all Songs / purchased Albums
-            data = {
-                'searchReturnType': mediatype[0],
-                'searchCriteria.member.1.attributeName': 'assetType',
-                'searchCriteria.member.1.comparisonType': 'EQUALS',
-                'searchCriteria.member.1.attributeValue': 'AUDIO',
-                'searchCriteria.member.2.attributeName':  'status',
-                'searchCriteria.member.2.comparisonType': 'EQUALS',
-                'searchCriteria.member.2.attributeValue': 'AVAILABLE',
-                #'searchCriteria.member.3.attributeName':  filter[0],
-                #'searchCriteria.member.3.comparisonType': filter[1],
-                #'searchCriteria.member.3.attributeValue': filter[2],
-                'albumArtUrlsRedirects': 'false',
-                'distinctOnly': 'false',
-                'countOnly': 'false',
-                'selectedColumns.member.1': 'trackNum',
-                'selectedColumns.member.2': 'discNum',
-                'selectedColumns.member.3': 'duration',
-                'selectedColumns.member.4': 'albumReleaseDate',
-                'selectedColumns.member.5': 'primaryGenre',
-                'selectedColumns.member.6': 'albumName',
-                'selectedColumns.member.7': 'artistName',
-                'selectedColumns.member.8': 'title',
-                'selectedColumns.member.9': 'asin',
-                'selectedColumns.member.10': 'objectId',
-                'selectedColumns.member.11': 'albumCoverImageFull',
-                'selectedColumns.member.12': 'purchased',
-                'selectedColumns.member.13': 'status',
-                'selectedColumns.member.14': 'primeStatus',
-                'selectedColumns.member.15': 'sortAlbumName',
-                'selectedColumns.member.16': 'sortTitle',
-                'sortCriteriaList': None,
-                'maxResults': self.G['maxResults'],
-                'nextResultsToken': token[0],
-                'Operation': 'searchLibrary',
-                'caller': mediatype[1],
-                'sortCriteriaList.member.1.sortColumn': mediatype[2],
-                'sortCriteriaList.member.1.sortType': 'ASC',
-                'ContentType': 'JSON',
-                'customerInfo.customerId': self.credentials.CUSTOMERID,
-                'customerInfo.deviceId': self.credentials.DEVICEID,
-                'customerInfo.deviceType': self.credentials.DEVICETYPE
-            }
-            if self.getMode() == 'getPurSongs' or self.getMode() == 'getPurAlbums':
-                data['searchCriteria.member.3.attributeName']  = 'purchased'
-                data['searchCriteria.member.3.comparisonType'] = 'EQUALS'
-                data['searchCriteria.member.3.attributeValue'] = 'true'
-            #else:
-                #filter = ['primeStatus','NOT_EQUALS','NOT_PRIME']
-
-        elif mode == 'songs':
-            data  = {
-                'asins' : [ asin ],
-                'features' : [ 'collectionLibraryAvailability','expandTracklist','playlistLibraryAvailability','trackLibraryAvailability','hasLyrics'],
-                'requestedContent' : 'MUSIC_SUBSCRIPTION',
-                'deviceId' : self.credentials.DEVICEID,
-                'deviceType' : self.credentials.DEVICETYPE,
-                'musicTerritory' : self.credentials.MUSICTERRITORY,
-                'customerId' : self.credentials.CUSTOMERID
-            }
-            data = json.dumps(data)
-
-        elif mode == 'itemLookup':
-            data = {
-                'asins': asin, # [asin], is an array!!
-                'features': mediatype, # is an array!!
-                'requestedContent': 'MUSIC_SUBSCRIPTION',
-                'deviceId': self.credentials.DEVICEID,
-                'deviceType': self.credentials.DEVICETYPE,
-                'musicTerritory': self.credentials.MUSICTERRITORY,
-                'customerId': self.credentials.CUSTOMERID
-            }
-            data = json.JSONEncoder().encode(data)
-
-        elif mode == 'itemLookup2ndRound':
-            data = {
-                'selectCriteriaList.member.1.attributeName':'status',
-                'selectCriteriaList.member.1.comparisonType':'EQUALS',
-                'selectCriteriaList.member.1.attributeValue':'AVAILABLE',
-                'selectCriteriaList.member.2.attributeName':'trackStatus',
-                'selectCriteriaList.member.2.comparisonType':'IS_NULL',
-                'selectCriteriaList.member.2.attributeValue':'',
-                'selectCriteriaList.member.3.attributeName':'albumAsin',
-                'selectCriteriaList.member.3.comparisonType':'EQUALS',
-                'selectCriteriaList.member.3.attributeValue':asin,
-                'sortCriteriaList':'',
-                'albumArtUrlsSizeList.member.1':'FULL',
-                'albumArtUrlsSizeList.member.2':'LARGE',
-                'albumArtUrlsRedirects':'false',
-                'maxResults':   self.G['maxResults'],
-                'nextResultsToken':0,
-                'Operation':'selectTrackMetadata',
-                'distinctOnly':'false',
-                'countOnly':'false',
-                'caller':'getServerData',
-                'selectedColumns.member.1':'albumArtistName',
-                'selectedColumns.member.2':'albumAsin',
-                'selectedColumns.member.3':'albumName',
-                'selectedColumns.member.4':'albumReleaseDate',
-                'selectedColumns.member.5':'artistAsin',
-                'selectedColumns.member.6':'artistName',
-                'selectedColumns.member.7':'asin',
-                'selectedColumns.member.8':'assetType',
-                'selectedColumns.member.9':'creationDate',
-                'selectedColumns.member.10':'discNum',
-                'selectedColumns.member.11':'duration',
-                'selectedColumns.member.12':'extension',
-                'selectedColumns.member.13':'purchased',
-                'selectedColumns.member.14':'lastUpdatedDate',
-                'selectedColumns.member.15':'name',
-                'selectedColumns.member.16':'objectId',
-                'selectedColumns.member.17':'orderId',
-                'selectedColumns.member.18':'primaryGenre',
-                'selectedColumns.member.19':'purchaseDate',
-                'selectedColumns.member.20':'size',
-                'selectedColumns.member.21':'sortAlbumArtistName',
-                'selectedColumns.member.22':'sortAlbumName',
-                'selectedColumns.member.23':'sortArtistName',
-                'selectedColumns.member.24':'sortTitle',
-                'selectedColumns.member.25':'status',
-                'selectedColumns.member.26':'title',
-                'selectedColumns.member.27':'trackNum',
-                'selectedColumns.member.28':'trackStatus',
-                'selectedColumns.member.29':'payerId',
-                'selectedColumns.member.30':'physicalOrderId',
-                'selectedColumns.member.31':'primeStatus',
-                'selectedColumns.member.32':'purchased',
-                'selectedColumns.member.33':'uploaded',
-                'selectedColumns.member.34':'instantImport',
-                'selectedColumns.member.35':'parentalControls',
-                'selectedColumns.member.36':'albumCoverImageFull',
-                'selectedColumns.member.37':'albumCoverImageLarge',
-                'selectedColumns.member.38':'albumCoverImageMedium',
-                'selectedColumns.member.39':'albumCoverImageSmall',
-                'selectedColumns.member.40':'isMusicSubscription',
-                'sortCriteriaList.member.1.sortColumn':'discNum',
-                'sortCriteriaList.member.1.sortType':'ASC',
-                'sortCriteriaList.member.2.sortColumn':'trackNum',
-                'sortCriteriaList.member.2.sortType':'ASC',
-                'ContentType':'JSON',
-                'customerInfo.customerId':  self.credentials.CUSTOMERID,
-                'customerInfo.deviceId':    self.credentials.DEVICEID,
-                'customerInfo.deviceType':  self.credentials.DEVICETYPE
-            }
-
-        elif mode == 'getStations':
-            data = {
-                'requestedContent': 'PRIME', #self.credentials.ACCESSTYPE,
-                'lang':             self.credentials.LOCALE,
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE,
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID
-            }
-            data = json.dumps(data)
-
-        elif mode == 'createQueue':
-            data = {
-                'identifier': asin,
-                'identifierType':'STATION_KEY',
-                'customerInfo': {
-                    'deviceId':     self.credentials.DEVICEID,
-                    'deviceType':   self.credentials.DEVICETYPE,
-                    'musicTerritory':self.credentials.MUSICTERRITORY,
-                    'customerId':   self.credentials.CUSTOMERID
-                },
-                'allowedParentalControls':{}
-            }
-            data = json.dumps(data)
-
-        elif mode == 'getNextTracks':
-            data = {
-                'pageToken' : mediatype,
-                'numberOfTracks':10,
-                'customerInfo': {
-                    'deviceId':     self.credentials.DEVICEID,
-                    'deviceType':   self.credentials.DEVICETYPE,
-                    'musicTerritory':self.credentials.MUSICTERRITORY,
-                    'customerId':   self.credentials.CUSTOMERID
-                },
-                'allowedParentalControls':{}
-            }
-            data = json.dumps(data)
-
-        elif mode == 'getGenrePlaylist':
-            data = {
-                'identifier': asin,
-                'identifierType': 'STATION_KEY',
-                'customerInfo': {
-                    'deviceId':     self.credentials.DEVICEID,
-                    'deviceType':   self.credentials.DEVICETYPE,
-                    'musicTerritory':self.credentials.MUSICTERRITORY,
-                    'customerId':   self.credentials.CUSTOMERID
-                },
-                'allowedParentalControls': {}
-            }
-
-        elif mode == 'getMetaData':
-            data = {
-                'trackIdList': asin,
-                'attributeList': [
-                    'albumCoverImageFull',
-                    'albumCoverImageLarge',
-                    'albumCoverImageMedium',
-                    'albumCoverImageSmall',
-                    'albumName',
-                    'albumAsin',
-                    'sortAlbumName',
-                    'artistName',
-                    'artistAsin',
-                    'sortArtistName',
-                    'sortAlbumArtistName',
-                    'objectId',
-                    'asin',
-                    'title',
-                    'status',
-                    'primeStatus',
-                    'isMusicSubscription',
-                    'assetType',
-                    'duration',
-                    'discNum',
-                    'trackNum',
-                    'instantImport',
-                    'purchased',
-                    'uploaded',
-                    'albumReleaseDate'
-                ],
-                'musicTerritory':   self.credentials.MUSICTERRITORY,
-                'customerId':       self.credentials.CUSTOMERID,
-                'deviceId':         self.credentials.DEVICEID,
-                'deviceType':       self.credentials.DEVICETYPE
-            }
-            data = json.dumps(data)
-
-        elif mode == 'getTrack':
-            data = {
-                'customerId' : self.credentials.CUSTOMERID,
-                'deviceToken' : {
-                    'deviceTypeId': self.credentials.DEVICETYPE,
-                    'deviceId' :    self.credentials.DEVICEID
-                },
-                'bitRate' : 'HIGH',
-                'appMetadata' : { 'https' : 'true' },
-                'clientMetadata' : { 'clientId' : 'WebCP' },
-                'contentId' : {
-                    'identifier' : asin,
-                    'identifierType' : mediatype #, # 'ASIN',
-                    #'bitRate' : 'HIGH'
-                }
-            }
-            data = json.dumps(data)
-
-        elif mode == 'getTrackHLS':
-            data = {
-                'customerId' : self.credentials.CUSTOMERID,
-                'deviceToken' : {
-                    'deviceTypeId': self.credentials.DEVICETYPE,
-                    'deviceId' :    self.credentials.DEVICEID
-                },
-                'bitRate' : 'HIGH',
-                'appMetadata' : { 'https' : 'true' },
-                'clientMetadata' : { 'clientId' : 'WebCP' },
-                'contentId' : {
-                    'identifier' : asin,
-                    'identifierType' : mediatype #, # 'ASIN',
-                },
-                'bitRateList' : [ 'HIGH' ],
-                'hlsVersion': 'V3'
-            }
-            data = json.dumps(data)
-
-        elif mode == 'getTrackDash':
-            mID = self.getMaestroID()
-            data = {
-                'customerId' :          self.credentials.CUSTOMERID,
-                'deviceToken' : {
-                    'deviceTypeId' :    self.credentials.DEVICETYPE,
-                    'deviceId' :        self.credentials.DEVICEID
-                },
-                'contentIdList' : [{
-                    'identifier' :      asin,
-                    'identifierType' :  mediatype
-                }],
-                'bitrateTypeList' : [ 'HIGH' ],
-                'musicDashVersionList' : [ 'V2' ],
-                'appInfo' : {
-                    'musicAgent': mID # 'Maestro/1.0 WebCP/1.0.202513.0 (9a46-5ad0-dmcp-8d19-ee5c6)'
-                },
-                'customerInfo' : {
-                    'marketplaceId' :   self.credentials.MARKETPLACEID,
-                    'customerId' :      self.credentials.CUSTOMERID,
-                    'territoryId' :     self.credentials.MUSICTERRITORY,
-                    'entitlementList' : [ 'HAWKFIRE' ]
-                }
-            }
-            data = json.dumps(data)
-
-        elif mode == 'getLicenseForPlaybackV2':
-            mID = self.getMaestroID()
-            # 'b{SSM}' base64NonURLencoded
-            # 'B{SSM}' Base64URLencoded
-            # 'R{SSM}' Raw format.
-            data = {
-                'DrmType':'WIDEVINE',
-                #'licenseChallenge':'b{SSM}',
-                'customerId':self.credentials.CUSTOMERID,
-                'deviceToken':{
-                    'deviceTypeId':self.credentials.DEVICETYPE,
-                    'deviceId':self.credentials.DEVICEID
-                },
-                'appInfo':{
-                    'musicAgent':mID
-                },
-                'Authorization':self.credentials.ACCESSTOKEN
-            }
-            if mediatype:
-                data['licenseChallenge'] = mediatype
-            else:
-                data['licenseChallenge'] = 'b{SSM}'
-            #data = json.dumps(data)
-            data = urlquote(json.dumps(data))
+    def reqTrackDash( self, mode, asin, mediatype ):
+        # As the player of the signed in web player asks for a manifest (getDashManifestsV2),
+        # recorded with Chrome on Linux in November 2026.
+        data = {
+            'appInfo' : {
+                'musicAgent': self.musicAgent()
+            },
+            'customerId' :          self.credentials.CUSTOMERID,
+            'customerInfo' : {
+                'marketplaceId' :   self.credentials.MARKETPLACEID,
+                'territoryId' :     self.credentials.MUSICTERRITORY
+            },
+            'contentIdList' : [{
+                'identifier' :      asin,
+                'identifierType' :  mediatype
+            }],
+            'deviceToken' :         self.deviceToken()
+        }
+        if self.verifiedMediaPath():
+            # The manifest version Kodi for Android is known to play, in the best quality.
+            data['musicDashVersionList'] = [ 'V2' ]
+            data['bitrateTypeList'] = [ self.AUDIO_QUALITY ]
+        else:
+            # Exactly what the web player asks for. Amazon refuses the license for every quality
+            # of a V2 manifest without a Verified Media Path; of these manifests it licenses
+            # the lowest quality, the one the web player then plays.
+            data['musicDashVersionList'] = [ 'SIREN_KATANA' ]
+            data['contentProtectionList'] = [ 'TRACK_PSSH' ]
+            data['tryAsinSubstitution'] = False
         return data
+
+    def reqTrackCoid( self, mode, asin, mediatype ):
+        # As the web player asks for the streaming URL of a song the customer owns
+        # (getStreamingURLs). Such a song comes as a plain file, without DRM.
+        return {
+            'contentIdList' : [{
+                'identifier' :      asin,
+                'identifierType' :  'COID'
+            }],
+            'bitRate' :             self.AUDIO_QUALITY,
+            'deviceToken' :         self.deviceToken(),
+            'appMetadata' : {
+                'https' :           True,
+                'appId' :           self.APP_NAME,
+                'appVersion' :      self.APP_VERSION,
+                'userAgent' :       self.userAgent
+            },
+            'clientMetadata' : {
+                'clientId' :        'WebCP',
+                'clientRequestId' : ''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(19))
+            },
+            'customerId' :          self.credentials.CUSTOMERID
+        }
+
+    def reqLicense( self, mode, asin, mediatype ):
+        return {
+            'DrmType':'WIDEVINE',
+            # placeholder inputstream adaptive replaces with the challenge
+            'licenseChallenge':mediatype,
+            'customerId':self.credentials.CUSTOMERID,
+            'deviceToken':self.deviceToken(),
+            'appInfo':{
+                'musicAgent':self.musicAgent()
+            },
+            'Authorization':self.credentials.ACCESSTOKEN
+        }

@@ -10,7 +10,12 @@ class AMaccess( Singleton ):
     """
     CSRF_TOKEN      = CSRF_TS       = CSRF_RND  = ACCESSTOKEN = None
     DEVICEID        = CUSTOMERID    = MARKETPLACEID = None
-    DEVICETYPE      = ACCESSTYPE    = None
+    DEVICETYPE      = ACCESSTYPE    = APPVERSION = None
     MUSICTERRITORY  = CUSTOMERLANG  = LOCALE = REGION =  USERTLD = None
     USEREMAIL       = USERPASSWORD  = None
     COOKIE = cookielib.MozillaCookieJar()
+
+    # What is kept between two starts of Kodi. The password never is.
+    STORED = ('CSRF_TOKEN', 'CSRF_TS', 'CSRF_RND', 'ACCESSTOKEN', 'DEVICEID', 'CUSTOMERID', 'MARKETPLACEID',
+              'DEVICETYPE', 'ACCESSTYPE', 'APPVERSION', 'MUSICTERRITORY', 'CUSTOMERLANG', 'LOCALE', 'REGION',
+              'USERTLD', 'USEREMAIL')

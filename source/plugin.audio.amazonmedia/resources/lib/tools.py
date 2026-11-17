@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, os, pickle, requests
+import sys, os, json
 import urllib.parse as urlparse
 import xbmc, xbmcgui, xbmcaddon, xbmcvfs, xbmcplugin
-from random import randint
 from resources.lib.access import AMaccess
 from resources.lib.singleton import Singleton
 from infotagger.listitem import ListItemInfoTag
@@ -12,6 +11,18 @@ from infotagger.listitem import ListItemInfoTag
 class AMtools( Singleton ):
     """ Allow the usage of dot notation for data inside the g dictionary, without explicit function call """
     G = {}
+    defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36'
+    # Seconds to wait for Amazon: to connect, and for each piece of its answer. Without a limit a
+    # request that gets no answer blocks the list or the song for good.
+    TIMEOUT = (10, 30)
+    # Kodi on a Linux desktop decrypts with the Widevine library of Chrome for Linux, so that is what it
+    # says it is. Named as Chrome for Windows, Amazon expected a Verified Media Path, which Chrome has
+    # on Windows and not on Linux, and refused every license with VMP_VALIDATION_FAILED.
+    linuxUserAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36'
+    # A history that never forgets can only be thinned out one entry at a time.
+    SEARCH_HISTORY_SIZE = 25
+    SEARCH_KINDS = ('PlayLists', 'Albums', 'Songs', 'Artists')
+
     def __init__( self ):
         self.setVariables()
 
@@ -28,27 +39,37 @@ class AMtools( Singleton ):
         self.G['addonUDatFo']   = xbmcvfs.translatePath( 'special://profile/addon_data/{}'.format( self.getInfo('id') ) )
 
         self.G['TLDlist']       = ['de', 'fr', 'co.uk', 'it', 'es']
+        # Amazon reports a country code as music territory, which differs from the top level domain
+        self.G['territoryTLD']  = {'gb': 'co.uk'}
 
         self.credentials        = AMaccess()
         self.credentials.USERTLD = self.G['TLDlist'][int(self.getSetting('userTLD'))]
 
-        self.G['audioQuality']  = 'HIGH'
         self.G['maxResults']    = 100
         self.G['logging']       = self.getSetting('logging')
-        self.G['showcolentr']   = self.getSetting('showcolentr')
-        self.G['showimages']    = self.getSetting('showimages')
+
+    # The web player takes the region of the API path from the music territory, not from the site region.
+    API_REGIONS = dict(
+        [(t, 'NA') for t in ('US', 'CA', 'MX', 'BR', 'AR', 'BO', 'CL', 'CO', 'CR', 'DO', 'EC', 'SV', 'GT', 'HN',
+                             'NI', 'PA', 'PY', 'PE', 'UY')] +
+        [(t, 'ZAZ') for t in ('GB', 'DE', 'CH', 'AT', 'FR', 'IT', 'ES', 'IN', 'AE', 'SA', 'EG', 'IE', 'BE', 'BG',
+                              'CY', 'CZ', 'EE', 'FI', 'GR', 'HU', 'IS', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'PL',
+                              'PT', 'SK', 'SE')] +
+        [(t, 'FE') for t in ('JP', 'AU', 'NZ')]
+    )
+
+    @classmethod
+    def apiRegion( cls, territory, siteRegion=None ):
+        """
+        Region part of the API path, https://music.amazon.<tld>/<region>/api/<service>/
+        :param str territory:   music territory of the account, e.g. DE
+        :param str siteRegion:  taken for a territory the web player does not list
+        """
+        return cls.API_REGIONS.get( (territory or '').upper(), siteRegion or 'NA' )
 
     def getUserAgent( self ):
-        setUA = self.getSetting('userAgent')
-        if setUA == '':
-            url = 'https://raw.githubusercontent.com/Kikobeats/top-user-agents/master/index.json'
-            resp = requests.get( url=url)
-            if resp.status_code == 200:
-                setUA = resp.json()[randint(0, len(resp.json()) - 1)]
-            else:
-                setUA = 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0'
-            self.setSetting( 'userAgent', setUA )
-        return setUA
+        linux = xbmc.getCondVisibility('System.Platform.Linux') and not xbmc.getCondVisibility('System.Platform.Android')
+        return self.getSetting('userAgent') or (self.linuxUserAgent if linux else self.defaultUserAgent)
 
     @staticmethod
     def getInfo( oProp ):
@@ -120,77 +141,160 @@ class AMtools( Singleton ):
         log_message = '[{}] {} : {}{}'.format(xbmcaddon.Addon().getAddonInfo('name'), fct_name, lin_nmbr, msg)
         xbmc.log(log_message, level)
 
-    def setSearch( self, q, query ):
+    def searchHistory( self, kind ):
         """
-        Store the last three search entries and keep the most recent on the 1st position
-        :param str q:       search category
+        The terms searched for before, the most recent first
+        :param str kind:    PlayLists, Albums, Songs or Artists
+        """
+        return self.loadSearchHistory().get(kind, [])
+
+    def addSearch( self, kind, query ):
+        """
+        Put the given term first in the search history, once regardless of its case
+        :param str kind:    PlayLists, Albums, Songs or Artists
         :param str query:   user query string
         """
-        update = True
-        for i in q:
-            if self.getSetting(i) == query:
-                update = False
-                break
-        if update:
-            self.setSetting(q[2],self.getSetting(q[1]))
-            self.setSetting(q[1],self.getSetting(q[0]))
-            self.setSetting(q[0],query)
+        history = self.loadSearchHistory()
+        others = [term for term in history.get(kind, []) if term.lower() != query.lower()]
+        history[kind] = ([query] + others)[:self.SEARCH_HISTORY_SIZE]
+        self.saveSearchHistory(history)
+
+    def deleteSearch( self, kind, query ):
+        """
+        Remove the given term from the search history
+        :param str kind:    PlayLists, Albums, Songs or Artists
+        :param str query:   user query string
+        """
+        history = self.loadSearchHistory()
+        history[kind] = [term for term in history.get(kind, []) if term.lower() != query.lower()]
+        self.saveSearchHistory(history)
+
+    def loadSearchHistory( self ):
+        try:
+            with open(self.dataFile('searches.json'), encoding='utf-8') as file:
+                return json.load(file)
+        except OSError:
+            return self.importSearchHistory()
+        except ValueError:
+            return {}
+
+    def saveSearchHistory( self, history ):
+        with open(self.dataFile('searches.json'), 'w', encoding='utf-8') as file:
+            json.dump(history, file)
+
+    def importSearchHistory( self ):
+        """
+        Take over the last three searches per kind that version 2.1 and before kept in hidden settings
+        """
+        history = {}
+        for kind in self.SEARCH_KINDS:
+            # Read as they are: getSetting would turn a search for "true" into a bool.
+            queries = [xbmcaddon.Addon().getSetting('search{}{}'.format(number, kind)) for number in (1, 2, 3)]
+            history[kind] = [query for query in queries if query]
+        self.clearOldSearches()
+        self.saveSearchHistory(history)
+        return history
+
+    def clearOldSearches( self ):
+        for kind in self.SEARCH_KINDS:
+            for number in (1, 2, 3):
+                self.setSetting('search{}{}'.format(number, kind), '')
+
+    # Written by the proxy once Amazon refused a license with VMP_VALIDATION_FAILED.
+    VMP_FLAG = 'vmp-unverified'
+
+    def vmpFailed( self ):
+        """
+        Whether Amazon refused a license because Kodi has no Widevine Verified Media Path
+        """
+        try:
+            with open( self.dataFile(self.VMP_FLAG) ) as flag:
+                # A refusal Amazon gave to another browser name says nothing about this one.
+                return flag.read().splitlines()[1:2] == [self.userAgent]
+        except (IOError, OSError):
+            return False
+
+    def dataFile( self, name ):
+        """
+        Path of a file in the addon_data folder
+        :param str name:    file name
+        """
+        return os.path.join( self.G['addonUDatFo'], name )
 
     def load( self ):
         """
-        Load data from a file in addon_data folder.
-        :return: a data object
+        The sign-in kept in the addon_data folder: the cookies and what the web player was told
+        about customer and device.
+        :return: the credentials
+        :raises IOError: nothing usable is kept, the user has to sign in
         """
-        oPath = xbmcvfs.translatePath(
-            'special://profile/addon_data/{}/data.obj'.format(
-                xbmcaddon.Addon().getAddonInfo('id')
-            )
-        )
-        with open(oPath, 'rb') as file:
-            self.credentials = pickle.load(file)
-        
-        self.credentials.COOKIE.load(
-            os.path.join(
-                xbmcvfs.translatePath('special://profile/addon_data/{}'.format(
-                    xbmcaddon.Addon().getAddonInfo('id'))
-                ), 'cookie'
-            ),
-            ignore_discard=True,
-            ignore_expires=True
-        )
-        return self.credentials
-    
-    @staticmethod
-    def save( obj ):
+        credentials = AMaccess()
+        try:
+            with open(self.dataFile('data.json'), encoding='utf-8') as file:
+                kept = json.load(file)
+        except ValueError:
+            raise IOError('The stored sign-in cannot be read')
+        except IOError:
+            # Up to 2.2.3 the sign-in was kept as a pickled Python object. Reading such a file runs
+            # whatever code it names, so it is not read any more: the cookies beside it are still
+            # good, and with them Amazon tells the rest anew.
+            if not os.path.isfile(self.dataFile('data.obj')):
+                raise
+            return self.restoreFromCookies( credentials )
+        for name in AMaccess.STORED:
+            setattr( credentials, name, kept.get(name) )
+        credentials.COOKIE.load( self.dataFile('cookie'), ignore_discard=True, ignore_expires=True )
+        self.credentials = credentials
+        return credentials
+
+    def restoreFromCookies( self, credentials ):
         """
-        Save the object data to a file in addon_data folder.
+        Take a sign-in of an earlier version over without reading its pickled file
+        :raises IOError: the cookies are gone or no longer signed in
         """
-        path = '{}{}{}'.format(
-            xbmcvfs.translatePath('special://profile/addon_data/{}'.format(
-                xbmcaddon.Addon().getAddonInfo('id'))
-            ),
-            os.sep,
-            'data.obj'
-        )
-        with open(path, 'wb') as file:
-            pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
-            file.close()
+        credentials.COOKIE.load( self.dataFile('cookie'), ignore_discard=True, ignore_expires=True )
+        domains = sorted(c.domain for c in credentials.COOKIE if '.amazon.' in c.domain)
+        if not domains:
+            raise IOError('No Amazon cookies are stored')
+        credentials.USERTLD = domains[0].split('.amazon.', 1)[1]
+        from resources.lib.logon import AMlogon  # the sign-in itself builds on these tools
+        logon = AMlogon()
+        logon.credentials = credentials
+        config = logon.fetchAppConfig()
+        if not config or not config.get('customerId') or not config.get('accessToken'):
+            raise IOError('The stored cookies are no longer signed in')
+        logon._appConfig( config )
+        self.credentials = credentials
+        self.save( credentials )
+        return credentials
+
+    def save( self, obj ):
+        """
+        Keep the sign-in in the addon_data folder, as plain data
+        """
+        path = self.dataFile('data.json')
+        with open(path, 'w', encoding='utf-8') as file:
+            json.dump({name: getattr(obj, name, None) for name in AMaccess.STORED}, file)
+        self.ownerOnly( path )
+        self.delFile( self.dataFile('data.obj') )
 
     @staticmethod
-    def saveCookie( obj ):
+    def ownerOnly( path ):
+        """
+        The file holds the tokens of the sign-in: where the system knows file permissions, other users cannot read it
+        """
+        try:
+            os.chmod( path, 0o600 )
+        except OSError:
+            pass
+
+    def saveCookie( self, obj ):
         """
         Save the cookie data to a file in addon_data folder.
         :param cookie_object obj: CookieJar object
         """
-        obj.save(
-            os.path.join(
-                xbmcvfs.translatePath('special://profile/addon_data/{}'.format(
-                    xbmcaddon.Addon().getAddonInfo('id'))
-                ), 'cookie'
-            ),
-            ignore_discard=True,
-            ignore_expires=True
-        )
+        obj.save( self.dataFile('cookie'), ignore_discard=True, ignore_expires=True )
+        self.ownerOnly( self.dataFile('cookie') )
 
     @staticmethod
     def delFile( delFile ):
@@ -259,61 +363,42 @@ class AMtools( Singleton ):
         data = {
             'userTLD': '0',
             'logging': 'false',
-            'showimages': 'true',
-            'showUnplayableSongs': 'false',
-            'showcolentr': 'true',
-            'search1PlayLists': '',
-            'search2PlayLists': '',
-            'search3PlayLists': '',
-            'search1Albums': '',
-            'search2Albums': '',
-            'search3Albums': '',
-            'search1Songs': '',
-            'search2Songs': '',
-            'search3Songs': '',
-            'search1Stations': '',
-            'search2Stations': '',
-            'search3Stations': '',
-            'search1Artists': '',
-            'search2Artists': '',
-            'search3Artists': '',
-            'captcha': '',
+            'hideUnplayableSongs': 'true',
             'userAgent': ''
         }
         for key, value in data.items():
             self.setSetting( key, value )
+        self.delFile( self.dataFile('searches.json') )
+        self.clearOldSearches()
         self.resetCredentials()
 
     def resetCredentials( self ):
         """
         Remove Cookie and data object files
         """
-        files = { 'cookie', 'data.obj' }
-        for f in files:
-            file = '{}{}{}'.format( self.G['addonUDatFo'], os.sep, f )
-            self.delFile( file )
+        for name in ('cookie', 'data.json', 'data.obj', self.VMP_FLAG):
+            self.delFile( self.dataFile(name) )
 
-    def createList( self, data, dynentry=False, soccer=False ):
+    def imageUrl( self, name ):
+        """
+        Path of an image the add-on brings along
+        :param str name:    file name in resources/images
+        """
+        return '{}/resources/images/{}'.format( self.G['addonFolder'], name )
+
+    def createList( self, data ):
         """
         Create list entries for Kodi menu
         :param array data:      content of Kodi menu
-        :param bool dynentry:   flag for dynamic content (e.g. search items)
         """
         itemlist = []
         url = None
         for item in data:
             #self.log(item)
             isFolder = True
-            if dynentry and 'search' in item and self.getSetting(item['search']) == '':
+            if 'history' in item and not self.searchHistory(item['history']):
                 continue
-            # if soccer:
-            if soccer or ('special' in item and item['special'] == 'newrecom'):
-                title = item['txt']
-            else:
-                title = self.getTranslation(item['txt'])
-
-            if dynentry and 'search' in item:
-                title += self.getSetting(item['search'])
+            title = self.getTranslation(item['txt'])
             li = xbmcgui.ListItem(label=title)
             linfo = li.getMusicInfoTag()
             linfo.setTitle(title)
@@ -322,44 +407,49 @@ class AMtools( Singleton ):
                 if 'http' in item['img']:
                     url = item['img']
                 else:
-                    url = '{}/resources/images/{}'.format( self.G['addonFolder'], item['img'] )
+                    url = self.imageUrl( item['img'] )
                 li.setArt({
                     'icon':url,
                     'thumb':url,
-                    'fanart':url,
-                    'poster':url,
-                    'banner':url,
-                    'landscape':url
+                    'fanart':self.imageUrl(item['fanart']) if 'fanart' in item else url
                 })
             url = '{}?mode={}'.format( self.G['addonBaseUrl'], str(item['fct']) )
-            if soccer:
-                url+="&objectId={}".format(str(item['target']))
-                if item['playable']:
-                    pl = 'true'
-                else:
-                    pl = 'false'
-                li.setProperty('IsPlayable', pl)
-                isFolder = False
-            if 'special' in item and item['special'] == 'newrecom' and 'target' in item:
-                url+='&target={}'.format(str(item['target']))
+            url += self.crumbsTo(title)
             itemlist.append((url, li, isFolder))
-        self.finalizeContent( self.G['addonHandle'], itemlist, 'albums' )
+        # No content type: a menu holds no albums, and skins show the icon of such entries in the list.
+        self.finalizeContent( self.G['addonHandle'], itemlist, '' )
 
     def setItemTags(self, listItem, tag_type:  str = 'music'):
         info_tag = ListItemInfoTag(listItem, tag_type)
         return info_tag
 
-    @staticmethod
-    def finalizeContent( addonHandle, itemlist, ctype ):
+    def finalizeContent( self, addonHandle, itemlist, ctype ):
         """
         Finalization of Kodi list items
         :param str addonHandle: Kodi addon handle
         :param array itemlist:  Array of list items
         :param str ctype:       Content type ( songs / albums )
         """
+        itemlist = [entry for entry in itemlist if entry]
+        xbmcplugin.setPluginCategory(addonHandle, ' / '.join(self.crumbs()))
         xbmcplugin.addDirectoryItems(addonHandle, itemlist, len(itemlist))
         xbmcplugin.setContent(addonHandle, ctype)
         xbmcplugin.endOfDirectory(addonHandle)
+
+    def crumbs( self ):
+        """
+        The folders from the main menu down to the one being listed
+        """
+        return json.loads(self.G['addonArgs'].get('crumbs', ['[]'])[0])
+
+    def crumbsTo( self, name=None ):
+        """
+        URL parameter that carries the path from the main menu into a folder
+        :param str name:    label of the folder, None to stay in this one (next page)
+        """
+        crumbs = self.crumbs() + ([name] if name else [])
+        # A single parameter, since Kodi keeps just one value per key of a plugin URL.
+        return '&' + urlparse.urlencode({'crumbs': json.dumps(crumbs)}) if crumbs else ''
 
     def prepReqHeader( self, amzTarget ):
         """
@@ -379,6 +469,9 @@ class AMtools( Singleton ):
             'csrf-ts' :         self.credentials.CSRF_TS,
             'User-Agent' :      self.userAgent
         }
+        # The web player sends its access token along with the CSRF tokens.
+        if self.credentials.ACCESSTOKEN:
+            head['Authorization'] = self.credentials.ACCESSTOKEN
 
         if amzTarget is not None:
             head['Content-Encoding'] = 'amz-1.0'

@@ -1,27 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler
 from socketserver import ThreadingTCPServer
-from io import BytesIO
-from gzip import GzipFile
-import re, os, requests
+import json, os, re, time
 from urllib.parse import urlparse, parse_qsl
 
-import xbmc, xbmcvfs, xbmcaddon
+import requests
+import xbmc, xbmcgui, xbmcvfs, xbmcaddon
 
 class ProxyHTTPD(BaseHTTPRequestHandler):
-    protocol_version = 'HTTP/1.1'  # Allow keep-alive
-    server_version = 'AmazonMadia/0.1'
-    sessions = {}  # Keep-Alive sessions
-    _purgeHeaders = [  # List of headers not to forward to the client
-        'Transfer-Encoding',
-        'Content-Encoding',
-        'Content-Length',
-        'Server',
-        'Date'
-    ]
+    # HTTP/1.0, so the client closes the connection after the manifest it asked
+    # for. Kept open, the handler thread would sit in a read until Kodi exits.
+    protocol_version = 'HTTP/1.0'
+    server_version = 'AmazonMedia/0.1'
 
     def log_message(self, *args):
         """Disable the BaseHTTPServer Log"""
@@ -30,34 +21,6 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
     def log(self, msg, level=xbmc.LOGINFO):
         log_message = '[{}] {}'.format('AM Proxy', msg)
         xbmc.log(log_message, level)
-
-    def _AdjustLocale(self, langCode, count=2, separator='-'):
-        """Locale conversion helper"""
-
-        try:
-            p1, p2 = langCode.split('-')
-        except:
-            p1 = langCode
-            p2 = langCode
-        if 1 == count:
-            return p1.lower()
-        localeConversionTable = {
-            'ar' + separator + '001': 'ar',
-            'cmn' + separator + 'HANS': 'zh' + separator + 'HANS',
-            'cmn' + separator + 'HANT': 'zh' + separator + 'HANT',
-            'fr' + separator + 'CA': 'fr' + separator + 'Canada',
-            'da' + separator + 'DK': 'da',
-            'en' + separator + 'GB': 'en',
-            'es' + separator + '419': 'es' + separator + 'Latinoamerica',
-            'ja' + separator + 'JP': 'ja',
-            'ko' + separator + 'KR': 'ko',
-            'nb' + separator + 'NO': 'nb',
-            'sv' + separator + 'SE': 'sv',
-            'pt' + separator + 'BR': 'pt' + separator + 'Brazil'
-        }
-        new_lang = p1.lower() + ('' if p1 == p2 else separator + p2.upper())
-        new_lang = new_lang if new_lang not in localeConversionTable.keys() else localeConversionTable[new_lang]
-        return new_lang
 
     def _ParseBaseRequest(self, method):
         """Return path, headers and post data commonly required by all methods"""
@@ -71,124 +34,6 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
         data_length = self.headers.get('content-length')
         data = {k: v for k, v in parse_qsl(self.rfile.read(int(data_length)))} if data_length else None
         return (path, headers, data)
-
-    def _ForwardRequest(self, method, endpoint, headers, data, stream=False):
-        """Forwards the request to the proper target"""
-        # from resources.lib.network import MechanizeLogin
-        # Create sessions for keep-alives and connection pooling
-        self.log('_ForwardRequest')
-        host = re.search('://([^/]+)/', endpoint)  # Try to extract the host from the URL
-        if None is not host:
-            host = host.group(1)
-            if host not in self.sessions:
-                self.sessions[host] = requests.Session()
-            session = self.sessions[host]
-        else:
-            session = requests.Session()
-        
-        # cookie = MechanizeLogin()
-        cookie = None
-        if not cookie:
-            self.log('[PS] Not logged in')
-            self.send_error(440)
-            return (None, None, None)
-
-        if 'Host' in headers: del headers['Host']  # Forcibly strip the host (py3 compliance)
-        self.log('[PS] Forwarding the {} request towards {}'.format(method.upper(), endpoint))
-        r = session.request(method, endpoint, data=data, headers=headers, cookies=cookie, stream=stream, verify=self.server._s.verifySsl)
-        return (r.status_code, r.headers, r if stream else r.content.decode('utf-8'))
-
-    def _gzip(self, data=None, stream=False):
-        """Compress the output data"""
-        self.log('_gzip')
-        out = BytesIO()
-        f = GzipFile(fileobj=out, mode='w', compresslevel=5)
-        if not stream:
-            f.write(data)
-            f.close()
-            return out.getvalue()
-        return (f, out)
-
-    def _SendHeaders(self, code, headers):
-        self.log('_SendHeaders')
-        self.send_response(code)
-        for k in headers:
-            self.send_header(k, headers[k])
-        self.end_headers()
-
-    def _SendResponse(self, code, headers, data, gzip=False):
-        """Send a response to the caller"""
-        self.log('_SendResponse')
-        # We don't use chunked or gunzipped transfers locally, so we removed the relative headers and
-        # attach the contact length, before returning the response
-        headers = {k: headers[k] for k in headers if k not in self._purgeHeaders}
-        headers['Connection'] = 'Keep-Alive'
-        data = data.encode('utf-8') if data else b''
-        if gzip:
-            data = self._gzip(data)
-            headers['Content-Encoding'] = 'gzip'
-        headers['Content-Length'] = len(data)
-
-        self._SendHeaders(code, headers)
-        self.wfile.write(data)
-
-    @contextmanager
-    def _PrepareChunkedResponse(self, code, headers):
-        """Prep the stream for gzipped chunked transfers"""
-        self.log('_PrepareChunkedResponse')
-        self.log('[PS] Chunked transfer: prepping')
-        headers = {k: headers[k] for k in headers if k not in self._purgeHeaders}
-        headers['Connection'] = 'Keep-Alive'
-        headers['Transfer-Encoding'] = 'chunked'
-        headers['Content-Encoding'] = 'gzip'
-
-        self._SendHeaders(code, headers)
-        gzstream = self._gzip(stream=True)
-
-        try:
-            yield gzstream
-        finally:
-            gzstream[0].close()
-            gzstream[1].close()
-
-    def _SendChunk(self, gzstream, data=None):
-        """Send a gzipped chunk"""
-        self.log('_SendChunk')
-        # Log('[PS] Chunked transfer: sending chunk', Log.DEBUG)
-        if None is not data:
-            gzstream[0].write(data.encode('utf-8'))
-            gzstream[0].flush()
-        chunk = gzstream[1].getvalue()
-        gzstream[1].seek(0)
-        gzstream[1].truncate()
-
-        if 0 == len(chunk):
-            return
-
-        data = b'%s\r\n%s\r\n' % (hex(len(chunk))[2:].upper().encode(), chunk)
-        self.wfile.write(data)
-
-    def _EndChunkedTransfer(self, gzstream):
-        """Terminate the transfer"""
-        self.log('_EndChunkedTransfer')
-        self.log('[PS] Chunked transfer: last chunks')
-        gzstream[0].flush()
-        gzstream[0].close()
-        self._SendChunk(gzstream)
-        gzstream[1].close()
-        self.wfile.write(b'0\r\n\r\n')
-
-    def do_POST(self):
-        """Respond to POST requests"""
-        self.log('do post')
-        path, headers, data = self._ParseBaseRequest('POST')
-        if None is path: return
-        if ('gpr' == path[0]) and (2 == len(path)):
-            return
-            #self._AlterGPR(unquote(path[1]), headers, data)
-        else:
-            self.log('[PS] Invalid request received')
-            self.send_error(501, 'Invalid request')
 
     def do_GET(self):
         """Respond to GET requests"""
@@ -210,7 +55,7 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
             # self.log('Song size: ' + str(size))
 
             self.send_response(200)
-            self.send_header('Content-type', 'text/html')
+            self.send_header('Content-type', 'application/dash+xml')
             self.send_header('Content-Length', str(size))
             self.end_headers()
 
@@ -222,86 +67,86 @@ class ProxyHTTPD(BaseHTTPRequestHandler):
             self.log('[PS] Invalid request received')
             self.send_error(501, 'Invalid request')
 
-    def _AlterMPD(self, endpoint, headers, data):
-        """ MPD alteration for better language parsing """
+    # Only Amazon Music is passed on to, whatever a local client asks for.
+    LICENSE_HOST = re.compile(r'^music\.amazon\.[a-z]{2,3}(\.[a-z]{2})?$')
+    # Headers of the hop to the proxy, which requests sets anew for the hop to Amazon.
+    HOP_HEADERS = ('host', 'content-length', 'connection', 'accept-encoding', 'transfer-encoding')
+    VMP_FLAG = 'vmp-unverified'
 
-        # Extrapolate the base CDN url to avoid proxying data we don't need to
-        url_parts = urlparse(endpoint)
-        # baseurl = url_parts.scheme + '://' + url_parts.netloc + re.sub(r'[^/]+$', '', url_parts.path)
+    def do_POST(self):
+        """
+        Pass the license request of inputstream.adaptive on to Amazon unchanged. \n
+        inputstream.adaptive does not tell why a license was refused. The web player reads the
+        reason: after VMP_VALIDATION_FAILED it asks for its manifests as an unverified client.
+        """
+        parsed = urlparse(self.path)
+        target = dict(parse_qsl(parsed.query)).get('url', '')
+        host = urlparse(target)
+        if parsed.path != '/license' or host.scheme != 'https' or not self.LICENSE_HOST.match(host.hostname or ''):
+            self.log('[PS] Invalid request received')
+            self.send_error(501, 'Invalid request')
+            return
 
-        # def _rebase(data):
-        #     data = data.replace('<BaseURL>', '<BaseURL>' + baseurl)
-        #     data = re.sub(r'(<SegmentTemplate\s+[^>]*?\s*media=")', r'\1' + baseurl, data)
-        #     data = re.sub(r'(<SegmentTemplate\s+[^>]*?\s*initialization=")', r'\1' + baseurl, data)
-        #     return data
+        length = int(self.headers.get('content-length') or 0)
+        body = self.rfile.read(length) if length else b''
+        headers = {k: self.headers[k] for k in self.headers if k.lower() not in self.HOP_HEADERS}
+        try:
+            resp = requests.post(target, headers=headers, data=body, timeout=30)
+        except requests.RequestException as error:
+            self.log('[PS] License request failed: {}'.format(error), xbmc.LOGERROR)
+            self.send_error(502, 'License request failed')
+            return
 
-        # # Start the chunked reception
-        # status_code, headers, r = self._ForwardRequest('get', endpoint, headers, data, True)
+        if resp.status_code != 200:
+            self._licenseRefused(resp)
 
-        # with self._PrepareChunkedResponse(status_code, headers) as gzstream:
-        #     if r.encoding is None:
-        #         r.encoding = 'utf-8'
-        #     buffer = ''
-        #     bPeriod = False
-        #     self.log('[PS] Loading MPD and rebasing as {}'.format(baseurl))
-        #     for chunk in r.iter_content(chunk_size=1048576, decode_unicode=True):
-        #         buffer += py2_decode(chunk)
+        self.send_response(resp.status_code)
+        self.send_header('Content-type', resp.headers.get('Content-Type', 'application/json'))
+        self.send_header('Content-Length', str(len(resp.content)))
+        self.end_headers()
+        self.wfile.write(resp.content)
 
-        #         # Flush everything up to audio AdaptationSets as fast as possible
-        #         pos = re.search(r'(<AdaptationSet[^>]*contentType="video"[^>]*>.*?</AdaptationSet>\s*)' if bPeriod else r'(<Period[^>]*>\s*)', buffer, flags=re.DOTALL)
-        #         if pos:
-        #             if 0 < pos.start(1):
-        #                 self._SendChunk(gzstream, buffer[0:pos.start(1)])
-        #             if not bPeriod:
-        #                 bPeriod = True
-        #                 self._SendChunk(gzstream, buffer[pos.start(1):pos.end(1)])
-        #             else:
-        #                 self._SendChunk(gzstream, _rebase(buffer[pos.start(1):pos.end(1)]))
-        #             buffer = buffer[pos.end(1):]
+    # When the user was last told about a refusal; every song of a playlist is refused alike.
+    lastTold = 0
 
-        #     # Count the number of duplicates with the same ISO 639-1 codes
-        #     self.log('[PS] Parsing languages')
-        #     languages = []
-        #     langCount = {}
-        #     for lang in re.findall(r'<AdaptationSet[^>]*audioTrackId="([^"]+)"[^>]*>', buffer):
-        #         if lang not in languages:
-        #             languages.append(lang)
-        #     for lang in languages:
-        #         lang = lang[0:2]
-        #         if lang not in langCount:
-        #             langCount[lang] = 0
-        #         langCount[lang] += 1
-
-        #     # Send corrected AdaptationSets, one at a time through chunked transfer
-        #     self.log('[PS] Altering <AdaptationSet>s')
-        #     while True:
-        #         pos = re.search(r'(<AdaptationSet[^>]*>)(.*?</AdaptationSet>)', buffer, flags=re.DOTALL)
-        #         if None is pos:
-        #             break
-        #         # Log('[PS] AdaptationSet position: ([{}:{}], [{}:{}])'.format(pos.start(1), pos.end(1), pos.start(2), pos.end(2)))
-        #         setTag = buffer[pos.start(1):pos.end(1)]
-        #         self._SendChunk(gzstream, setTag)
-        #         self._SendChunk(gzstream, _rebase(buffer[pos.start(2):pos.end(2)]))
-        #         buffer = buffer[pos.end(2):]
-
-        #     # Send the rest and signal EOT
-        #     if 0 < len(buffer):
-        #         self._SendChunk(gzstream, buffer)
-        #     self._EndChunkedTransfer(gzstream)
+    def _licenseRefused(self, resp):
+        """Log why Amazon refused the license, tell the user and remember a missing Verified Media Path"""
+        try:
+            reason = json.loads(resp.text).get('denialReason')
+        except (ValueError, AttributeError):
+            reason = None
+        self.log('[PS] License refused: {} {}'.format(resp.status_code, reason or resp.text[:300]), xbmc.LOGWARNING)
+        addon = xbmcaddon.Addon()
+        if reason == 'VMP_VALIDATION_FAILED':
+            folder = xbmcvfs.translatePath('special://profile/addon_data/{}'.format(addon.getAddonInfo('id')))
+            flag = os.path.join(folder, self.VMP_FLAG)
+            told = '{}\n{}'.format(reason, self.headers.get('User-Agent', ''))
+            try:
+                with open(flag) as handle:
+                    if handle.read() == told:
+                        return
+            except (IOError, OSError):
+                pass
+            with open(flag, 'w') as handle:
+                handle.write(told)
+            # The song that is playing was asked for as a verified client; the next one is not.
+            message = addon.getLocalizedString(30080)
+        elif reason == 'UNTRUSTED_DEVICE_CERTIFICATE':
+            # Amazon does not trust the Widevine library Kodi uses, an outdated one for instance.
+            message = addon.getLocalizedString(30082)
+        else:
+            message = addon.getLocalizedString(30081).format(reason or resp.status_code)
+        # The unencrypted start of a song still plays, so without a word the song just seems to stop.
+        if time.time() - ProxyHTTPD.lastTold > 60:
+            ProxyHTTPD.lastTold = time.time()
+            xbmcgui.Dialog().notification(addon.getAddonInfo('name'), message, xbmcgui.NOTIFICATION_ERROR, 15000)
 
 class ProxyTCPD(ThreadingTCPServer):
-    def __init__(self):
-        """ Initialisation of the Proxy TCP server """
-        from socket import socket, AF_INET, SOCK_STREAM
-        sock = socket(AF_INET, SOCK_STREAM)
+    # As ThreadingHTTPServer does it: server_close() waits for every handler
+    # thread otherwise, which holds up the shutdown of Kodi.
+    daemon_threads = True
 
-        while True:
-            try:
-                sock.bind(('127.0.0.1', 0))
-                _, port = sock.getsockname()
-                sock.close()
-                ThreadingTCPServer.__init__(self, ('127.0.0.1', port), ProxyHTTPD)
-                self.port = port  # Save the current binded port
-                break
-            except:
-                pass
+    def __init__(self):
+        """ Initialisation of the Proxy TCP server on a free port """
+        ThreadingTCPServer.__init__(self, ('127.0.0.1', 0), ProxyHTTPD)
+        self.port = self.server_address[1]

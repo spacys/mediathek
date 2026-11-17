@@ -7,88 +7,68 @@ msgid ""
 msgstr ""
 
 msgctxt "#30001"
-msgid "Playlists - Popular"
-msgstr "Playlist - Popolari"
+msgid "Popular"
+msgstr "Popolari"
 
 msgctxt "#30002"
-msgid "Playlists - Newly Released"
-msgstr "Playlists - Recenti"
+msgid "Newly Released"
+msgstr "Recenti"
 
 msgctxt "#30003"
-msgid "Playlist Recommendations"
-msgstr "Playlist Consigliate"
+msgid "Recommendations"
+msgstr "Consigliate"
 
 msgctxt "#30004"
-msgid "Album Recommendations"
-msgstr "Album Consigliati"
-
-msgctxt "#30005"
-msgid "Station Recommendations"
-msgstr "Stazioni Consigliate"
+msgid "Recommendations"
+msgstr "Consigliati"
 
 msgctxt "#30006"
-msgid "Songs - Owned"
-msgstr "Canzoni - di proprietà"
+msgid "Personal Library"
+msgstr "Libreria personale"
 
 msgctxt "#30007"
-msgid "Albums - Owned"
-msgstr "Albums - di proprietà"
-
-msgctxt "#30008"
-msgid "Stations"
-msgstr "Stazioni"
+msgid "Personal Library"
+msgstr "Libreria personale"
 
 msgctxt "#30009"
-msgid "Songs - Purchased"
-msgstr "Canzoni - Acquistate"
+msgid "Purchased"
+msgstr "Acquistate"
 
 msgctxt "#30010"
-msgid "Albums - Search"
-msgstr "Albums - Ricerca"
+msgid "Search albums"
+msgstr "Cerca album"
 
 msgctxt "#30011"
-msgid "Songs - Search"
-msgstr "Canzoni - Ricerca"
+msgid "Search songs"
+msgstr "Cerca canzoni"
 
 msgctxt "#30012"
-msgid "Albums - Purchased"
-msgstr "Albums - Acquistati"
+msgid "Purchased"
+msgstr "Acquistati"
 
 msgctxt "#30013"
-msgid "Playlists - Search"
-msgstr "Playlists - Ricerca"
+msgid "Search playlists"
+msgstr "Cerca playlist"
 
 msgctxt "#30014"
-msgid "Artist - Search"
-msgstr "Artista - Ricerca"
-
-msgctxt "#30015"
-msgid "Genres"
-msgstr "Generi"
-
-msgctxt "#30016"
-msgid "Stations - Search"
-msgstr "Stazioni - Ricerca"
-
-msgctxt "#30017"
-msgid "Songs - Recently Played"
-msgstr "Canzoni - Ascoltate recentemente"
+msgid "Search artists"
+msgstr "Cerca artisti"
 
 msgctxt "#30018"
-msgid "Playlists - Followed"
-msgstr "Playlists - Seguite"
+msgid "Followed"
+msgstr "Seguite"
 
 msgctxt "#30019"
-msgid "Playlists - Owned"
-msgstr "Playlists- di proprietà"
+msgid "Owned"
+msgstr "Di proprietà"
 
 msgctxt "#30020"
 msgid "Next Page"
 msgstr "Prossima Pagina"
 
 msgctxt "#30021"
-msgid "Songs - Recently Added"
-msgstr "Canzoni - Aggiunte di recente"
+msgid "Recently Added to Personal Library"
+msgstr "Aggiunte di recente alla libreria personale"
 
 msgctxt "#30022"
 msgid "Songs"
@@ -96,23 +76,23 @@ msgstr "Canzoni"
 
 msgctxt "#30023"
 msgid "Playlists"
-msgstr "Playlists"
+msgstr "Playlist"
 
 msgctxt "#30024"
 msgid "Albums"
-msgstr "Albums"
-
-msgctxt "#30025"
-msgid "Stations - all Artists"
-msgstr "Stazioni - tutti gli Artisti"
-
-msgctxt "#30026"
-msgid "All Stations"
-msgstr "Tutte le Stazioni"
+msgstr "Album"
 
 msgctxt "#30027"
 msgid "Artists"
 msgstr "Artisti"
+
+msgctxt "#30028"
+msgid "Genres"
+msgstr "Generi"
+
+msgctxt "#30029"
+msgid "Radio stations"
+msgstr "Stazioni radio"
 
 msgctxt "#30030"
 msgid "Amazon - Enter your Username (Email)"
@@ -122,45 +102,17 @@ msgctxt "#30031"
 msgid "Amazon - Enter your Password"
 msgstr "Amazon - Inserisci la tua Password"
 
-msgctxt "#30032"
-msgid "Last Search -1 : "
-msgstr "Ultima Ricerca -1 : "
+msgctxt "#30042"
+msgid "Search ..."
+msgstr "Cerca ..."
 
-msgctxt "#30033"
-msgid "Last Search -2 : "
-msgstr "Utima Ricerca -2 :"
+msgctxt "#30043"
+msgid "Search history"
+msgstr "Cronologia ricerche"
 
-msgctxt "#30034"
-msgid "Last Search -3 : "
-msgstr "Ultima Ricerca -3 :"
-
-msgctxt "#30035"
-msgid "Soccer Live"
-msgstr "Diretta Calcio"
-
-msgctxt "#30036"
-msgid "Bundesliga"
-msgstr "Bundesliga"
-
-msgctxt "#30037"
-msgid "2. Bundesliga"
-msgstr "2. Bundesliga"
-
-msgctxt "#30038"
-msgid "DFB Pokal"
-msgstr "DFB Pokal"
-
-msgctxt "#30039"
-msgid "Champions League"
-msgstr "Champions League"
-
-msgctxt "#30040"
-msgid "SuperCup"
-msgstr "SuperCoppa"
-
-msgctxt "#30041"
-msgid "Recommendations"
-msgstr "Consigliati"
+msgctxt "#30044"
+msgid "Remove Search"
+msgstr "Rimuovi ricerca"
 
 msgctxt "#30070"
 msgid "Logon was not possible."
@@ -172,35 +124,67 @@ msgstr "Componente aggiuntivo ripristinato correttamente."
 
 msgctxt "#30072"
 msgid "Captcha required!"
-msgstr "Captcha required!"
+msgstr "Captcha richiesto!"
 
 msgctxt "#30073"
 msgid "Playback not possible!"
-msgstr "Playback not possible!"
+msgstr "Riproduzione impossibile!"
 
 msgctxt "#30074"
 msgid "Cannot find streaming URL."
-msgstr "Cannot find streaming URL."
+msgstr "URL di streaming non trovato."
 
 msgctxt "#30075"
 msgid "Another instance is running."
-msgstr "Another instance is running."
+msgstr "Un'altra istanza è già in esecuzione."
 
 msgctxt "#30076"
-msgid "Credentials successful removed."
-msgstr "Credentials successful removed."
+msgid "Credentials successfully removed."
+msgstr "Credenziali rimosse correttamente."
+
+msgctxt "#30077"
+msgid "Request failed."
+msgstr "Richiesta non riuscita."
+
+msgctxt "#30078"
+msgid "Amazon does not release this title for streaming."
+msgstr "Amazon non rende disponibile questo titolo in streaming."
+
+msgctxt "#30079"
+msgid "No songs were added to the personal library in the last 90 days."
+msgstr "Negli ultimi 90 giorni non sono state aggiunte canzoni alla libreria personale."
+
+msgctxt "#30080"
+msgid "Amazon refused the license for this device. Start the song again."
+msgstr "Amazon ha rifiutato la licenza per questo dispositivo. Riavvia il brano."
+
+msgctxt "#30081"
+msgid "Amazon refused the license: {}"
+msgstr "Amazon ha rifiutato la licenza: {}"
+
+msgctxt "#30082"
+msgid "Amazon does not trust the Widevine library of Kodi. Update it with InputStream Helper and start the song again."
+msgstr "Amazon non considera attendibile la libreria Widevine di Kodi. Aggiornala con InputStream Helper e riavvia il brano."
+
+msgctxt "#30083"
+msgid "Amazon licenses songs of its catalogue only to a player with a Widevine Verified Media Path, which Kodi does not have on this system. Songs you own play."
+msgstr "Amazon concede la licenza per i brani del catalogo solo a un lettore con Widevine Verified Media Path, che Kodi non ha su questo sistema. I tuoi brani sono riproducibili."
+
+msgctxt "#30084"
+msgid "Resend code"
+msgstr "Invia di nuovo il codice"
+
+msgctxt "#30085"
+msgid "Verify with WhatsApp"
+msgstr "Verifica con WhatsApp"
 
 msgctxt "#30100"
 msgid "General"
 msgstr "Generale"
 
 msgctxt "#30101"
-msgid "Domain Identifier (DE / UK ...)"
-msgstr "Identificatore Dominio(DE / UK ...)"
-
-msgctxt "#30102"
-msgid "Audio Quality"
-msgstr "Qualità Audio"
+msgid "Sign-in domain"
+msgstr "Dominio di accesso"
 
 msgctxt "#30103"
 msgid "Reset Addon"
@@ -210,30 +194,29 @@ msgctxt "#30104"
 msgid "Activate Logging"
 msgstr "Attivare il Log"
 
-msgctxt "#30105"
-msgid "Show all Images (reduce Metadata)"
-msgstr "Mostra tutte le Immagini (Riduce i Metadata)"
-
-msgctxt "#30106"
-msgid "Show colored Entries"
-msgstr "Mostra Voci colorate"
-
 msgctxt "#30107"
-msgid "Show unplayable Songs"
-msgstr "Mostra canzoni non riproducibili"
-
-msgctxt "#30108"
-msgid "Save Username?"
-msgstr "Salva nome utente?"
-
-msgctxt "#30109"
-msgid "Save Password?"
-msgstr "Salva la password"
+msgid "Hide unplayable Songs"
+msgstr "Nascondi canzoni non riproducibili"
 
 msgctxt "#30110"
 msgid "Reset Credentials"
 msgstr "Ripristina Credenziali utente"
 
-msgctxt "#30200"
-msgid "User Credentials"
-msgstr "Credenziali utente"
+msgctxt "#30120"
+msgid "The Amazon site your account is registered with, e.g. DE for amazon.de. Signing in starts there."
+msgstr "Il sito Amazon a cui è registrato l'account, ad es. IT per amazon.it. L'accesso inizia da lì."
+
+msgctxt "#30121"
+msgid "Hides songs that Amazon does not stream to your account. When off, they are listed in red."
+msgstr "Nasconde le canzoni che Amazon non trasmette per questo account. Se disattivato, appaiono in rosso."
+msgctxt "#30123"
+msgid "Writes details of the sign-in and of every request to Amazon to the Kodi log, for troubleshooting. The sign-in pages are also saved in the add-on's data folder."
+msgstr "Scrive nel log di Kodi i dettagli dell'accesso e di ogni richiesta ad Amazon, per la risoluzione dei problemi. Le pagine di accesso vengono inoltre salvate nella cartella dati dell'add-on."
+
+msgctxt "#30124"
+msgid "Resets all settings and deletes the stored sign-in."
+msgstr "Ripristina tutte le impostazioni ed elimina l'accesso salvato."
+
+msgctxt "#30125"
+msgid "Deletes the stored sign-in. You sign in again the next time you open the add-on."
+msgstr "Elimina l'accesso salvato. Alla prossima apertura dell'add-on sarà necessario accedere di nuovo."

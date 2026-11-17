@@ -7,79 +7,59 @@ msgid ""
 msgstr ""
 
 msgctxt "#30001"
-msgid "Playlists - Popular"
+msgid "Popular"
 msgstr ""
 
 msgctxt "#30002"
-msgid "Playlists - Newly Released"
+msgid "Newly Released"
 msgstr ""
 
 msgctxt "#30003"
-msgid "Playlist Recommendations"
+msgid "Recommendations"
 msgstr ""
 
 msgctxt "#30004"
-msgid "Album Recommendations"
-msgstr ""
-
-msgctxt "#30005"
-msgid "Station Recommendations"
+msgid "Recommendations"
 msgstr ""
 
 msgctxt "#30006"
-msgid "Songs - Owned"
+msgid "Personal Library"
 msgstr ""
 
 msgctxt "#30007"
-msgid "Albums - Owned"
-msgstr ""
-
-msgctxt "#30008"
-msgid "Stations"
+msgid "Personal Library"
 msgstr ""
 
 msgctxt "#30009"
-msgid "Songs - Purchased"
+msgid "Purchased"
 msgstr ""
 
 msgctxt "#30010"
-msgid "Albums - Search"
+msgid "Search albums"
 msgstr ""
 
 msgctxt "#30011"
-msgid "Songs - Search"
+msgid "Search songs"
 msgstr ""
 
 msgctxt "#30012"
-msgid "Albums - Purchased"
+msgid "Purchased"
 msgstr ""
 
 msgctxt "#30013"
-msgid "Playlists - Search"
+msgid "Search playlists"
 msgstr ""
 
 msgctxt "#30014"
-msgid "Artist - Search"
-msgstr ""
-
-msgctxt "#30015"
-msgid "Genres"
-msgstr ""
-
-msgctxt "#30016"
-msgid "Stations - Search"
-msgstr ""
-
-msgctxt "#30017"
-msgid "Songs - Recently Played"
+msgid "Search artists"
 msgstr ""
 
 msgctxt "#30018"
-msgid "Playlists - Followed"
+msgid "Followed"
 msgstr ""
 
 msgctxt "#30019"
-msgid "Playlists - Owned"
+msgid "Owned"
 msgstr ""
 
 msgctxt "#30020"
@@ -87,7 +67,7 @@ msgid "Next Page"
 msgstr ""
 
 msgctxt "#30021"
-msgid "Songs - Recently Added"
+msgid "Recently Added to Personal Library"
 msgstr ""
 
 msgctxt "#30022"
@@ -102,16 +82,16 @@ msgctxt "#30024"
 msgid "Albums"
 msgstr ""
 
-msgctxt "#30025"
-msgid "Stations - all Artists"
-msgstr ""
-
-msgctxt "#30026"
-msgid "All Stations"
-msgstr ""
-
 msgctxt "#30027"
 msgid "Artists"
+msgstr ""
+
+msgctxt "#30028"
+msgid "Genres"
+msgstr ""
+
+msgctxt "#30029"
+msgid "Radio stations"
 msgstr ""
 
 msgctxt "#30030"
@@ -122,44 +102,16 @@ msgctxt "#30031"
 msgid "Amazon - Enter your Password"
 msgstr ""
 
-msgctxt "#30032"
-msgid "Last Search -1 : "
+msgctxt "#30042"
+msgid "Search ..."
 msgstr ""
 
-msgctxt "#30033"
-msgid "Last Search -2 : "
+msgctxt "#30043"
+msgid "Search history"
 msgstr ""
 
-msgctxt "#30034"
-msgid "Last Search -3 : "
-msgstr ""
-
-msgctxt "#30035"
-msgid "Soccer Live"
-msgstr ""
-
-msgctxt "#30036"
-msgid "Bundesliga"
-msgstr ""
-
-msgctxt "#30037"
-msgid "2. Bundesliga"
-msgstr ""
-
-msgctxt "#30038"
-msgid "DFB Pokal"
-msgstr ""
-
-msgctxt "#30039"
-msgid "Champions League"
-msgstr ""
-
-msgctxt "#30040"
-msgid "SuperCup"
-msgstr ""
-
-msgctxt "#30041"
-msgid "Recommendations"
+msgctxt "#30044"
+msgid "Remove Search"
 msgstr ""
 
 msgctxt "#30070"
@@ -187,7 +139,43 @@ msgid "Another instance is running."
 msgstr ""
 
 msgctxt "#30076"
-msgid "Credentials successful removed."
+msgid "Credentials successfully removed."
+msgstr ""
+
+msgctxt "#30077"
+msgid "Request failed."
+msgstr ""
+
+msgctxt "#30078"
+msgid "Amazon does not release this title for streaming."
+msgstr ""
+
+msgctxt "#30079"
+msgid "No songs were added to the personal library in the last 90 days."
+msgstr ""
+
+msgctxt "#30080"
+msgid "Amazon refused the license for this device. Start the song again."
+msgstr ""
+
+msgctxt "#30081"
+msgid "Amazon refused the license: {}"
+msgstr ""
+
+msgctxt "#30082"
+msgid "Amazon does not trust the Widevine library of Kodi. Update it with InputStream Helper and start the song again."
+msgstr ""
+
+msgctxt "#30083"
+msgid "Amazon licenses songs of its catalogue only to a player with a Widevine Verified Media Path, which Kodi does not have on this system. Songs you own play."
+msgstr ""
+
+msgctxt "#30084"
+msgid "Resend code"
+msgstr ""
+
+msgctxt "#30085"
+msgid "Verify with WhatsApp"
 msgstr ""
 
 msgctxt "#30100"
@@ -195,11 +183,7 @@ msgid "General"
 msgstr ""
 
 msgctxt "#30101"
-msgid "Domain Identifier (DE / UK ...)"
-msgstr ""
-
-msgctxt "#30102"
-msgid "Audio Quality"
+msgid "Sign-in domain"
 msgstr ""
 
 msgctxt "#30103"
@@ -210,30 +194,29 @@ msgctxt "#30104"
 msgid "Activate Logging"
 msgstr ""
 
-msgctxt "#30105"
-msgid "Show all Images (reduce Metadata)"
-msgstr ""
-
-msgctxt "#30106"
-msgid "Show colored Entries"
-msgstr ""
-
 msgctxt "#30107"
-msgid "Show unplayable Songs"
-msgstr ""
-
-msgctxt "#30108"
-msgid "Save Username?"
-msgstr ""
-
-msgctxt "#30109"
-msgid "Save Password?"
+msgid "Hide unplayable Songs"
 msgstr ""
 
 msgctxt "#30110"
 msgid "Reset Credentials"
 msgstr ""
 
-msgctxt "#30200"
-msgid "User Credentials"
+msgctxt "#30120"
+msgid "The Amazon site your account is registered with, e.g. DE for amazon.de. Signing in starts there."
+msgstr ""
+
+msgctxt "#30121"
+msgid "Hides songs that Amazon does not stream to your account. When off, they are listed in red."
+msgstr ""
+msgctxt "#30123"
+msgid "Writes details of the sign-in and of every request to Amazon to the Kodi log, for troubleshooting. The sign-in pages are also saved in the add-on's data folder."
+msgstr ""
+
+msgctxt "#30124"
+msgid "Resets all settings and deletes the stored sign-in."
+msgstr ""
+
+msgctxt "#30125"
+msgid "Deletes the stored sign-in. You sign in again the next time you open the add-on."
 msgstr ""

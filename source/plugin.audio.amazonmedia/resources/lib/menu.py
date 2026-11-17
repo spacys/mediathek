@@ -4,28 +4,25 @@
 class AMmenu():
     """
     Amazon Media Main Menu Entries
-        'txt'    - String ID for translation
-        'fct'    - Function to call
-        'img'    - Folder/Background image
-        'search' - last searched items
+        'txt'     - String ID for translation
+        'fct'     - Function to call
+        'img'     - Folder/Background image
+        'fanart'  - Background image, if it differs from 'img'
+        'history' - search history, the entry is left out while it is empty
     """
     @staticmethod
     def menuHome():
         return [{'txt':30023,'fct':'menuPlaylists',         'img':'playlists.jpg'},
                 {'txt':30024,'fct':'menuAlbums',            'img':'albums.jpg'},
                 {'txt':30022,'fct':'menuSongs',             'img':'songs.jpg'},
-                {'txt':30008,'fct':'menuStations',          'img':'stations.jpg'},
-                {'txt':30015,'fct':'getGenres',             'img':'genres.jpg'},
                 {'txt':30027,'fct':'menuArtists',           'img':'artists.jpg'},
-                {'txt':30041,'fct':'getNewRecom',           'img':'newrecom.jpg'},
-                {'txt':30039,'fct':'testplaylist',          'img':'newrecom.jpg'}]
+                {'txt':30028,'fct':'getGenres',             'img':'genres.jpg'},
+                {'txt':30029,'fct':'getStations',           'img':'stations.jpg'}]
 
     @staticmethod
     def menuPlaylists():
-        return [{'txt':30013,'fct':'searchPlayLists',       'img':'search.png'},
-                {'txt':30032,'fct':'search1PlayLists',      'img':'search.png','search':'search1PlayLists'},
-                {'txt':30033,'fct':'search2PlayLists',      'img':'search.png','search':'search2PlayLists'},
-                {'txt':30034,'fct':'search3PlayLists',      'img':'search.png','search':'search3PlayLists'},
+        return [{'txt':30042,'fct':'searchPlayLists',       'img':'search.png'},
+                {'txt':30043,'fct':'searchHistoryPlayLists','img':'search.png','history':'PlayLists'},
                 {'txt':30003,'fct':'getRecomPlayLists',     'img':'playlists.jpg'},
                 {'txt':30002,'fct':'getNewPlayLists',       'img':'playlists.jpg'},
                 {'txt':30001,'fct':'getPopularPlayLists',   'img':'playlists.jpg'},
@@ -34,38 +31,24 @@ class AMmenu():
 
     @staticmethod
     def menuAlbums():
-        return [{'txt':30010,'fct':'searchAlbums',          'img':'search.png'},
-                {'txt':30032,'fct':'search1Albums',         'img':'search.png','search':'search1Albums'},
-                {'txt':30033,'fct':'search2Albums',         'img':'search.png','search':'search2Albums'},
-                {'txt':30034,'fct':'search3Albums',         'img':'search.png','search':'search3Albums'},
+        return [{'txt':30042,'fct':'searchAlbums',          'img':'search.png'},
+                {'txt':30043,'fct':'searchHistoryAlbums',  'img':'search.png','history':'Albums'},
                 {'txt':30004,'fct':'getRecomAlbums',        'img':'albums.jpg'},
+                {'txt':30002,'fct':'getNewAlbums',          'img':'albums.jpg'},
+                {'txt':30001,'fct':'getPopularAlbums',      'img':'albums.jpg'},
                 {'txt':30012,'fct':'getPurAlbums',          'img':'albums.jpg'},
                 {'txt':30007,'fct':'getAllAlbums',          'img':'albums.jpg'}]
 
     @staticmethod
     def menuSongs():
-        return [{'txt':30011,'fct':'searchSongs',           'img':'search.png'},
-                {'txt':30032,'fct':'search1Songs',          'img':'search.png','search':'search1Songs'},
-                {'txt':30033,'fct':'search2Songs',          'img':'search.png','search':'search2Songs'},
-                {'txt':30034,'fct':'search3Songs',          'img':'search.png','search':'search3Songs'},
+        return [{'txt':30042,'fct':'searchSongs',           'img':'search.png'},
+                {'txt':30043,'fct':'searchHistorySongs',   'img':'search.png','history':'Songs'},
                 {'txt':30009,'fct':'getPurSongs',           'img':'songs.jpg'},
                 {'txt':30006,'fct':'getAllSongs',           'img':'songs.jpg'},
-                {'txt':30017,'fct':'getRecentlyPlayed',     'img':'songs.jpg'},
                 {'txt':30021,'fct':'getRecentlyAddedSongs', 'img':'songs.jpg'}]
 
     @staticmethod
-    def menuStations():
-        return [{'txt':30016,'fct':'searchStations',        'img':'search.png'},
-                {'txt':30032,'fct':'search1Stations',       'img':'search.png','search':'search1Stations'},
-                {'txt':30033,'fct':'search2Stations',       'img':'search.png','search':'search2Stations'},
-                {'txt':30034,'fct':'search3Stations',       'img':'search.png','search':'search3Stations'},
-                {'txt':30005,'fct':'getRecomStations',      'img':'stations.jpg'},
-                {'txt':30026,'fct':'getStations',           'img':'stations.jpg'},
-                {'txt':30025,'fct':'getAllArtistsStations', 'img':'stations.jpg'}]
-
-    @staticmethod
     def menuArtists():
-        return [{'txt':30014,'fct':'searchArtist',          'img':'search.png'},
-                {'txt':30032,'fct':'search1Artists',        'img':'search.png','search':'search1Artists'},
-                {'txt':30033,'fct':'search2Artists',        'img':'search.png','search':'search2Artists'},
-                {'txt':30034,'fct':'search3Artists',        'img':'search.png','search':'search3Artists'}]
+        return [{'txt':30042,'fct':'searchArtist',          'img':'search.png'},
+                {'txt':30043,'fct':'searchHistoryArtists', 'img':'search.png','history':'Artists'},
+                {'txt':30006,'fct':'getLibraryArtists',     'img':'artists.jpg'}]

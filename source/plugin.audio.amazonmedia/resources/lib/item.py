@@ -18,6 +18,9 @@ class AMitem( AMtools ):
         :param array/json param:    Addon mode parameter for the item
         """
         inf, met = self.setData( item, param )
+        if not met['isPlayable']:
+            # Amazon lists such a folder, but hands out nothing in it.
+            return None
         url, li  = self.setItem( inf, met )
         return (url, li, True)
 
@@ -41,13 +44,15 @@ class AMitem( AMtools ):
                 'album':        None,
                 'artist':       None,
                 'title':        None,
-                'rating':       None
+                'rating':       None,
+                'mediatype':    None
             }
             meta = {
                 'mode':         None,
                 'asin':         None,
                 'objectId':     None,
                 'thumb':        None,
+                'fanart':       None,
                 'purchased':    False,
                 'isPrime':      False,
                 'isUnlimited':  False,
@@ -79,6 +84,10 @@ class AMitem( AMtools ):
         elif 'durationSeconds' in item:     info['duration'] = item['durationSeconds']
 
         if 'albumReleaseDate' in item:      info['year'] = item['albumReleaseDate'][:4]
+        elif item.get('originalReleaseDate'):
+            # Milliseconds since the epoch, negative for a release before 1970. Windows cannot turn
+            # such a timestamp into a date (OSError: Invalid argument), so the date is counted from the epoch.
+            info['year'] = (datetime.datetime(1970, 1, 1) + datetime.timedelta(milliseconds=item['originalReleaseDate'])).year
 
         if 'primaryGenre' in item:          info['genre'] = [item['primaryGenre']]
         elif 'genreName' in item:           info['genre'] = [item['genreName']]
@@ -86,7 +95,6 @@ class AMitem( AMtools ):
 
         if 'albumName' in item:             info['album'] = item['albumName']
         if 'description' in item:           info['album'] = item['description']
-        if 'stationTitle' in item:          info['album'] = item['stationTitle']
         if 'album' in item:
             try:
                 info['album'] = item['album']['name']
@@ -94,13 +102,11 @@ class AMitem( AMtools ):
                 info['album'] = item['album']['title']
 
         if 'isAlbumFolder' in filter and filter['isAlbumFolder'] == True:
-            pass # this is only for folder views ...field 'artist' break Kodi visualization for albums
-        else:
-            if 'albumArtistName' in item:       info['artist'] = item['albumArtistName']
-            if 'artist' in item:                info['artist'] = item['artist']['name']
-            if 'artistName' in item:            info['artist'] = item['artistName']
+            info['mediatype'] = 'album'
+        if 'albumArtistName' in item:       info['artist'] = item['albumArtistName']
+        if 'artist' in item:                info['artist'] = item['artist']['name']
+        if 'artistName' in item:            info['artist'] = item['artistName']
 
-        if 'stationTitle' in item:          info['title'] = item['stationTitle']
         if 'displayName' in item:           info['title'] = item['displayName']
 
         if 'isAlbum' in filter and filter['isAlbum']:
@@ -122,7 +128,6 @@ class AMitem( AMtools ):
         if 'asin' in item:                  meta['asin'] = item['asin']
         if 'seedId' in item:                meta['asin'] = item['seedId']
         if 'categoryId' in item:            meta['asin'] = item['categoryId']
-        if 'stationKey' in item:            meta['asin'] = item['stationKey']
         if 'identifier' in item:            meta['asin'] = item['identifier']
         if 'isAlbum' in filter and filter['isAlbum']:
             if 'albumAsin' in item:
@@ -130,15 +135,12 @@ class AMitem( AMtools ):
 
         if 'trackId' in item:               meta['objectId'] = item['trackId']
         if 'objectId' in item:              meta['objectId'] = item['objectId']
-        if 'stationSeedId' in item:         meta['objectId'] = item['stationSeedId']
 
         # images - 'icon','thumb','fanart','poster','banner','landscape'
         if 'image' in item:                 meta['thumb'] = item['image']
         if 'imageFull' in item:             meta['thumb'] = item['imageFull']
         if 'albumCoverImageFull' in item:   meta['thumb'] = item['albumCoverImageFull']
         if 'albumArtImageUrl' in item:      meta['thumb'] = item['albumArtImageUrl']
-        if 'stationImageUrl' in item and item['stationImageUrl'] is not None:
-            meta['thumb'] = item['stationImageUrl']
         if 'foregroundImageUrl' in item and item['foregroundImageUrl'] is not None:
             meta['thumb'] = item['foregroundImageUrl']
         if 'artOriginal' in item:           meta['thumb'] = item['artOriginal']['URL']
@@ -149,6 +151,11 @@ class AMitem( AMtools ):
             meta['thumb'] = item['album']['image']
         except:
             pass
+        # All other images are square covers, which do not fit as a background.
+        banner = item.get('bannerImage')
+        if isinstance(banner, dict):        # the playlists service hands over url, width and height
+            banner = banner.get('url')
+        if banner:                          meta['fanart'] = banner
 
         if (('purchased' in item and (item['purchased'] == True or item['purchased'] == 'true')) or
             ('isPurchased' in item and (item['isPurchased'] == True or item['isPurchased'] == 'true'))):
@@ -157,33 +164,26 @@ class AMitem( AMtools ):
         if (('isPrime' in item and (item['isPrime'] == True or item['isPrime'] == 'true')) or
             ('primeStatus' in item and item['primeStatus'] == 'PRIME') or
             ('serviceTier' in item and item['serviceTier'] == 'PRIME') or
-            ('playlistId' in item) or
-            ('isStation' in filter and filter['isStation'] == True)):
+            ('playlistId' in item)):
             meta['isPrime'] = True
 
         if ('isMusicSubscription' in item and (item['isMusicSubscription'] == True or item['isMusicSubscription'] == 'true')):
             meta['isUnlimited'] = True
 
-        if self.G['showcolentr']:
-            if meta['purchased']:
-                meta['color'] = '[COLOR gold]%s[/COLOR]'
-            elif meta['isPrime'] or 'stationMapIds' in item:
-                meta['color'] = '%s'
-            elif meta['isUnlimited']:
-                meta['color'] = '[COLOR blue]%s[/COLOR]'
-            else:
-                meta['color'] = '[COLOR red]%s[/COLOR]'
+        # Amazon no longer flags catalog content as Prime and streams it to a Prime account
+        # just as it does to a subscription, so the account tier does not decide any more.
+        meta['isPlayable'] = bool(meta['purchased'] or meta['isPrime'] or meta['isUnlimited'])
 
-        if ((self.credentials.ACCESSTYPE == 'PRIME'     and not meta['isPrime'] and not meta['purchased']) or
-            (self.credentials.ACCESSTYPE == 'UNLIMITED' and not meta['isPrime'] and not meta['purchased'] and not meta['isUnlimited'] )):
-            meta['isPlayable'] = False
+        if meta['purchased']:
+            meta['color'] = '[COLOR gold]%s[/COLOR]'
+        elif meta['isPlayable']:
+            meta['color'] = '%s'
         else:
-            meta['isPlayable'] = True
+            meta['color'] = '[COLOR red]%s[/COLOR]'
 
-        if (self.credentials.ACCESSTYPE == 'UNLIMITED' and meta['isUnlimited']):
-            meta['isPlayable'] = True
-        
         if 'isList' in filter and filter['isList'] and info['tracknumber'] is not None:
+            # The breadcrumb takes the plain title, without the counts added here.
+            meta['name'] = info['title']
             info['title'] =  '{}  ({} Hits'.format(info['title'],info['tracknumber'])
             if info['duration'] is not None:
                 info['title'] =  '{} - {}'.format(info['title'],datetime.timedelta(seconds=info['duration']))
@@ -201,8 +201,11 @@ class AMitem( AMtools ):
         :param array/json met:  Addon data structure for Meta information
         """
         li = xbmcgui.ListItem(label=met['color'] % (inf['title']))
-        if not met['thumb'] == None:
-            li.setArt( self.setImage( met['thumb'] ) )
+        art = self.setImage( met['thumb'] ) if met['thumb'] is not None else {}
+        if met.get('fanart'):
+            art['fanart'] = met['fanart']
+        if art:
+            li.setArt( art )
 
         info_tag = self.setItemTags(li, 'music')
         info_tag.set_info(inf)
@@ -221,10 +224,8 @@ class AMitem( AMtools ):
         Assign image to the Kodi list item property
         :param str img: link to the image
         """
-        if self.G['showimages']:
-            return ({'icon':img,'thumb':img,'fanart':img,'poster':img,'banner':img,'landscape':img})
-        else:
-            return ({'thumb':img}) # there is a bug in the listitems, after setting multiple arts, setInfo shows the Genre only
+        # A cover is square: poster, banner and landscape are other shapes.
+        return ({'icon':img,'thumb':img})
 
     def setUrl( self, inf, met ):
         """
@@ -247,31 +248,46 @@ class AMitem( AMtools ):
         if inf['tracknumber'] is not None:  url['tracknumber']  = inf['tracknumber']
         #if met['thumb'] is not None:        url['art']          = met['thumb']
 
-        return '{}?{}'.format(self.G['addonBaseUrl'],urlencode(url))
+        url = '{}?{}'.format(self.G['addonBaseUrl'],urlencode(url, doseq=True))
+        if met['mode'] != 'getTrack':
+            url += self.crumbsTo(met.get('name', inf['title']))
+        return url
 
-    def addPaginator( self, resultToken, resultLen ):
+    def update( self, inf, met, item, **flags ):
         """
-        Generate paginator as an additional list item
+        Complete the item data with a second data object, if there is one
+        :param array/json item: data object from a further Amazon API call, or None
+        :param flags:           Addon mode parameters for the item
+        """
+        if item is None:
+            return inf, met
+        return self.setData( item, dict(flags, info=inf, meta=met, update=True) )
+
+    def addPaginator( self, resultToken, resultLen, asin=None ):
+        """
+        Generate paginator as an additional list item, None on the last page
         :param str resultToken: paginator token from the Amazon API
         :param array resultLen: received item array
+        :param str asin:        Album-, Artist-, Playlist-ID the list belongs to
         """
         if not resultToken == None and not len(resultLen) < self.G['maxResults']: # next page
-            return True, self.setPaginator(resultToken)
-        else:
-            return False, ''
+            return self.setPaginator(resultToken, None, asin)
+        return None
 
     def setPaginator( self, nextToken, query=None, asin=None ):
         """
         Provides a Kodi List Item as paginator, returns item tupel
         :param str nextToken:   page token
         :param str query:       request query
-        :param str asin:        Album-, Artist-, Station-, Playlist-ID
+        :param str asin:        Album-, Artist-, Playlist-ID
         """
         li = xbmcgui.ListItem(label=self.getTranslation(30020))
         li.setProperty('IsPlayable', 'false')
-        url = "{}?mode={}&token={}".format(self.G['addonBaseUrl'],str(self.getMode()),str(nextToken))
+        # A cursor of the GraphQL interface holds characters a URL has to quote.
+        url = "{}?mode={}&token={}".format(self.G['addonBaseUrl'],str(self.getMode()),urlquoteplus(str(nextToken)))
         if query:
             url += "&query={}".format( urlquoteplus( query.encode("utf8") ) )
         if asin:
             url += "&asin={}".format( urlquoteplus( asin.encode("utf8") ) )
+        url += self.crumbsTo()
         return (url, li, True)
